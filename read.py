@@ -57,9 +57,11 @@ def jeoptic(date):
 	#print acc
 	d = {'jenoptik_time' : time_, 'jenoptik_snow_depth': snow}
 	return pd.DataFrame(d)
+
 def parsivel23(date):
 	date_str = time.strftime("%Y%m%d",date)
 	files = glob.glob("data/Parsivel23/"+date_str+"*")	
 	
-
-
+def pip(filename):
+	d = pd.read_csv(filename, delim_whitespace=True, skiprows=8, header=3)
+	return d
