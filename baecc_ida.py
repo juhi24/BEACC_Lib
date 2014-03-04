@@ -16,10 +16,7 @@ import re
 import h5py
 import pandas as pd
 
-f=0
-
 def hotplate(date):
-	global f
 	date_str = time.strftime("%Y%m%d",date)
 	files = glob.glob("data/Hotplate/hot_plate_100901_"+date_str+"*")
 	acc = []
@@ -30,22 +27,19 @@ def hotplate(date):
 		file_.close
 		for i in lines:
 			var = i.split(',')
-			print len(var)
 			if len(var) > 0:
 				time_tmp = time.strptime(var[0],'%Y%m%d%H%M%S')
 				time_tmp = time.mktime(time_tmp)
 				time_.append(time_tmp)
-				acc.append(var[-1])
+				acc.append(float(var[-1]))
 	
 	#print acc
 	d = {'hotplate_time' : time_, 'hotplate_accumulation': acc}
 	return pd.DataFrame(d)
 
 def jeoptic(date):
-	global f
 	date_str = time.strftime("%Y%m%d",date)
 	files = glob.glob("data/Jenoptik/"+date_str+"*")
-	print date_str
 	snow = []
 	time_ = []
 	data_=[]
@@ -55,36 +49,17 @@ def jeoptic(date):
 		file_.close
 		for i in lines:
 			var = i.split(',')
-			print len(var)
 			if len(var) > 0:
 				time_tmp = time.strptime(var[0],'%Y-%m-%d %H:%M:%S')
 				time_tmp = time.mktime(time_tmp)
 				time_.append(time_tmp)
-				snow.append(var[-1])
+				snow.append(float(var[2])-0.034)
 	#print acc
-	data_ = [time_,snow]
-	dset = f.create_dataset("snow_depth", (len(snow),), data=snow)
-	dset = f.create_dataset("snow_depth_time", (len(time_),), data=time_)
-
+	d = {'jenoptik_time' : time_, 'jenoptik_snow_depth': snow}
+	return pd.DataFrame(d)
 def parsivel23(date):
-	global f
 	date_str = time.strftime("%Y%m%d",date)
 	files = glob.glob("data/Parsivel23/"+date_str+"*")	
 	
 
-def great_hdf5(date):
-	global f
-	date_str = time.strftime("%Y%m%d",date)
-	f = h5py.File(date_str + ".hdf5", "w")
-	dset = f.create_dataset("basetime", (1,), dtype='i')
-	hotpalte_date = hotplate(date)
-	
 
-def main():
-	tmp=(2014,02,06,0,0,0,0,0,0)
-	date=time.mktime(tmp)
-	date = time.gmtime(date)
-	print date
-	great_hdf5(date)
-
-#main()
