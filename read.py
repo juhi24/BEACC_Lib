@@ -24,6 +24,7 @@ def test():
 	print "testing"
 	d= pluvio(date)	
 	return d
+	
 
 def hotplate(date):
 	date_str = time.strftime("%Y%m%d",date)
@@ -76,7 +77,7 @@ def hotplate(date):
 		time_ = []
 		for i in lines:
 			var = i.split(',')
-			if len(var) > 0:
+			if len(var) > 36:
 				print len(var)
 				time_tmp = time.strptime(var[0],'%Y%m%d%H%M%S')
 				time_tmp = time.mktime(time_tmp)
