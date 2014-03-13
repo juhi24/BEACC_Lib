@@ -146,7 +146,7 @@ def pluvio(date):
 	#print len(data['status'])
 	return pd.DataFrame(data)
 
-class pip:	
+class Pip:	
     def __init__(self,filename):
         self.filename = filename
         self.data = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8, header=3, 
