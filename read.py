@@ -5,6 +5,7 @@ import glob
 import matplotlib.pyplot as plt
 import pandas as pd
 from collections import defaultdict
+import linecache
 
 def test():
 	tmp=(2013,12,5,0,0,0,0,0,0)
@@ -144,7 +145,18 @@ def pluvio(date):
 	#data["pluvio_time"] = time_
 	#print len(data['status'])
 	return pd.DataFrame(data)
-	
-def pip(filepath):
-	d = pd.read_csv(filepath, delim_whitespace=True, skiprows=8, header=3)
-	return d
+
+class pip:	
+    def __init__(self,filename):
+        self.filename = filename
+        self.data = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8, header=3, 
+                        parse_dates={'datetime':['hr_d','min_d']}, 
+                        date_parser=self.parse_datetime,
+                        index_col='datetime')
+
+    def parse_datetime(self,hh,mm):
+        dateline = linecache.getline(self.filename,6)
+        datearr = [int(x) for x in dateline.split()]
+        date = datetime.date(*datearr)
+        time = datetime.time(int(hh),int(mm))
+        return datetime.datetime.combine(date, time)
