@@ -16,12 +16,13 @@ import re
 import h5py
 import pandas as pd
 from collections import defaultdict
+import linecache
 
 def test():
 	tmp=(2013,12,5,0,0,0,0,0,0)
 	date=time.mktime(tmp)
 	date = time.gmtime(date)
-	print "testing"
+	print("testing")
 	d= pluvio(date)	
 	return d
 	
@@ -78,6 +79,7 @@ def hotplate(date):
 		for i in lines:
 			var = i.split(',')
 			if len(var) > 36:
+				print len(var)
 				time_tmp = time.strptime(var[0],'%Y%m%d%H%M%S')
 				time_tmp = time.mktime(time_tmp)
 				data['hotplate_time'].append(time_tmp)
@@ -120,6 +122,7 @@ def pluvio(date):
 	files = glob.glob("../data/Pluvio200/pluvio200_01_"+date_str+"*")
 	data=defaultdict(list)
 
+
 	file_format = {
 	2: 'Intensity RT  [mm/h]',
 	3: 'Accumulated RT/NRT [mm]',
@@ -154,6 +157,12 @@ def pluvio(date):
 	#print len(data['status'])
 	return pd.DataFrame(data)
 	
-def pip(filename):
-	d = pd.read_csv(filename, delim_whitespace=True, skiprows=8, header=3)
-	return d
+
+
+class Pip:	
+    def __init__(self,filename):
+        self.filename = filename
+        self.data = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8, header=3, 
+                        parse_dates={'datetime':['hr_d','min_d']}, 
+                        date_parser=self.parse_datetime,
+                        index_col='datetime')
