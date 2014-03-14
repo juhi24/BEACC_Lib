@@ -78,13 +78,12 @@ def hotplate(date):
 		for i in lines:
 			var = i.split(',')
 			if len(var) > 36:
-				print len(var)
 				time_tmp = time.strptime(var[0],'%Y%m%d%H%M%S')
 				time_tmp = time.mktime(time_tmp)
 				data['hotplate_time'].append(time_tmp)
 				
 				for key,value in file_format.iteritems():
-					data[value].append(var[key+2])
+					data["hotplate_"+value].append(var[key+2])
 			
 	return pd.DataFrame(data)
 
@@ -109,7 +108,7 @@ def jeoptic(date):
 				signal.append(float(var[2]))
 				temp.append(float(var[3]))
 	#print acc
-	d = {'jenoptik_time' : time_, 'jenoptik_snow_depth': snow,'signal_strength':signal,'temperature':temp}
+	d = {'jenoptik_time' : time_, 'jenoptik_snow_depth': snow,'jenoptik_signal_strength':signal,'jenoptik_temperature':temp}
 	return pd.DataFrame(d)
 
 def parsivel23(date):
@@ -120,7 +119,6 @@ def pluvio(date):
 	date_str = time.strftime("%Y%m%d",date)
 	files = glob.glob("../data/Pluvio200/pluvio200_01_"+date_str+"*")
 	data=defaultdict(list)
-	print "../data/Pluvio200/pluvio200_01_"+date_str+"*"
 
 	file_format = {
 	2: 'Intensity RT  [mm/h]',
@@ -150,7 +148,7 @@ def pluvio(date):
 				data['pluvio_time'].append(time_tmp)
 				
 				for key,value in file_format.iteritems():
-					data[value].append(var[key-1])
+					data['pluvio '+value].append(var[key-1])
 			
 	#data["pluvio_time"] = time_
 	#print len(data['status'])
