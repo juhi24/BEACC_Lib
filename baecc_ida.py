@@ -24,18 +24,18 @@ def great_hdf5(date):
 	dset = f.create_dataset("basetime", (1,), dtype='i')
 	#read date from different device
 	dev = [read.hotplate,read.pluvio]
-
+	print dev
 	for i in dev:
 		data = i(date)
 		names = list(data.columns.values)
 		for name in names:
 			data_values = data[name].values
-			print type(data_values)
+			#print type(data_values)
 			dset = f.create_dataset(name, data=data_values.tolist())
 
 	
 def main():
-	tmp=(2014,02,06,0,0,0,0,0,0)
+	tmp=(2014,02,07,0,0,0,0,0,0)
 	date=time.mktime(tmp)
 	date = time.gmtime(date)
 	great_hdf5(date)
