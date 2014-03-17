@@ -152,10 +152,13 @@ def pluvio(date):
 class Pip:    
     def __init__(self,filename):
         self.filename = filename
-        self.data = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8, header=3,
+        self.dsd = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8, header=3,
                         parse_dates={'datetime':['hr_d','min_d']},
                         date_parser=self.parse_datetime,
                         index_col='datetime')
+        self.num_d = self.dsd[['Num_d']]
+        self.bin_cen = self.dsd[['Bin_cen']]
+        self.dsd = self.dsd.drop(['day_time','Num_d','Bin_cen'],1)
 
     def parse_datetime(self,hh,mm):
         dateline = linecache.getline(self.filename,6)
@@ -163,3 +166,6 @@ class Pip:
         date = datetime.date(*datearr)
         time = datetime.time(int(hh),int(mm))
         return datetime.datetime.combine(date, time)
+        
+    def plot_dsd():
+        hist2d()
