@@ -3,6 +3,8 @@ from pylab import *
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.colors import LogNorm
 import datetime
 import pandas as pd
 from collections import defaultdict
@@ -172,5 +174,13 @@ class Pip:
         time = datetime.time(int(hh),int(mm))
         return datetime.datetime.combine(date, time)
         
-    def plot_dsd():
-        hist2d()
+    def plot_dsd(self, img=True):
+        if img:
+            plt.matshow(self.dsd.transpose(), norm=LogNorm(), origin='lower')
+        else:
+            plt.pcolor(self.dsd.transpose(), norm=LogNorm())
+        plt.colorbar()
+        plt.title('PIP DSD')
+        plt.xlabel('time (UTC)')
+        plt.ylabel('D (mm)')
+        
