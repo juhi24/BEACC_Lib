@@ -31,7 +31,7 @@ def great_hdf5(date):
 		for name in names:
 			data_values = data[name].values
 			data_values = data_values.tolist()
-			data_values = [float(i) for i in data_values]
+			#data_values = [float(i) for i in data_values]
 			#print type(data_values)
 			dset = f.create_dataset(name, data=data_values)
 
