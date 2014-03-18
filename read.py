@@ -18,7 +18,7 @@ def test():
     
 
 def hotplate(date):
-    file_ = open(filename)
+    #file_ = open(filename)
     date_str = time.strftime("%Y%m%d",date)
     files = glob.glob("../data/Hotplate/hot_plate_100901_"+date_str+"*")
     
