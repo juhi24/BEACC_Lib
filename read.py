@@ -84,7 +84,7 @@ def hotplate(date):
             
     return pd.DataFrame(data,columns=data.keys())
 
-def jeoptic(date):
+def jenoptik(date):
     date_str = time.strftime("%Y%m%d",date)
     files = glob.glob("../data/Jenoptik/"+date_str+"*")
     snow = []
