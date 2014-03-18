@@ -23,7 +23,7 @@ def great_hdf5(date):
 	f = h5py.File(date_str + ".hdf5", "w")
 	dset = f.create_dataset("basetime", (1,), dtype='i')
 	#read date from different device
-	dev = [read.hotplate,read.pluvio]
+	dev = [read.hotplate,read.pluvio,read.jenoptik]
 	print dev
 	for i in dev:
 		data = i(date)
