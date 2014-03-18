@@ -72,7 +72,10 @@ def hotplate(date):
             if len(var) > 36:
                 time_tmp = time.strptime(var[0],'%Y%m%d%H%M%S')
                 time_tmp = time.mktime(time_tmp)
+		firmware = var[1]
+		
                 data['hotplate_time'].append(time_tmp)
+		data['hotplate-firmware'].append(firmware)
                 
                 for key,value in file_format.iteritems():
                     data["hotplate_"+value].append(var[key+2])
