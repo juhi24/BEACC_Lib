@@ -28,7 +28,7 @@ def hotplate(date):
     file_format = {
     1: 'Output format',
     2: 'Fault indicator',
-    3: 'Timestamp since (s) 1/1/1970',
+    3: 'Timestamp since (s) 1.1.1970',
     4: 'Voltage, sensor, instantaneous (V)',
     5: 'Voltage, reference, instantaneous (V)',
     6: 'Current, sensor, instantaneous (A)',
@@ -41,24 +41,24 @@ def hotplate(date):
     13: 'Control effort (PWM), reference, instantaneous (%)',
     14:'Ambient temperature, 1-minute running ave. 1Hz samples (degC)',
     15: 'Enclosure temperature, 1-minute running ave. 1Hz samples (degC)',
-    16: 'Solar/IR sensor temperature, 1-minute running ave. 1Hz samples (degC)',
+    16: 'Solar IR sensor temperature, 1-minute running ave. 1Hz samples (degC)',
     17: 'Solar radiation, 1-minute ave., 1Hz samples (Wm-2)',
     18: 'Net IR radiation ground to sky, 1-minute running ave., 1 Hz samples (Wm-2)',
     19: 'Barometric pressure, referenced to sea level (mbar)',
     20: 'Temperature of humidity sensor (degC)',
     21: 'Relative humidity (%)',
-    22: 'Wind speed, 1- minute running ave, 1 Hz samples (m/s)',
+    22: 'Wind speed, 1- minute running ave, 1 Hz samples (m s)',
     23: 'Collection efficiency, 1-minute running ave, 1Hz samples (W)',
     24: 'Power offset, 1-minute running ave., 1Hz samples (W)',
     25: 'Power offset due to radiation effects, 1Hz samples (W)',
-    26: 'Raw precip. rate, 1-minute running ave, 1 Hz samples (mm/hr)',
+    26: 'Raw precip. rate, 1-minute running ave, 1 Hz samples (mm hr)',
     27: 'Power, sensor, 5-minute running average, 1 minute samples (W)',
     28: 'Power, reference, 5-minute running average, 1 minute samples (W)',
     29: 'delta Power, 5-minute running ave, 1 minute samples (W)',
     30: 'Ambient temperature, 5-minute running ave., 1 minute samples (degC)',
     31: 'Power offset, 5-minute ave., 1 minute samples (W)',
-    32: 'Raw precip.rate, 5-minute running ave, 1 min. samples (mm/hr)',
-    33: 'Current precipitation rate (mm/hr)',
+    32: 'Raw precip.rate, 5-minute running ave, 1 min. samples (mm hr)',
+    33: 'Current precipitation rate (mm hr)',
     34: 'Total accumulated liquid precipitation (mm)'
      }
 
@@ -114,8 +114,8 @@ def pluvio(date):
 
 
     file_format = {
-    2: 'Intensity RT  [mm/h]',
-    3: 'Accumulated RT/NRT [mm]',
+    2: 'Intensity RT  [mm h]',
+    3: 'Accumulated RT NRT [mm]',
     4: 'Accumulated NRT [mm]',
     5: 'Accumulated total NRT [mm]',
     6: 'Bucket RT [mm]',
