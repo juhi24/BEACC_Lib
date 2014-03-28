@@ -186,10 +186,10 @@ class PipDSD:
 class PipV:
     def __init__(self,filename):
         self.filename = filename
-        self.data = pd.read_csv(self.filename, delim_whitespace=True, 
-                                index_col='RecNum', skiprows=8,
+        self.data = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8,
                                 parse_dates={'datetime':['minute_p']},
-                                date_parser=self.parse_datetime)
+                                date_parser=self.parse_datetime,
+                                index_col='RecNum')
     
     def parse_datetime(self,mm):
         datestr = self.filename.split('/')[-1].split('_')[0]
