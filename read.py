@@ -155,7 +155,7 @@ def pluvio(date):
     return pd.DataFrame(data)
     
 
-class Pip:    
+class PipDSD:    
     def __init__(self,filename):
         self.filename = filename
         self.dsd = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8, header=3,
@@ -173,7 +173,7 @@ class Pip:
         time = datetime.time(int(hh),int(mm))
         return datetime.datetime.combine(date, time)
         
-    def plot_dsd(self, img=True):
+    def plot(self, img=True):
         if img:
             plt.matshow(self.dsd.transpose(), norm=LogNorm(), origin='lower')
         else:
@@ -182,4 +182,20 @@ class Pip:
         plt.title('PIP DSD')
         plt.xlabel('time (UTC)')
         plt.ylabel('D (mm)')
+        
+class PipV:
+    def __init__(self,filename):
+        self.filename = filename
+        self.data = pd.read_csv(self.filename, delim_whitespace=True, 
+                                index_col='RecNum', skiprows=8,
+                                parse_dates={'datetime':['minute_p']},
+                                date_parser=self.parse_datetime)
+    
+    def parse_datetime(self,mm):
+        datestr = self.filename.split('/')[-1].split('_')[0]
+        yyyy = int(datestr[3:7])
+        mo = int(datestr[7:9])
+        dd = int(datestr[9:11])
+        hh = int(datestr[11:13])
+        return datetime.datetime(yyyy,mo,dd,hh,int(mm))
         
