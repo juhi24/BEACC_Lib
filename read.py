@@ -153,21 +153,31 @@ def pluvio(date):
     #data["pluvio_time"] = time_
     #print len(data['status'])
     return pd.DataFrame(data)
-    
 
-class PipDSD:    
-    def __init__(self,filename):
-        self.filename = filename
-        self.dsd = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8, header=3,
-                        parse_dates={'datetime':['hr_d','min_d']},
-                        date_parser=self.parse_datetime,
-                        index_col='datetime')
+class InstrumentData:
+    def __init__(self,filenames):
+        self.filenames = filenames
+
+class Pluvio(InstrumentData):
+    def __init__(self,filenames):
+        InstrumentData.__init__(self,filenames)       
+
+class PipDSD(InstrumentData):    
+    def __init__(self,filenames):
+        InstrumentData.__init__(self,filenames)
+        self.dsd = pd.DataFrame()
+        for filename in filenames:
+            self.current_file = filename
+            self.dsd = self.dsd.append(pd.read_csv(filename, delim_whitespace=True, skiprows=8, header=3,
+                            parse_dates={'datetime':['hr_d','min_d']},
+                            date_parser=self.parse_datetime,
+                            index_col='datetime'))
         self.num_d = self.dsd[['Num_d']]
         self.bin_cen = self.dsd[['Bin_cen']]
         self.dsd = self.dsd.drop(['day_time','Num_d','Bin_cen'],1)
 
     def parse_datetime(self,hh,mm):
-        dateline = linecache.getline(self.filename,6)
+        dateline = linecache.getline(self.current_file,6)
         datearr = [int(x) for x in dateline.split()]
         date = datetime.date(*datearr)
         time = datetime.time(int(hh),int(mm))
@@ -183,16 +193,16 @@ class PipDSD:
         plt.xlabel('time (UTC)')
         plt.ylabel('D (mm)')
         
-class PipV:
-    def __init__(self,filename):
-        self.filename = filename
-        self.data = pd.read_csv(self.filename, delim_whitespace=True, skiprows=8,
+class PipV(InstrumentData):
+    def __init__(self,filenames):
+        InstrumentData.__init__(self,filenames)
+        self.data = pd.read_csv(self.filenames, delim_whitespace=True, skiprows=8,
                                 parse_dates={'datetime':['minute_p']},
                                 date_parser=self.parse_datetime,
                                 index_col='RecNum')
     
     def parse_datetime(self,mm):
-        datestr = self.filename.split('/')[-1].split('_')[0]
+        datestr = self.filenames.split('/')[-1].split('_')[0]
         yyyy = int(datestr[3:7])
         mo = int(datestr[7:9])
         dd = int(datestr[9:11])
