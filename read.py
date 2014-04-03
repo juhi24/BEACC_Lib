@@ -157,24 +157,50 @@ def pluvio(date):
 class InstrumentData:
     def __init__(self,filenames):
         self.filenames = filenames
+        self.data = pd.DataFrame()
 
 class Pluvio(InstrumentData):
     def __init__(self,filenames):
-        InstrumentData.__init__(self,filenames)       
+        InstrumentData.__init__(self,filenames)
+        cols = ['datestr',
+                'Intensity RT  [mm h]',
+                'Accumulated RT NRT [mm]',
+                'Accumulated NRT [mm]',
+                'Accumulated total NRT [mm]',
+                'Bucket RT [mm]',
+                'Bucket NRT [mm]',
+                'Temperature load cell [degC]',
+                'Heating status',
+                'Status',
+                'Temperature electronics unit',
+                'Supply Voltage',
+                'Temperature orfice ring rim']
+        for filename in filenames:
+            self.current_file = filename
+            self.data = self.data.append(pd.read_csv(filename, sep=';',
+                        names=cols,
+                        parse_dates={'datetime':['datestr']},
+                        date_parser=self.parse_datetime,
+                        index_col='datetime'))
+        
+    def parse_datetime(self,datestr):
+        datestr=str(int(datestr))
+        t=time.strptime(datestr,'%Y%m%d%H%M%S')
+        return datetime.datetime(*t[:6])
 
 class PipDSD(InstrumentData):    
     def __init__(self,filenames):
         InstrumentData.__init__(self,filenames)
-        self.dsd = pd.DataFrame()
         for filename in filenames:
             self.current_file = filename
-            self.dsd = self.dsd.append(pd.read_csv(filename, delim_whitespace=True, skiprows=8, header=3,
+            self.data = self.data.append(pd.read_csv(filename, 
+                            delim_whitespace=True, skiprows=8, header=3,
                             parse_dates={'datetime':['hr_d','min_d']},
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
         self.num_d = self.dsd[['Num_d']]
         self.bin_cen = self.dsd[['Bin_cen']]
-        self.dsd = self.dsd.drop(['day_time','Num_d','Bin_cen'],1)
+        self.data = self.dsd.drop(['day_time','Num_d','Bin_cen'],1)
 
     def parse_datetime(self,hh,mm):
         dateline = linecache.getline(self.current_file,6)
@@ -196,16 +222,19 @@ class PipDSD(InstrumentData):
 class PipV(InstrumentData):
     def __init__(self,filenames):
         InstrumentData.__init__(self,filenames)
-        self.data = pd.read_csv(self.filenames, delim_whitespace=True, skiprows=8,
-                                parse_dates={'datetime':['minute_p']},
-                                date_parser=self.parse_datetime,
-                                index_col='RecNum')
+        for filename in filenames:
+            self.current_file = filename
+            self.data = self.data.append(pd.read_csv(filename,
+                                    delim_whitespace=True, skiprows=8,
+                                    parse_dates={'datetime':['minute_p']},
+                                    date_parser=self.parse_datetime,
+                                    index_col='RecNum'))
     
     def parse_datetime(self,mm):
-        datestr = self.filenames.split('/')[-1].split('_')[0]
-        yyyy = int(datestr[3:7])
+        datestr = self.current_file.split('/')[-1].split('_')[0]
+        yr = int(datestr[3:7])
         mo = int(datestr[7:9])
         dd = int(datestr[9:11])
         hh = int(datestr[11:13])
-        return datetime.datetime(yyyy,mo,dd,hh,int(mm))
+        return datetime.datetime(yr,mo,dd,hh,int(mm))
         
