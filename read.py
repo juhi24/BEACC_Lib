@@ -176,9 +176,11 @@ class Pluvio(InstrumentData):
                 'Supply Voltage',
                 'Temperature orfice ring rim']
         for filename in filenames:
+            num_lines = sum(1 for line in open(filename))
             self.current_file = filename
             self.data = self.data.append(pd.read_csv(filename, sep=';',
                         names=cols,
+                        skiprows=list(range(1,num_lines,2)),
                         parse_dates={'datetime':['datestr']},
                         date_parser=self.parse_datetime,
                         index_col='datetime'))
