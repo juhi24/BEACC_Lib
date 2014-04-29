@@ -162,24 +162,37 @@ class InstrumentData:
 class Pluvio(InstrumentData):
     def __init__(self,filenames):
         InstrumentData.__init__(self,filenames)
-        cols = ['datestr',
-                'Intensity RT  [mm h]',
-                'Accumulated RT NRT [mm]',
-                'Accumulated NRT [mm]',
-                'Accumulated total NRT [mm]',
-                'Bucket RT [mm]',
-                'Bucket NRT [mm]',
-                'Temperature load cell [degC]',
-                'Heating status',
-                'Status',
-                'Temperature electronics unit',
-                'Supply Voltage',
-                'Temperature orfice ring rim']
+        cols = ['date string',
+                'intensity RT  [mm h]',
+                'accumulated RT NRT [mm]',
+                'accumulated NRT [mm]',
+                'accumulated total NRT [mm]',
+                'bucket RT [mm]',
+                'bucket NRT [mm]',
+                'temperature load cell [degC]',
+                'heating status',
+                'status',
+                'temperature electronics unit',
+                'supply voltage',
+                'ice rim temperature']
+        abbr = ['datestr',
+                'i_rt',
+                'acc_rt',
+                'accu_nrt',
+                'tot_nrt',
+                'bucket_rt',
+                'bucket_nrt',
+                't',
+                'heating',
+                'status',
+                't_elec',
+                'volt',
+                't_rim']
         for filename in filenames:
             num_lines = sum(1 for line in open(filename))
             self.current_file = filename
             self.data = self.data.append(pd.read_csv(filename, sep=';',
-                        names=cols,
+                        names=abbr,
                         skiprows=list(range(1,num_lines,2)),
                         parse_dates={'datetime':['datestr']},
                         date_parser=self.parse_datetime,
