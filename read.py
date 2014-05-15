@@ -178,7 +178,7 @@ class Pluvio(InstrumentData):
         abbr = ['datestr',
                 'i_rt',
                 'acc_rt',
-                'accu_nrt',
+                'acc_nrt',
                 'tot_nrt',
                 'bucket_rt',
                 'bucket_nrt',
@@ -197,6 +197,7 @@ class Pluvio(InstrumentData):
                         parse_dates={'datetime':['datestr']},
                         date_parser=self.parse_datetime,
                         index_col='datetime'))
+            self.data = self.data.sort_index()
         
     def parse_datetime(self,datestr):
         datestr=str(int(datestr))
@@ -213,9 +214,10 @@ class PipDSD(InstrumentData):
                             parse_dates={'datetime':['hr_d','min_d']},
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
-        self.num_d = self.dsd[['Num_d']]
-        self.bin_cen = self.dsd[['Bin_cen']]
-        self.data = self.dsd.drop(['day_time','Num_d','Bin_cen'],1)
+        self.num_d = self.data[['Num_d']]
+        self.bin_cen = self.data[['Bin_cen']]
+        self.data = self.data.drop(['day_time','Num_d','Bin_cen'],1)
+        self.data = self.data.sort_index()
 
     def parse_datetime(self,hh,mm):
         dateline = linecache.getline(self.current_file,6)
@@ -244,6 +246,7 @@ class PipV(InstrumentData):
                                     parse_dates={'datetime':['minute_p']},
                                     date_parser=self.parse_datetime,
                                     index_col='RecNum'))
+            self.data = self.data.sort_index()
     
     def parse_datetime(self,mm):
         datestr = self.current_file.split('/')[-1].split('_')[0]
