@@ -162,7 +162,7 @@ class InstrumentData:
 class Pluvio(InstrumentData):
     def __init__(self,filenames):
         InstrumentData.__init__(self,filenames)
-        cols = ['date string',
+        fullnames = ['date string',
                 'intensity RT  [mm h]',
                 'accumulated RT NRT [mm]',
                 'accumulated NRT [mm]',
@@ -241,11 +241,13 @@ class PipV(InstrumentData):
         InstrumentData.__init__(self,filenames)
         for filename in filenames:
             self.current_file = filename
-            self.data = self.data.append(pd.read_csv(filename,
+            newdata = pd.read_csv(filename,
                                     delim_whitespace=True, skiprows=8,
                                     parse_dates={'datetime':['minute_p']},
                                     date_parser=self.parse_datetime,
-                                    index_col='RecNum'))
+                                    index_col=['datetime','RecNum'])
+            newdata = newdata.rename_axis({'vel_v_1':'vel_v','vel_h_1':'vel_h','vel_v_2':'vel_v','vel_h_2':'vel_h'},axis=1)
+            self.data = self.data.append(newdata)
             self.data = self.data.sort_index()
     
     def parse_datetime(self,mm):
