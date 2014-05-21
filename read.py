@@ -158,6 +158,11 @@ class InstrumentData:
     def __init__(self,filenames):
         self.filenames = filenames
         self.data = pd.DataFrame()
+        
+    @staticmethod    
+    def _sum(x):
+        if len(x) < 1: return 0
+        else: return sum(x)
 
 class Pluvio(InstrumentData):
     def __init__(self,filenames):
@@ -203,6 +208,9 @@ class Pluvio(InstrumentData):
         datestr=str(int(datestr))
         t=time.strptime(datestr,'%Y%m%d%H%M%S')
         return datetime.datetime(*t[:6])
+        
+    def rainrate(self, rule='1H'):
+        return self.data.bucket_nrt.resample(rule,how=np.max)-self.data.bucket_nrt.resample(rule,how=np.min)
 
 class PipDSD(InstrumentData):    
     def __init__(self,filenames):
@@ -218,6 +226,8 @@ class PipDSD(InstrumentData):
         self.bin_cen = self.data[['Bin_cen']]
         self.data = self.data.drop(['day_time','Num_d','Bin_cen'],1)
         self.data = self.data.sort_index()
+        sorted_column_index = list(map(str,(sorted(list(map(float,self.data.columns)))))) # trust me
+        self.data = self.data.reindex_axis(sorted_column_index,axis=1)
 
     def parse_datetime(self,hh,mm):
         dateline = linecache.getline(self.current_file,6)
@@ -228,9 +238,9 @@ class PipDSD(InstrumentData):
         
     def plot(self, img=True):
         if img:
-            plt.matshow(self.dsd.transpose(), norm=LogNorm(), origin='lower')
+            plt.matshow(self.data.transpose(), norm=LogNorm(), origin='lower')
         else:
-            plt.pcolor(self.dsd.transpose(), norm=LogNorm())
+            plt.pcolor(self.data.transpose(), norm=LogNorm())
         plt.colorbar()
         plt.title('PIP DSD')
         plt.xlabel('time (UTC)')

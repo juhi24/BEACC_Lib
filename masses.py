@@ -6,10 +6,12 @@ V = 0.5
 rho_w = 1000
 
 pipv_files = glob('/home/jussitii/DATA/PIP/a_Velocity_Tables/00420140212/*.dat')
+dsd_files = glob('/home/jussitii/DATA/PIP/a_DSD_Tables/00420140212_a_d.dat')
 pluvio_files = glob('/home/jussitii/DATA/Pluvio200/pluvio200_02_20140212*')
 
 pluvio = read.Pluvio(pluvio_files)
 pipv = read.PipV(pipv_files)
+dsd = read.PipDSD(dsd_files)
 
 class Simple:
     def __init__():
@@ -17,6 +19,8 @@ class Simple:
     
     def mass():
         return
+        
+    
 
 class Snow2:
     def __init__():
