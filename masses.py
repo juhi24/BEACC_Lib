@@ -2,9 +2,6 @@ from glob import glob
 import read
 import numpy as np
 
-V = 0.5
-rho_w = 1000
-
 pipv_files = glob('/home/jussitii/DATA/PIP/a_Velocity_Tables/00420140212/*.dat')
 dsd_files = glob('/home/jussitii/DATA/PIP/a_DSD_Tables/00420140212_a_d.dat')
 pluvio_files = glob('/home/jussitii/DATA/Pluvio200/pluvio200_02_20140212*')
@@ -13,14 +10,18 @@ pluvio = read.Pluvio(pluvio_files)
 pipv = read.PipV(pipv_files)
 dsd = read.PipDSD(dsd_files)
 
-class Simple:
-    def __init__():
-        return
-    
-    def mass():
-        return
+class Method1:
+    def __init__(self, dsd, pipv, pluvio, alpha=0.01, beta=2):
+        self.alpha = alpha
+        self.beta = beta
+        self.dsd = dsd
+        self.pipv = pipv
+        self.pluvio = pluvio
+        self.rho_w = 1000
         
-    
+    def rainrate(self):
+        for D in self.dsd.bin_cen():
+            R += 3.6/self.rho_w * D**self.beta * self.dsd.d_bin
 
 class Snow2:
     def __init__():

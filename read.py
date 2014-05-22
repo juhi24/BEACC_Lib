@@ -210,7 +210,7 @@ class Pluvio(InstrumentData):
         return datetime.datetime(*t[:6])
         
     def rainrate(self, rule='1H'):
-        return self.data.bucket_nrt.resample(rule,how=np.max)-self.data.bucket_nrt.resample(rule,how=np.min)
+        return self.data.bucket_nrt.resample(rule,how='last')-self.data.bucket_nrt.resample(rule,how='first')
 
 class PipDSD(InstrumentData):    
     def __init__(self,filenames):
@@ -223,11 +223,11 @@ class PipDSD(InstrumentData):
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
         self.num_d = self.data[['Num_d']]
-        self.bin_cen = self.data[['Bin_cen']]
         self.data = self.data.drop(['day_time','Num_d','Bin_cen'],1)
         self.data = self.data.sort_index()
-        sorted_column_index = list(map(str,(sorted(list(map(float,self.data.columns)))))) # trust me
+        sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
         self.data = self.data.reindex_axis(sorted_column_index,axis=1)
+        self.d_bin = 0.25
 
     def parse_datetime(self,hh,mm):
         dateline = linecache.getline(self.current_file,6)
@@ -235,6 +235,9 @@ class PipDSD(InstrumentData):
         date = datetime.date(*datearr)
         time = datetime.time(int(hh),int(mm))
         return datetime.datetime.combine(date, time)
+        
+    def bin_cen(self):
+        return list(map(float,self.data.columns))
         
     def plot(self, img=True):
         if img:
