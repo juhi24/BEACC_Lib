@@ -257,11 +257,12 @@ class PipV(InstrumentData):
             newdata = pd.read_csv(filename,
                                     delim_whitespace=True, skiprows=8,
                                     parse_dates={'datetime':['minute_p']},
-                                    date_parser=self.parse_datetime,
-                                    index_col=['datetime','RecNum'])
-            newdata = newdata.rename_axis({'vel_v_1':'vel_v','vel_h_1':'vel_h','vel_v_2':'vel_v','vel_h_2':'vel_h'},axis=1)
+                                    date_parser=self.parse_datetime)
+            newdata.rename_axis({'vel_v_1':'vel_v','vel_h_1':'vel_h','vel_v_2':'vel_v','vel_h_2':'vel_h'},axis=1,inplace=True)
             self.data = self.data.append(newdata)
-            self.data = self.data.sort_index()
+        self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
+        self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
+        self.data.sort_index(inplace=True)
     
     def parse_datetime(self,mm):
         datestr = self.current_file.split('/')[-1].split('_')[0]

@@ -21,7 +21,7 @@ class Method1:
         
     def rainrate(self):
         for D in self.dsd.bin_cen():
-            R += 3.6/self.rho_w * D**self.beta * self.dsd.d_bin
+            R += 3.6/self.rho_w * self.alpha * D**self.beta * self.dsd.d_bin
 
 class Snow2:
     def __init__():
