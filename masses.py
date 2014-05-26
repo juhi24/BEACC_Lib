@@ -19,9 +19,15 @@ class Method1:
         self.pluvio = pluvio
         self.rho_w = 1000
         
-    def rainrate(self):
+    def rainrate(self,rule='1H'):
+        dD = self.dsd.d_bin
+        R = 0
         for D in self.dsd.bin_cen():
-            R += 3.6/self.rho_w * self.alpha * D**self.beta * self.dsd.d_bin
+            vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (D-0.5*dD, D+0.5*dD)
+            vel = pipv.data.query(vcond).vel_v.mean()
+            N = dsd.data[str(D)].resample(rule, how=dsd._sum)
+            R += 3.6/self.rho_w * self.alpha * D**self.beta * vel * N * dD
+        return R
 
 class Snow2:
     def __init__():
