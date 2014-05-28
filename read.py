@@ -211,6 +211,9 @@ class Pluvio(InstrumentData):
         
     def rainrate(self, rule='1H'):
         return self.data.bucket_nrt.resample(rule,how='last')-self.data.bucket_nrt.resample(rule,how='first')
+        
+    def acc(self, rule='1H'):
+        return self.data.bucket_nrt.resample(rule,how=np.mean)-self.data.bucket_nrt[0]
 
 class PipDSD(InstrumentData):    
     def __init__(self,filenames):

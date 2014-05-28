@@ -1,33 +1,32 @@
 from glob import glob
 import read
 import numpy as np
-
-pipv_files = glob('/home/jussitii/DATA/PIP/a_Velocity_Tables/00420140212/*.dat')
-dsd_files = glob('/home/jussitii/DATA/PIP/a_DSD_Tables/00420140212_a_d.dat')
-pluvio_files = glob('/home/jussitii/DATA/Pluvio200/pluvio200_02_20140212*')
-
-pluvio = read.Pluvio(pluvio_files)
-pipv = read.PipV(pipv_files)
-dsd = read.PipDSD(dsd_files)
+from scipy.optimize import minimize
 
 class Method1:
-    def __init__(self, dsd, pipv, pluvio, alpha=0.01, beta=2):
-        self.alpha = alpha
-        self.beta = beta
+    def __init__(self, dsd, pipv, pluvio):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
         self.rho_w = 1000
         
-    def rainrate(self,rule='1H'):
+    def rainrate(self, alpha=0.005, beta=2, rule='1H'):
         dD = self.dsd.d_bin
-        R = 0
+        R = None
         for D in self.dsd.bin_cen():
             vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (D-0.5*dD, D+0.5*dD)
-            vel = pipv.data.query(vcond).vel_v.mean()
-            N = dsd.data[str(D)].resample(rule, how=dsd._sum)
-            R += 3.6/self.rho_w * self.alpha * D**self.beta * vel * N * dD
+            vel = self.pipv.data.query(vcond).vel_v.mean()
+            N = self.dsd.data[str(D)].resample(rule, how=self.dsd._sum)
+            addition = 3.6/self.rho_w*alpha*D**beta*vel*N*dD
+            if R is None:
+                R = addition
+            else:
+                R = R.add(addition, fill_value=0)
         return R
+        
+    def cost(self,c):
+        dsd_acc = self.rainrate(c[0],c[1]).cumsum()
+        return abs(dsd_acc.add(-1*pluvio.acc().dropna()).sum())
 
 class Snow2:
     def __init__():
@@ -56,3 +55,14 @@ class Snow2:
         re = u*D/nu_a
         return np.pi*rho_a*nu_a**2/(8*g)*Snow2.best(re)*ar*fa
         
+pipv_files = glob('/home/jussitii/DATA/PIP/a_Velocity_Tables/00420140212/*.dat')
+dsd_files = glob('/home/jussitii/DATA/PIP/a_DSD_Tables/00420140212_a_d.dat')
+pluvio_files = glob('/home/jussitii/DATA/Pluvio200/pluvio200_02_20140212*')
+
+pluvio = read.Pluvio(pluvio_files)
+pipv = read.PipV(pipv_files)
+dsd = read.PipDSD(dsd_files)
+
+m = Method1(dsd,pipv,pluvio)
+
+%res = minimize(m.cost,(0.005,2.1),method='SLSQP',bounds=((0,0.1),(1,3)))
