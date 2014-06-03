@@ -9,6 +9,7 @@ import datetime
 import pandas as pd
 from collections import defaultdict
 import linecache
+import os.path
 
 def test():
     tmp=(2013,12,5,0,0,0,0,0,0)
@@ -53,7 +54,7 @@ def hotplate(date):
     23: 'Collection efficiency, 1-minute running ave, 1Hz samples (W)',
     24: 'Power offset, 1-minute running ave., 1Hz samples (W)',
     25: 'Power offset due to radiation effects, 1Hz samples (W)',
-    26: 'Raw precip. rate, 1-minute running ave, 1 Hz samples (mm hr)',
+    26: 'Raw precip. rate, 1-minute running ave, 1import os.path Hz samples (mm hr)',
     27: 'Power, sensor, 5-minute running average, 1 minute samples (W)',
     28: 'Power, reference, 5-minute running average, 1 minute samples (W)',
     29: 'delta Power, 5-minute running ave, 1 minute samples (W)',
@@ -167,6 +168,7 @@ class InstrumentData:
 class Pluvio(InstrumentData):
     def __init__(self,filenames):
         InstrumentData.__init__(self,filenames)
+        name = os.path.basename(os.path.dirname(self.filenames[0]))
         fullnames = ['date string',
                 'intensity RT  [mm h]',
                 'accumulated RT NRT [mm]',
