@@ -31,7 +31,7 @@ def hotplate(date):
     file_format = {
     1: 'Output format',
     2: 'Fault indicator',
-    3: 'Timestamp since (s) 1.1.1970',
+    3: 'Unix timestamp',
     4: 'Voltage, sensor, instantaneous (V)',
     5: 'Voltage, reference, instantaneous (V)',
     6: 'Current, sensor, instantaneous (A)',
@@ -168,7 +168,7 @@ class InstrumentData:
 class Pluvio(InstrumentData):
     def __init__(self,filenames):
         InstrumentData.__init__(self,filenames)
-        name = os.path.basename(os.path.dirname(self.filenames[0]))
+        self.name = os.path.basename(os.path.dirname(self.filenames[0]))
         fullnames = ['date string',
                 'intensity RT  [mm h]',
                 'accumulated RT NRT [mm]',

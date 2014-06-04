@@ -3,6 +3,7 @@ import read
 import numpy as np
 from scipy.optimize import minimize
 import copy
+import matplotlib.pyplot as plt
 
 class Method1:
     def __init__(self, dsd, pipv, pluvio, quess=(0.005,2.1), bnd=((0,0.1),(1,3)), rule='30min'):
@@ -41,12 +42,13 @@ class Method1:
         return self.result
         
     def plot(self):
-        self.rainrate().plot(label='PIP')
-        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name)
-        plt.legend()
-        plt.xlabel('time')
-        plt.ylabel('mm')
-        plt.title('%s rainrate')
+        kind = 'line'
+        ax = self.rainrate().plot(label='PIP',kind=kind)
+        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name,kind=kind,ax=ax)
+        ax.legend()
+        ax.set_xlabel('time')
+        ax.set_ylabel('mm')
+        ax.set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' % (self.rule, self.result.x[0], self.result.x[1]))
 
 class Snow2:
     def __init__():
