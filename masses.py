@@ -106,11 +106,3 @@ for instr_lim in [pluvio200_lim,pluvio400_lim,dsd_lim]:
 
 m_lim200 = Method1(dsd_lim,pipv,pluvio200_lim,rule='30min')
 m_lim400 = Method1(dsd_lim,pipv,pluvio400_lim,rule='30min')
-
-#res1 = minimize(m.cost, quess, method='SLSQP', bounds=bnd)
-#m.rule = '30min'
-#res30 = minimize(m.cost, quess, method='SLSQP', bounds=bnd)
-#res30_lim = minimize(m_lim.cost, quess, method='SLSQP', bounds=bnd)
-#m.pluvio = pluvio400
-#res400 = minimize(m.cost, quess, method='SLSQP', bounds=bnd)
-#res400_lim = minimize(m_lim.cost, quess, method='SLSQP', bounds=bnd)

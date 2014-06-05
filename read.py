@@ -156,9 +156,16 @@ def pluvio(date):
     return pd.DataFrame(data)
 
 class InstrumentData:
-    def __init__(self,filenames):
+    def __init__(self,filenames,is_hdf=False,hdf_table=None):
         self.filenames = filenames
         self.data = pd.DataFrame()
+        if is_hdf:
+            if hdf_table is not None:
+                self.name = hdf_table
+                self.data = self.data.append(pd.read_hdf(filenames,hdf_table))
+                return
+            except ValueError:
+                print('hdf_table cannot be None when reading a hdf file.')
         
     @staticmethod    
     def _sum(x):
@@ -219,6 +226,7 @@ class Pluvio(InstrumentData):
 
 class PipDSD(InstrumentData):    
     def __init__(self,filenames):
+        self.d_bin = 0.25
         InstrumentData.__init__(self,filenames)
         for filename in filenames:
             self.current_file = filename
@@ -232,7 +240,6 @@ class PipDSD(InstrumentData):
         self.data = self.data.sort_index()
         sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
         self.data = self.data.reindex_axis(sorted_column_index,axis=1)
-        self.d_bin = 0.25
 
     def parse_datetime(self,hh,mm):
         dateline = linecache.getline(self.current_file,6)
@@ -267,6 +274,7 @@ class PipV(InstrumentData):
             self.data = self.data.append(newdata)
         self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
         self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
+        self.data.reset_index(level=1, inplace=True)
         self.data.sort_index(inplace=True)
     
     def parse_datetime(self,mm):
