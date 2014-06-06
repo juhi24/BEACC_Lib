@@ -163,14 +163,21 @@ class InstrumentData:
             if hdf_table is not None:
                 self.name = hdf_table
                 self.data = self.data.append(pd.read_hdf(filenames,hdf_table))
+                self.finish_init()
                 return
-            except ValueError:
-                print('hdf_table cannot be None when reading a hdf file.')
+            raise ValueError('hdf_table cannot be None when reading a hdf file.')
+            
+    def finish_init(self):
+        self.data.sort_index(inplace=True)
+        self.data.index.names = ['datetime']
         
     @staticmethod    
     def _sum(x):
         if len(x) < 1: return 0
         else: return sum(x)
+        
+    def to_hdf(self, filename='../DATA/baecc.h5'):
+        self.data.to_hdf(filename, self.name, format='table', append=True)
 
 class Pluvio(InstrumentData):
     def __init__(self,filenames):
@@ -211,7 +218,7 @@ class Pluvio(InstrumentData):
                         parse_dates={'datetime':['datestr']},
                         date_parser=self.parse_datetime,
                         index_col='datetime'))
-            self.data = self.data.sort_index()
+            self.finish_init()
         
     def parse_datetime(self,datestr):
         datestr=str(int(datestr))
@@ -228,6 +235,7 @@ class PipDSD(InstrumentData):
     def __init__(self,filenames):
         self.d_bin = 0.25
         InstrumentData.__init__(self,filenames)
+        self.name = 'pip_dsd'
         for filename in filenames:
             self.current_file = filename
             self.data = self.data.append(pd.read_csv(filename, 
@@ -237,7 +245,7 @@ class PipDSD(InstrumentData):
                             index_col='datetime'))
         self.num_d = self.data[['Num_d']]
         self.data = self.data.drop(['day_time','Num_d','Bin_cen'],1)
-        self.data = self.data.sort_index()
+        self.finish_init()
         sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
         self.data = self.data.reindex_axis(sorted_column_index,axis=1)
 
@@ -264,6 +272,7 @@ class PipDSD(InstrumentData):
 class PipV(InstrumentData):
     def __init__(self,filenames):
         InstrumentData.__init__(self,filenames)
+        self.name = 'pip_vel'
         for filename in filenames:
             self.current_file = filename
             newdata = pd.read_csv(filename,
@@ -275,7 +284,7 @@ class PipV(InstrumentData):
         self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
         self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
         self.data.reset_index(level=1, inplace=True)
-        self.data.sort_index(inplace=True)
+        self.finish_init()
     
     def parse_datetime(self,mm):
         datestr = self.current_file.split('/')[-1].split('_')[0]
