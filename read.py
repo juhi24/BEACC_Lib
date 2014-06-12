@@ -1,5 +1,5 @@
 import time
-from pylab import *
+#from pylab import *
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
