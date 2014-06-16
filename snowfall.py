@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
+import matplotlib.pyplot as plt
 
 TAU = 2*np.pi
 
@@ -23,7 +24,7 @@ class Method1:
         R = None
         for D in self.dsd.bin_cen():
             vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (D-0.5*dD, D+0.5*dD)
-            vel = self.pipv.data.query(vcond).vel_v.mean() # V(D_i) m/s
+            vel = self.pipv.data.query(vcond).vel_v.mean() # V(D_i) m/s, query is slow
             N = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum) # N(D_i) 1/(mm*m**3)
             if simple:
                 addition = TAU/12*consts[0]*D**3*vel*N*dD
@@ -43,6 +44,7 @@ class Method1:
         
     def minimize(self):
         """Find constants for calculating particle masses. Save and return results."""
+        print('Optimizing constants...')
         self.result = minimize(self.cost, self.quess, method='SLSQP', bounds=self.bnd)
         return self.result
         
@@ -55,6 +57,25 @@ class Method1:
         ax.set_xlabel('time')
         ax.set_ylabel('mm')
         ax.set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' % (self.rule, self.result.x[0], self.result.x[1]))
+    
+    def plot_cost(self,resolution=20):
+        """The slowest plot you've made"""
+        if self.result is None:
+            return
+        alpha = np.linspace(0,2*self.result.x[0],num=resolution)
+        beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
+        z = np.zeros((alpha.size,beta.size))
+        for i,a in enumerate(alpha):
+            for j,b in enumerate(beta):
+                z[i][j] = self.cost((a,b))
+        plt.clf()
+        plt.pcolor(beta,alpha,z,cmap='binary')
+        plt.colorbar()
+        plt.xlabel(r'$\beta$')
+        plt.ylabel(r'$\alpha$')
+        plt.axis('tight')
+        plt.title('Cost function value')
+        plt.plot(self.result.x[1],self.result.x[0],'ro')
 
 class Snow2:
     """UNTESTED. Calculate snowfall rate using Szyrmer Zawadski's method from Snow Study II."""

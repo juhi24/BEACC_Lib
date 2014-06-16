@@ -160,6 +160,7 @@ class InstrumentData:
         
     def parse_datetime():
         """Parse timestamps in data files. Used by class constructor."""
+        pass
         
     @staticmethod    
     def _sum(x):
@@ -173,6 +174,7 @@ class Pluvio(InstrumentData):
     """Pluviometer data handling"""
     def __init__(self,filenames):
         """Create a Pluvio object using data from a list of files."""
+        print('Reading pluviometer data...')
         InstrumentData.__init__(self,filenames)
         self.name = os.path.basename(os.path.dirname(self.filenames[0]))
         self.col_description = ['date string',
@@ -227,6 +229,7 @@ class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
     def __init__(self,filenames):
         """Create a PipDSD object using data from a list of PIP DSD table files."""
+        print('Reading PIP DSD data...')
         self.d_bin = 0.25
         InstrumentData.__init__(self,filenames)
         self.name = 'pip_dsd'
@@ -269,6 +272,7 @@ class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
     def __init__(self,filenames):
         """Create a PipV object using data from a list of PIP velocity table files."""
+        print('Reading PIP particle velocity data...')
         InstrumentData.__init__(self,filenames)
         self.name = 'pip_vel'
         for filename in filenames:
