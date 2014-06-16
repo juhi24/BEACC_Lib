@@ -3,23 +3,13 @@ import time
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 from matplotlib.colors import LogNorm
 import datetime
 import pandas as pd
 from collections import defaultdict
 import linecache
 import os.path
-
-def test():
-    tmp=(2013,12,5,0,0,0,0,0,0)
-    date=time.mktime(tmp)
-    date = time.gmtime(date)
-    print("testing")
-    d= hotplate(date)    
-    return d
     
-
 def hotplate(date):
     #file_ = open(filename)
     date_str = time.strftime("%Y%m%d",date)
@@ -111,11 +101,8 @@ def jenoptik(date):
     d = {'jenoptik_time' : time_, 'jenoptik_snow_depth': snow,'jenoptik_signal_strength':signal,'jenoptik_temperature':temp}
     return pd.DataFrame(d)
 
-def parsivel23(date):
-    date_str = time.strftime("%Y%m%d",date)
-    files = glob.glob("data/Parsivel23/"+date_str+"*")    
-
 def pluvio(date):
+    """DEPRECATED"""
     date_str = time.strftime("%Y%m%d",date)
     files = glob.glob("../data/Pluvio200/pluvio200_02_"+date_str+"*")
     data=defaultdict(list)
@@ -171,6 +158,9 @@ class InstrumentData:
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
         
+    def parse_datetime():
+        """Parse timestamps in data files. Used by class constructor."""
+        
     @staticmethod    
     def _sum(x):
         if len(x) < 1: return 0
@@ -180,10 +170,12 @@ class InstrumentData:
         self.data.to_hdf(filename, self.name, format='table', append=True)
 
 class Pluvio(InstrumentData):
+    """Pluviometer data handling"""
     def __init__(self,filenames):
+        """Create a Pluvio object using data from a list of files."""
         InstrumentData.__init__(self,filenames)
         self.name = os.path.basename(os.path.dirname(self.filenames[0]))
-        fullnames = ['date string',
+        self.col_description = ['date string',
                 'intensity RT  [mm h]',
                 'accumulated RT NRT [mm]',
                 'accumulated NRT [mm]',
@@ -196,7 +188,7 @@ class Pluvio(InstrumentData):
                 'temperature electronics unit',
                 'supply voltage',
                 'ice rim temperature']
-        abbr = ['datestr',
+        col_abbr = ['datestr',
                 'i_rt',
                 'acc_rt',
                 'acc_nrt',
@@ -213,7 +205,7 @@ class Pluvio(InstrumentData):
             num_lines = sum(1 for line in open(filename))
             self.current_file = filename
             self.data = self.data.append(pd.read_csv(filename, sep=';',
-                        names=abbr,
+                        names=col_abbr,
                         skiprows=list(range(1,num_lines,2)),
                         parse_dates={'datetime':['datestr']},
                         date_parser=self.parse_datetime,
@@ -231,8 +223,10 @@ class Pluvio(InstrumentData):
     def acc(self, rule='1H'):
         return self.data.bucket_nrt.resample(rule,how=np.mean)-self.data.bucket_nrt[0]
 
-class PipDSD(InstrumentData):    
+class PipDSD(InstrumentData):
+    """PIP particle size distribution data handling"""
     def __init__(self,filenames):
+        """Create a PipDSD object using data from a list of PIP DSD table files."""
         self.d_bin = 0.25
         InstrumentData.__init__(self,filenames)
         self.name = 'pip_dsd'
@@ -257,9 +251,11 @@ class PipDSD(InstrumentData):
         return datetime.datetime.combine(date, time)
         
     def bin_cen(self):
+        """Return size bin centers in numeric format."""
         return list(map(float,self.data.columns))
         
     def plot(self, img=True):
+        """Plot particle size distribution over time."""
         if img:
             plt.matshow(self.data.transpose(), norm=LogNorm(), origin='lower')
         else:
@@ -270,7 +266,9 @@ class PipDSD(InstrumentData):
         plt.ylabel('D (mm)')
         
 class PipV(InstrumentData):
+    """PIP particle velocity and diameter data handling"""
     def __init__(self,filenames):
+        """Create a PipV object using data from a list of PIP velocity table files."""
         InstrumentData.__init__(self,filenames)
         self.name = 'pip_vel'
         for filename in filenames:

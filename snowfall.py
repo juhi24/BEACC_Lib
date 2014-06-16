@@ -1,7 +1,10 @@
 import numpy as np
 from scipy.optimize import minimize
 
+TAU = 2*np.pi
+
 class Method1:
+    """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, quess=(0.005,2.1), bnd=((0,0.1),(1,3)), rule='30min'):
         self.dsd = dsd
         self.pipv = pipv
@@ -12,17 +15,21 @@ class Method1:
         self.rule = rule
         self.result = None
         
-    def rainrate(self, alphabeta=None):
-        if self.result is not None and alphabeta is None:
-            alphabeta = self.result.x
+    def rainrate(self, consts=None, simple=False):
+        """Calculate rainrate using given or saved constants."""
+        if self.result is not None and consts is None:
+            consts = self.result.x
         dD = self.dsd.d_bin
         R = None
         for D in self.dsd.bin_cen():
             vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (D-0.5*dD, D+0.5*dD)
             vel = self.pipv.data.query(vcond).vel_v.mean() # V(D_i) m/s
             N = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum) # N(D_i) 1/(mm*m**3)
-            addition = 3.6/self.rho_w*alphabeta[0]*D**alphabeta[1]*vel*N*dD
-            # (mm/h)/(m/s) * kg/m**3 * kg/m**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h
+            if simple:
+                addition = TAU/12*consts[0]*D**3*vel*N*dD
+            else:
+                addition = 3.6/self.rho_w*consts[0]*D**consts[1]*vel*N*dD
+                # (mm/h)/(m/s) * mg/m**3 * mg/m**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h
             if R is None:
                 R = addition
             else:
@@ -30,14 +37,17 @@ class Method1:
         return R
         
     def cost(self,c):
+        """Cost function for minimization"""
         dsd_acc = self.rainrate(c).cumsum()
         return abs(dsd_acc.add(-1*self.pluvio.acc().dropna()).sum())
         
     def minimize(self):
+        """Find constants for calculating particle masses. Save and return results."""
         self.result = minimize(self.cost, self.quess, method='SLSQP', bounds=self.bnd)
         return self.result
         
     def plot(self):
+        """Plot calculated (PIP) and pluvio rainrates."""
         kind = 'line'
         ax = self.rainrate().plot(label='PIP',kind=kind)
         self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name,kind=kind,ax=ax)
@@ -47,6 +57,7 @@ class Method1:
         ax.set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' % (self.rule, self.result.x[0], self.result.x[1]))
 
 class Snow2:
+    """UNTESTED. Calculate snowfall rate using Szyrmer Zawadski's method from Snow Study II."""
     def __init__():
         return
 
