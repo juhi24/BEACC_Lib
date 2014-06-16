@@ -1,20 +1,5 @@
-import sys, os, time
-from scipy import ndimage
-from scipy import misc
-import scipy.io
-from matplotlib.image import AxesImage
-from pylab import *
-import numpy as np
-import subprocess
-import glob
-import shutil
-from PIL import Image, ImageDraw, ImageChops, ImageFilter
-import matplotlib.pyplot as plt
-import datetime,time
-from os.path import join, getsize
-import re
+import time
 import h5py
-import pandas as pd
 import read	
 	
 
