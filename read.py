@@ -194,10 +194,10 @@ class Pluvio(InstrumentData):
                 'i_rt',
                 'acc_rt',
                 'acc_nrt',
-                'tot_nrt',
+                'acc_tot_nrt',
                 'bucket_rt',
                 'bucket_nrt',
-                't',
+                't_load',
                 'heating',
                 'status',
                 't_elec',
@@ -220,10 +220,10 @@ class Pluvio(InstrumentData):
         return datetime.datetime(*t[:6])
         
     def rainrate(self, rule='1H'):
-        return self.data.bucket_nrt.resample(rule,how='last')-self.data.bucket_nrt.resample(rule,how='first')
+        return self.data.bucket_nrt.resample(rule,how='last',closed='right',label='right')-self.data.bucket_nrt.resample(rule,how='first',closed='right',label='right')
         
     def acc(self, rule='1H'):
-        return self.data.bucket_nrt.resample(rule,how=np.mean)-self.data.bucket_nrt[0]
+        return self.data.bucket_nrt.resample(rule,how='last',closed='right',label='right')-self.data.bucket_nrt[0]
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
@@ -241,7 +241,7 @@ class PipDSD(InstrumentData):
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
         self.num_d = self.data[['Num_d']]
-        self.data = self.data.drop(['day_time','Num_d','Bin_cen'],1)
+        self.data = self.data.drop(['day_time','Num_d','Bin_cen','0.125'],1) # 1st size bin is crap data
         self.finish_init()
         sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
         self.data = self.data.reindex_axis(sorted_column_index,axis=1)

@@ -6,7 +6,7 @@ TAU = 2*np.pi
 
 class Method1:
     """Calculate snowfall rate from particle size and velocity data."""
-    def __init__(self, dsd, pipv, pluvio, quess=(0.005,2.1), bnd=((0,0.1),(1,3)), rule='30min'):
+    def __init__(self, dsd, pipv, pluvio, quess=(0.005,2.1), bnd=((0,0.1),(1,3)), rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
@@ -15,22 +15,26 @@ class Method1:
         self.bnd = bnd
         self.rule = rule
         self.result = None
+        self.ab = None
         
     def rainrate(self, consts=None, simple=False):
         """Calculate rainrate using given or saved constants."""
-        if self.result is not None and consts is None:
-            consts = self.result.x
+        if self.ab is not None and consts is None:
+            consts = self.ab
         dD = self.dsd.d_bin
         R = None
         for D in self.dsd.bin_cen():
             vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (D-0.5*dD, D+0.5*dD)
-            vel = self.pipv.data.query(vcond).vel_v.mean() # V(D_i) m/s, query is slow
-            N = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum) # N(D_i) 1/(mm*m**3)
+            vel = self.pipv.data.query(vcond).vel_v
+            if vel.empty:
+                continue
+            vel_down = vel.resample(self.rule, how=np.mean, closed='right', label='right') # V(D_i) m/s, query is slow
+            N = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') # N(D_i) 1/(mm*m**3)
             if simple:
-                addition = TAU/12*consts[0]*D**3*vel*N*dD
+                addition = 3.6*TAU/12*consts[0]*D**3*vel_down*N*dD
             else:
-                addition = 3.6/self.rho_w*consts[0]*D**consts[1]*vel*N*dD
-                # (mm/h)/(m/s) * mg/m**3 * mg/m**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h
+                addition = 3.6/self.rho_w*consts[0]*D**consts[1]*vel_down*N*dD
+                # (mm/h)/(m/s) * kg/m**3 * mg/m**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h
             if R is None:
                 R = addition
             else:
@@ -39,30 +43,71 @@ class Method1:
         
     def cost(self,c):
         """Cost function for minimization"""
-        dsd_acc = self.rainrate(c).cumsum()
-        return abs(dsd_acc.add(-1*self.pluvio.acc().dropna()).sum())
+        pip_acc = self.rainrate(c).cumsum()
+        return abs(pip_acc.add(-1*self.pluvio.acc().dropna()).sum())
         
-    def minimize(self):
+    def cost_lsq(self,beta):
+        """Single variable cost function using lstsq to find linear coef."""
+        alpha = self.alpha_lsq(beta)
+        return self.cost([alpha,beta])
+    
+    def const_lsq(self,c,simple):
+        acc_arr = self.rainrate(consts=c,simple=simple).cumsum().values
+        A = np.vstack([acc_arr, np.ones(len(acc_arr))]).T
+        y = self.pluvio.acc(self.rule).values
+        return np.linalg.lstsq(A,y)[0][0]
+        
+    def alpha_lsq(self,beta):
+        """Wrapper for const_lsq to calculate alpha"""
+        return self.const_lsq(c=[1,beta], simple=False)
+        
+    def density_lsq(self):
+        """Wrapper for const_lsq to calculate mean particle density"""
+        return self.const_lsq(c=[1], simple=True)
+        
+    def density(self):
+        return self.pluvio.rainrate(self.rule)/self.rainrate([1],True)
+        
+    def minimize(self,method='SLSQP'):
         """Find constants for calculating particle masses. Save and return results."""
         print('Optimizing constants...')
-        self.result = minimize(self.cost, self.quess, method='SLSQP', bounds=self.bnd)
+        self.result = minimize(self.cost, self.quess, method=method, bounds=self.bnd)
+        self.ab = self.result.x
+        return self.result
+        
+    def minimize_lsq(self):
+        print('Optimizing constants...')
+        self.result = minimize(self.cost_lsq, self.quess[1], method='Nelder-Mead')
+        #self.result = minimize(self.cost_lsq, self.quess[1], method='SLSQP', bounds=self.bnd[1])
+        beta = self.result.x[0]
+        alpha = self.alpha_lsq(beta)
+        self.ab = [alpha,beta]
         return self.result
         
     def plot(self):
         """Plot calculated (PIP) and pluvio rainrates."""
+        if self.ab is None:
+            print('Constants not defined. Will now find them via minimization.')
+            self.minimize_lsq()
         kind = 'line'
-        ax = self.rainrate().plot(label='PIP',kind=kind)
-        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name,kind=kind,ax=ax)
-        ax.legend()
-        ax.set_xlabel('time')
-        ax.set_ylabel('mm')
-        ax.set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' % (self.rule, self.result.x[0], self.result.x[1]))
+        f, axarr = plt.subplots(2, sharex=True)
+        self.rainrate().plot(label='PIP',kind=kind,ax=axarr[0])
+        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name,kind=kind,ax=axarr[0])
+        axarr[0].set_ylabel('mm/%s' % self.rule)
+        axarr[0].set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' % (self.rule, self.ab[0], self.ab[1]))
+        rho = 1e6*self.density()
+        rho.plot(label='mean density', ax=axarr[1])
+        for ax in axarr:
+            ax.legend(loc='upper left')
+            ax.set_xlabel('time')
+        axarr[1].set_ylabel(r'$\rho_{part}$')
     
     def plot_cost(self,resolution=20):
         """The slowest plot you've made"""
-        if self.result is None:
+        if self.ab is None:
             return
-        alpha = np.linspace(0,2*self.result.x[0],num=resolution)
+        alpha0 = self.ab[0]
+        alpha = np.linspace(0.4*alpha0,1.4*alpha0,num=resolution)
         beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
         z = np.zeros((alpha.size,beta.size))
         for i,a in enumerate(alpha):
@@ -74,8 +119,18 @@ class Method1:
         plt.xlabel(r'$\beta$')
         plt.ylabel(r'$\alpha$')
         plt.axis('tight')
-        plt.title('Cost function value')
-        plt.plot(self.result.x[1],self.result.x[0],'ro')
+        plt.title('cost function value')
+        plt.plot(self.ab[1],self.ab[0],'ro')
+        return z
+        
+    def plot_cost_lsq(self,resolution):
+        beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
+        cost = np.array([self.cost_lsq(b) for b in beta])
+        plt.clf()        
+        plt.plot(beta,cost)
+        plt.xlabel(r'$\beta$')
+        plt.ylabel('cost')
+        plt.title('cost function value')
 
 class Snow2:
     """UNTESTED. Calculate snowfall rate using Szyrmer Zawadski's method from Snow Study II."""
