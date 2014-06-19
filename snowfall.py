@@ -39,7 +39,7 @@ class Method1:
                 R = addition
             else:
                 R = R.add(addition, fill_value=0)
-        return R
+        return R.fillna(0)
         
     def cost(self,c):
         """Cost function for minimization"""
@@ -66,7 +66,10 @@ class Method1:
         return self.const_lsq(c=[1], simple=True)
         
     def density(self):
-        return self.pluvio.rainrate(self.rule)/self.rainrate([1],True)
+        """Calculates mean density estimate for each timeframe."""
+        rho_r_pip = self.rainrate([1],True)
+        rho_r_pip[rho_r_pip < 1000] = np.nan # filter
+        return self.pluvio.rainrate(self.rule)/rho_r_pip
         
     def minimize(self,method='SLSQP'):
         """Find constants for calculating particle masses. Save and return results."""
@@ -98,7 +101,7 @@ class Method1:
         rho = 1e6*self.density()
         rho.plot(label='mean density', ax=axarr[1])
         for ax in axarr:
-            ax.legend(loc='upper left')
+            ax.legend(loc='upper right')
             ax.set_xlabel('time')
         axarr[1].set_ylabel(r'$\rho_{part}$')
     

@@ -220,7 +220,8 @@ class Pluvio(InstrumentData):
         return datetime.datetime(*t[:6])
         
     def rainrate(self, rule='1H'):
-        return self.data.bucket_nrt.resample(rule,how='last',closed='right',label='right')-self.data.bucket_nrt.resample(rule,how='first',closed='right',label='right')
+        R = self.data.bucket_nrt.resample(rule,how='last',closed='right',label='right')-self.data.bucket_nrt.resample(rule,how='first',closed='right',label='right')
+        return R.fillna(0)
         
     def acc(self, rule='1H'):
         return self.data.bucket_nrt.resample(rule,how='last',closed='right',label='right')-self.data.bucket_nrt[0]
