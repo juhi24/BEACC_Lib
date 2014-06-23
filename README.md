@@ -24,7 +24,7 @@ Then install the requirements inside the virtual environment using pip.
     pip install pandas
     pip install matplotlib
 
-Clone the baecc python library using git
+Clone the baecc python library using git.
 
     git clone https://github.com/juhi24/baecc.git
   
