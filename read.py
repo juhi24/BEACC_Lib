@@ -1,6 +1,4 @@
 import time
-#from pylab import *
-import numpy as np
 import glob
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -143,13 +141,14 @@ def pluvio(date):
     return pd.DataFrame(data)
 
 class InstrumentData:
-    def __init__(self,filenames,is_hdf=False,hdf_table=None):
+    """Parent for instrument data classes."""
+    def __init__(self, filenames, is_hdf=False, hdf_table=None):
         self.filenames = filenames
         self.data = pd.DataFrame()
         if is_hdf:
             if hdf_table is not None:
                 self.name = hdf_table
-                self.data = self.data.append(pd.read_hdf(filenames,hdf_table))
+                self.data = self.data.append(pd.read_hdf(filenames, hdf_table))
                 self.finish_init()
                 return
             raise ValueError('hdf_table cannot be None when reading a hdf file.')
@@ -158,7 +157,7 @@ class InstrumentData:
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
         
-    def parse_datetime():
+    def parse_datetime(self):
         """Parse timestamps in data files. Used by class constructor."""
         pass
         
@@ -172,10 +171,10 @@ class InstrumentData:
 
 class Pluvio(InstrumentData):
     """Pluviometer data handling"""
-    def __init__(self,filenames):
+    def __init__(self, filenames):
         """Create a Pluvio object using data from a list of files."""
         print('Reading pluviometer data...')
-        InstrumentData.__init__(self,filenames)
+        InstrumentData.__init__(self, filenames)
         self.name = os.path.basename(os.path.dirname(self.filenames[0]))
         self.col_description = ['date string',
                 'intensity RT  [mm h]',
@@ -214,25 +213,29 @@ class Pluvio(InstrumentData):
                         index_col='datetime'))
             self.finish_init()
         
-    def parse_datetime(self,datestr):
-        datestr=str(int(datestr))
-        t=time.strptime(datestr,'%Y%m%d%H%M%S')
+    def parse_datetime(self, datestr):
+        datestr = str(int(datestr))
+        t = time.strptime(datestr, '%Y%m%d%H%M%S')
         return datetime.datetime(*t[:6])
         
     def rainrate(self, rule='1H'):
-        R = self.data.bucket_nrt.resample(rule,how='last',closed='right',label='right')-self.data.bucket_nrt.resample(rule,how='first',closed='right',label='right')
+        """Calculate rainrate for given time rule"""
+        R = (self.data.bucket_nrt.resample(rule, how='last', closed='right', label='right')
+            -self.data.bucket_nrt.resample(rule, how='first', closed='right', label='right'))
         return R.fillna(0)
         
     def acc(self, rule='1H'):
-        return self.data.bucket_nrt.resample(rule,how='last',closed='right',label='right')-self.data.bucket_nrt[0]
+        """Downsample accumulated precipitation in mm."""
+        return (self.data.bucket_nrt.resample(rule, how='last', closed='right', label='right')
+                -self.data.bucket_nrt[0])
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
-    def __init__(self,filenames):
+    def __init__(self, filenames):
         """Create a PipDSD object using data from a list of PIP DSD table files."""
         print('Reading PIP DSD data...')
         self.d_bin = 0.25
-        InstrumentData.__init__(self,filenames)
+        InstrumentData.__init__(self, filenames)
         self.name = 'pip_dsd'
         for filename in filenames:
             self.current_file = filename
@@ -242,21 +245,22 @@ class PipDSD(InstrumentData):
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
         self.num_d = self.data[['Num_d']]
-        self.data = self.data.drop(['day_time','Num_d','Bin_cen','0.125'],1) # 1st size bin is crap data
+        # 1st size bin is crap data
+        self.data = self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1)
         self.finish_init()
         sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
-        self.data = self.data.reindex_axis(sorted_column_index,axis=1)
+        self.data = self.data.reindex_axis(sorted_column_index, axis=1)
 
-    def parse_datetime(self,hh,mm):
-        dateline = linecache.getline(self.current_file,6)
+    def parse_datetime(self, hh, mm):
+        dateline = linecache.getline(self.current_file, 6)
         datearr = [int(x) for x in dateline.split()]
         date = datetime.date(*datearr)
-        time = datetime.time(int(hh),int(mm))
+        time = datetime.time(int(hh), int(mm))
         return datetime.datetime.combine(date, time)
         
     def bin_cen(self):
         """Return size bin centers in numeric format."""
-        return list(map(float,self.data.columns))
+        return list(map(float, self.data.columns))
         
     def plot(self, img=True):
         """Plot particle size distribution over time."""
@@ -271,10 +275,10 @@ class PipDSD(InstrumentData):
         
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
-    def __init__(self,filenames):
+    def __init__(self, filenames):
         """Create a PipV object using data from a list of PIP velocity table files."""
         print('Reading PIP particle velocity data...')
-        InstrumentData.__init__(self,filenames)
+        InstrumentData.__init__(self, filenames)
         self.name = 'pip_vel'
         for filename in filenames:
             self.current_file = filename
@@ -282,18 +286,20 @@ class PipV(InstrumentData):
                                     delim_whitespace=True, skiprows=8,
                                     parse_dates={'datetime':['minute_p']},
                                     date_parser=self.parse_datetime)
-            newdata.rename_axis({'vel_v_1':'vel_v','vel_h_1':'vel_h','vel_v_2':'vel_v','vel_h_2':'vel_h'},axis=1,inplace=True)
+            newdata.rename_axis(
+                {'vel_v_1':'vel_v', 'vel_h_1':'vel_h', 
+                 'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
             self.data = self.data.append(newdata)
         self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
         self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
         self.data.reset_index(level=1, inplace=True)
         self.finish_init()
     
-    def parse_datetime(self,mm):
+    def parse_datetime(self, mm):
         datestr = self.current_file.split('/')[-1].split('_')[0]
         yr = int(datestr[3:7])
         mo = int(datestr[7:9])
         dd = int(datestr[9:11])
         hh = int(datestr[11:13])
-        return datetime.datetime(yr,mo,dd,hh,int(mm))
+        return datetime.datetime(yr, mo, dd, hh, int(mm))
         

@@ -1,3 +1,4 @@
+"""Tools for estimating density and other properties of falling snow"""
 import numpy as np
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
@@ -6,7 +7,7 @@ TAU = 2*np.pi
 
 class Method1:
     """Calculate snowfall rate from particle size and velocity data."""
-    def __init__(self, dsd, pipv, pluvio, quess=(0.005,2.1), bnd=((0,0.1),(1,3)), rule='15min'):
+    def __init__(self, dsd, pipv, pluvio, quess=(0.005, 2.1), bnd=((0, 0.1), (1, 3)), rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
@@ -28,8 +29,10 @@ class Method1:
             vel = self.pipv.data.query(vcond).vel_v
             if vel.empty:
                 continue
-            vel_down = vel.resample(self.rule, how=np.mean, closed='right', label='right') # V(D_i) m/s, query is slow
-            N = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') # N(D_i) 1/(mm*m**3)
+            # V(D_i) m/s, query is slow
+            vel_down = vel.resample(self.rule, how=np.mean, closed='right', label='right')
+            # N(D_i) 1/(mm*m**3)
+            N = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') 
             if simple:
                 addition = 3.6*TAU/12*consts[0]*D**3*vel_down*N*dD
             else:
@@ -41,25 +44,25 @@ class Method1:
                 R = R.add(addition, fill_value=0)
         return R.fillna(0)
         
-    def cost(self,c):
+    def cost(self, c):
         """Cost function for minimization"""
         pip_acc = self.rainrate(c).cumsum()
         return abs(pip_acc.add(-1*self.pluvio.acc().dropna()).sum())
         
-    def cost_lsq(self,beta):
+    def cost_lsq(self, beta):
         """Single variable cost function using lstsq to find linear coef."""
         alpha = self.alpha_lsq(beta)
-        return self.cost([alpha,beta])
+        return self.cost([alpha, beta])
     
-    def const_lsq(self,c,simple):
-        acc_arr = self.rainrate(consts=c,simple=simple).cumsum().values
+    def const_lsq(self, c, simple):
+        acc_arr = self.rainrate(consts=c, simple=simple).cumsum().values
         A = np.vstack([acc_arr, np.ones(len(acc_arr))]).T
         y = self.pluvio.acc(self.rule).values
-        return np.linalg.lstsq(A,y)[0][0]
+        return np.linalg.lstsq(A, y)[0][0]
         
-    def alpha_lsq(self,beta):
+    def alpha_lsq(self, beta):
         """Wrapper for const_lsq to calculate alpha"""
-        return self.const_lsq(c=[1,beta], simple=False)
+        return self.const_lsq(c=[1, beta], simple=False)
         
     def density_lsq(self):
         """Wrapper for const_lsq to calculate mean particle density"""
@@ -67,11 +70,11 @@ class Method1:
         
     def density(self):
         """Calculates mean density estimate for each timeframe."""
-        rho_r_pip = self.rainrate([1],True)
+        rho_r_pip = self.rainrate([1], True)
         rho_r_pip[rho_r_pip < 1000] = np.nan # filter
         return self.pluvio.rainrate(self.rule)/rho_r_pip
         
-    def minimize(self,method='SLSQP'):
+    def minimize(self, method='SLSQP'):
         """Find constants for calculating particle masses. Save and return results."""
         print('Optimizing constants...')
         self.result = minimize(self.cost, self.quess, method=method, bounds=self.bnd)
@@ -84,7 +87,7 @@ class Method1:
         #self.result = minimize(self.cost_lsq, self.quess[1], method='SLSQP', bounds=self.bnd[1])
         beta = self.result.x[0]
         alpha = self.alpha_lsq(beta)
-        self.ab = [alpha,beta]
+        self.ab = [alpha, beta]
         return self.result
         
     def plot(self):
@@ -94,8 +97,8 @@ class Method1:
             self.minimize_lsq()
         kind = 'line'
         f, axarr = plt.subplots(2, sharex=True)
-        self.rainrate().plot(label='PIP',kind=kind,ax=axarr[0])
-        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name,kind=kind,ax=axarr[0])
+        self.rainrate().plot(label='PIP', kind=kind,ax=axarr[0])
+        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name, kind=kind, ax=axarr[0])
         axarr[0].set_ylabel('mm/%s' % self.rule)
         axarr[0].set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' % (self.rule, self.ab[0], self.ab[1]))
         rho = 1e6*self.density()
@@ -105,28 +108,29 @@ class Method1:
             ax.set_xlabel('time')
         axarr[1].set_ylabel(r'$\rho_{part}$')
     
-    def plot_cost(self,resolution=20):
+    def plot_cost(self, resolution=20):
         """The slowest plot you've made"""
         if self.ab is None:
             return
         alpha0 = self.ab[0]
-        alpha = np.linspace(0.4*alpha0,1.4*alpha0,num=resolution)
-        beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
-        z = np.zeros((alpha.size,beta.size))
-        for i,a in enumerate(alpha):
-            for j,b in enumerate(beta):
-                z[i][j] = self.cost((a,b))
+        alpha = np.linspace(0.4*alpha0, 1.4*alpha0, num=resolution)
+        beta = np.linspace(self.bnd[1][0], self.bnd[1][1],num=resolution)
+        z = np.zeros((alpha.size, beta.size))
+        for i, a in enumerate(alpha):
+            for j, b in enumerate(beta):
+                z[i][j] = self.cost((a, b))
         plt.clf()
-        plt.pcolor(beta,alpha,z,cmap='binary')
+        plt.pcolor(beta, alpha, z, cmap='binary')
         plt.colorbar()
         plt.xlabel(r'$\beta$')
         plt.ylabel(r'$\alpha$')
         plt.axis('tight')
         plt.title('cost function value')
-        plt.plot(self.ab[1],self.ab[0],'ro')
+        plt.plot(self.ab[1], self.ab[0], 'ro')
         return z
         
-    def plot_cost_lsq(self,resolution):
+    def plot_cost_lsq(self, resolution):
+        """Plot cost function value."""
         beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
         cost = np.array([self.cost_lsq(b) for b in beta])
         plt.clf()        
@@ -154,7 +158,7 @@ class Snow2:
         return np.exp(logx)
         
     @staticmethod
-    def mass(u,ar,D):
+    def mass(u, ar, D):
         g = 9.81
         fa = 1
         rho_a = 1.275
