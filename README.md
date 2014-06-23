@@ -17,12 +17,16 @@ Activate your virtual environment.
 
     source py3env/bin/activate
     
-Then install the requirements with pip inside the virtual environment.
+Then install the requirements inside the virtual environment using pip.
 
     pip install numpy
     pip install scipy
     pip install pandas
     pip install matplotlib
+
+Clone the baecc python library using git
+
+    git clone https://github.com/juhi24/baecc.git
   
 Getting started
 ---------------
