@@ -213,21 +213,32 @@ class Pluvio(InstrumentData):
                         index_col='datetime'))
             self.finish_init()
         
-    def parse_datetime(self, datestr):
+    def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
         t = time.strptime(datestr, '%Y%m%d%H%M%S')
-        return datetime.datetime(*t[:6])
+        if include_sec:
+            t_end = 6
+        else:
+            t_end = 5
+        return datetime.datetime(*t[:t_end])
         
-    def rainrate(self, rule='1H'):
+    def rainrate(self, rule='1H', upsample=True):
         """Calculate rainrate for given time rule"""
-        R = (self.data.bucket_nrt.resample(rule, how='last', closed='right', label='right')
-            -self.data.bucket_nrt.resample(rule, how='first', closed='right', label='right'))
-        return R.fillna(0)
+        if upsample:
+            acc_1min = self.acc('1min')
+        else:
+            acc_1min = self.acc_raw()
+        r = acc_1min.diff().resample(rule, how=self._sum, closed='right', label='right')
+        if not upsample:
+            return r.fillna(0)
+        return r
         
     def acc(self, rule='1H'):
-        """Downsample accumulated precipitation in mm."""
-        return (self.data.bucket_nrt.resample(rule, how='last', closed='right', label='right')
-                -self.data.bucket_nrt[0])
+        """Resample accumulated precipitation in mm."""
+        return self.acc_raw().resample(rule, how='last', closed='right', label='right').interpolate(method='time')
+                
+    def acc_raw(self):
+        return self.data.bucket_nrt-self.data.bucket_nrt[0]
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
@@ -294,6 +305,10 @@ class PipV(InstrumentData):
         self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
         self.data.reset_index(level=1, inplace=True)
         self.finish_init()
+        
+    def lwc(self, rule='1min'):
+        d3 = self.data.Wad_Dia**3
+        return d3.resample(rule, how=self._sum, closed='right', label='right')
     
     def parse_datetime(self, mm):
         datestr = self.current_file.split('/')[-1].split('_')[0]

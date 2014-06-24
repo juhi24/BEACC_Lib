@@ -85,6 +85,7 @@ class Method1:
         print('Optimizing constants...')
         self.result = minimize(self.cost_lsq, self.quess[1], method='Nelder-Mead')
         #self.result = minimize(self.cost_lsq, self.quess[1], method='SLSQP', bounds=self.bnd[1])
+        print(self.result.message)
         beta = self.result.x[0]
         alpha = self.alpha_lsq(beta)
         self.ab = [alpha, beta]
@@ -140,7 +141,9 @@ class Method1:
         plt.title('cost function value')
 
 class Snow2:
-    """UNTESTED. Calculate snowfall rate using Szyrmer Zawadski's method from Snow Study II."""
+    """UNTESTED. 
+    Calculate snowfall rate using Szyrmer Zawadski's method from Snow Study II.
+    """
     def __init__():
         return
 

@@ -39,8 +39,8 @@ dsd_lim = dsd
 for instr_lim in [pluvio200_lim,pluvio400_lim,dsd_lim,pipv]:
     instr_lim.data = instr_lim.data[dt_start:dt_end]
 
-m200 = Method1(dsd_lim,pipv,pluvio200_lim,rule='5min')
-m400 = Method1(dsd_lim,pipv,pluvio400_lim,rule='5min')
+m200 = Method1(dsd_lim,pipv,pluvio200_lim,rule='10min')
+m400 = Method1(dsd_lim,pipv,pluvio400_lim,rule='10min')
 
 m200.plot()
 #m400.plot()
