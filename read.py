@@ -231,6 +231,8 @@ class Pluvio(InstrumentData):
         r = acc_1min.diff().resample(rule, how=self._sum, closed='right', label='right')
         if not upsample:
             return r.fillna(0)
+        t_r0 = r.index[0]
+        r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
         
     def acc(self, rule='1H'):

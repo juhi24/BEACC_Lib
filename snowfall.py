@@ -91,15 +91,14 @@ class Method1:
         self.ab = [alpha, beta]
         return self.result
         
-    def plot(self):
+    def plot(self, kind='line', **kwargs):
         """Plot calculated (PIP) and pluvio rainrates."""
         if self.ab is None:
             print('Constants not defined. Will now find them via minimization.')
             self.minimize_lsq()
-        kind = 'line'
         f, axarr = plt.subplots(2, sharex=True)
-        self.rainrate().plot(label='PIP', kind=kind,ax=axarr[0])
-        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name, kind=kind, ax=axarr[0])
+        self.rainrate().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
+        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name, kind=kind, ax=axarr[0], **kwargs)
         axarr[0].set_ylabel('mm/%s' % self.rule)
         axarr[0].set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' % (self.rule, self.ab[0], self.ab[1]))
         rho = 1e6*self.density()
@@ -108,11 +107,14 @@ class Method1:
             ax.legend(loc='upper right')
             ax.set_xlabel('time')
         axarr[1].set_ylabel(r'$\rho_{part}$')
+        plt.show()
     
-    def plot_cost(self, resolution=20):
+    def plot_cost(self, resolution=20, ax=None, cmap='binary', **kwargs):
         """The slowest plot you've made"""
         if self.ab is None:
             return
+        if ax is None:
+            ax = plt.gca()
         alpha0 = self.ab[0]
         alpha = np.linspace(0.4*alpha0, 1.4*alpha0, num=resolution)
         beta = np.linspace(self.bnd[1][0], self.bnd[1][1],num=resolution)
@@ -120,25 +122,33 @@ class Method1:
         for i, a in enumerate(alpha):
             for j, b in enumerate(beta):
                 z[i][j] = self.cost((a, b))
-        plt.clf()
-        plt.pcolor(beta, alpha, z, cmap='binary')
-        plt.colorbar()
-        plt.xlabel(r'$\beta$')
-        plt.ylabel(r'$\alpha$')
-        plt.axis('tight')
-        plt.title('cost function value')
-        plt.plot(self.ab[1], self.ab[0], 'ro')
-        return z
+        f, ax = plt.subplot(1)
+        heat = ax.pcolor(beta, alpha, z, cmap=cmap, **kwargs)
+        ax.colorbar()
+        ax.xlabel(r'$\beta$')
+        ax.ylabel(r'$\alpha$')
+        ax.axis('tight')
+        ax.title('cost function value')
+        return z, heat, ax.plot(self.ab[1], self.ab[0], 'ro')
         
-    def plot_cost_lsq(self, resolution):
+    def plot_cost_lsq(self, resolution, ax=None, *args, **kwargs):
         """Plot cost function value."""
+        if ax is None:
+            ax = plt.gca()
         beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
         cost = np.array([self.cost_lsq(b) for b in beta])
-        plt.clf()        
-        plt.plot(beta,cost)
-        plt.xlabel(r'$\beta$')
-        plt.ylabel('cost')
-        plt.title('cost function value')
+        f, ax =  plt.subplot(1)
+        ax.xlabel(r'$\beta$')
+        ax.ylabel('cost')
+        ax.title('cost function value')
+        return ax.plot(beta, cost, *args, **kwargs)
+        
+    def xcorr(self, rule='1min', ax=None, **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        r = self.pluvio.rainrate(rule)
+        lwc = self.pipv.lwc(rule)
+        return plt.xcorr(lwc, r, **kwargs)
 
 class Snow2:
     """UNTESTED. 
