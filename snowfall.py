@@ -144,6 +144,9 @@ class Method1:
         return ax.plot(beta, cost, *args, **kwargs)
         
     def xcorr(self, rule='1min', ax=None, **kwargs):
+        """Plot cross-correlation between lwc estimate and pluvio rainrate. 
+        Extra arguments are passed to pyplot.xcorr.
+        """
         if ax is None:
             ax = plt.gca()
         r = self.pluvio.rainrate(rule)

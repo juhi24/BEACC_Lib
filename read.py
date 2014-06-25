@@ -6,7 +6,7 @@ import datetime
 import pandas as pd
 from collections import defaultdict
 import linecache
-import os.path
+from os import path
     
 def hotplate(date):
     #file_ = open(filename)
@@ -142,16 +142,13 @@ def pluvio(date):
 
 class InstrumentData:
     """Parent for instrument data classes."""
-    def __init__(self, filenames, is_hdf=False, hdf_table=None):
+    def __init__(self, filenames, hdf_table=None):
         self.filenames = filenames
         self.data = pd.DataFrame()
-        if is_hdf:
-            if hdf_table is not None:
-                self.name = hdf_table
-                self.data = self.data.append(pd.read_hdf(filenames, hdf_table))
-                self.finish_init()
-                return
-            raise ValueError('hdf_table cannot be None when reading a hdf file.')
+        if hdf_table is not None:
+            self.name = hdf_table
+            self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
+            self.finish_init()
             
     def finish_init(self):
         self.data.sort_index(inplace=True)
@@ -171,46 +168,48 @@ class InstrumentData:
 
 class Pluvio(InstrumentData):
     """Pluviometer data handling"""
-    def __init__(self, filenames):
+    def __init__(self, filenames, **kwargs):
         """Create a Pluvio object using data from a list of files."""
         print('Reading pluviometer data...')
-        InstrumentData.__init__(self, filenames)
-        self.name = os.path.basename(os.path.dirname(self.filenames[0]))
-        self.col_description = ['date string',
-                'intensity RT  [mm h]',
-                'accumulated RT NRT [mm]',
-                'accumulated NRT [mm]',
-                'accumulated total NRT [mm]',
-                'bucket RT [mm]',
-                'bucket NRT [mm]',
-                'temperature load cell [degC]',
-                'heating status',
-                'status',
-                'temperature electronics unit',
-                'supply voltage',
-                'ice rim temperature']
-        col_abbr = ['datestr',
-                'i_rt',
-                'acc_rt',
-                'acc_nrt',
-                'acc_tot_nrt',
-                'bucket_rt',
-                'bucket_nrt',
-                't_load',
-                'heating',
-                'status',
-                't_elec',
-                'volt',
-                't_rim']
-        for filename in filenames:
-            num_lines = sum(1 for line in open(filename))
-            self.current_file = filename
-            self.data = self.data.append(pd.read_csv(filename, sep=';',
-                        names=col_abbr,
-                        skiprows=list(range(1,num_lines,2)),
-                        parse_dates={'datetime':['datestr']},
-                        date_parser=self.parse_datetime,
-                        index_col='datetime'))
+        InstrumentData.__init__(self, filenames, **kwargs)
+        self.name = path.basename(path.dirname(self.filenames[0])).lower()
+        if self.data.empty:
+            self.col_description = ['date string',
+                    'intensity RT  [mm h]',
+                    'accumulated RT NRT [mm]',
+                    'accumulated NRT [mm]',
+                    'accumulated total NRT [mm]',
+                    'bucket RT [mm]',
+                    'bucket NRT [mm]',
+                    'temperature load cell [degC]',
+                    'heating status',
+                    'status',
+                    'temperature electronics unit',
+                    'supply voltage',
+                    'ice rim temperature']
+            col_abbr = ['datestr',
+                    'i_rt',
+                    'acc_rt',
+                    'acc_nrt',
+                    'acc_tot_nrt',
+                    'bucket_rt',
+                    'bucket_nrt',
+                    't_load',
+                    'heating',
+                    'status',
+                    't_elec',
+                    'volt',
+                    't_rim']
+            for filename in filenames:
+                num_lines = sum(1 for line in open(filename))
+                self.current_file = filename
+                self.data = self.data.append(pd.read_csv(filename, sep=';',
+                            names=col_abbr,
+                            skiprows=list(range(1,num_lines,2)),
+                            parse_dates={'datetime':['datestr']},
+                            date_parser=self.parse_datetime,
+                            index_col='datetime'))
+            self.data.drop(['i_rt'], 1, inplace=True)
             self.finish_init()
         
     def parse_datetime(self, datestr, include_sec=False):
@@ -244,25 +243,26 @@ class Pluvio(InstrumentData):
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
-    def __init__(self, filenames):
+    def __init__(self, filenames, **kwargs):
         """Create a PipDSD object using data from a list of PIP DSD table files."""
         print('Reading PIP DSD data...')
+        InstrumentData.__init__(self, filenames, **kwargs)
         self.d_bin = 0.25
-        InstrumentData.__init__(self, filenames)
         self.name = 'pip_dsd'
-        for filename in filenames:
-            self.current_file = filename
-            self.data = self.data.append(pd.read_csv(filename, 
-                            delim_whitespace=True, skiprows=8, header=3,
-                            parse_dates={'datetime':['hr_d','min_d']},
-                            date_parser=self.parse_datetime,
-                            index_col='datetime'))
-        self.num_d = self.data[['Num_d']]
-        # 1st size bin is crap data
-        self.data = self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1)
-        self.finish_init()
-        sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
-        self.data = self.data.reindex_axis(sorted_column_index, axis=1)
+        if self.data.empty: 
+            for filename in filenames:
+                self.current_file = filename
+                self.data = self.data.append(pd.read_csv(filename, 
+                                delim_whitespace=True, skiprows=8, header=3,
+                                parse_dates={'datetime':['hr_d','min_d']},
+                                date_parser=self.parse_datetime,
+                                index_col='datetime'))
+            self.num_d = self.data[['Num_d']]
+            # 1st size bin is crap data
+            self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1, inplace=True)
+            self.finish_init()
+            sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
+            self.data = self.data.reindex_axis(sorted_column_index, axis=1)
 
     def parse_datetime(self, hh, mm):
         dateline = linecache.getline(self.current_file, 6)
@@ -288,25 +288,26 @@ class PipDSD(InstrumentData):
         
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
-    def __init__(self, filenames):
+    def __init__(self, filenames, **kwargs):
         """Create a PipV object using data from a list of PIP velocity table files."""
         print('Reading PIP particle velocity data...')
-        InstrumentData.__init__(self, filenames)
+        InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
-        for filename in filenames:
-            self.current_file = filename
-            newdata = pd.read_csv(filename,
-                                    delim_whitespace=True, skiprows=8,
-                                    parse_dates={'datetime':['minute_p']},
-                                    date_parser=self.parse_datetime)
-            newdata.rename_axis(
-                {'vel_v_1':'vel_v', 'vel_h_1':'vel_h', 
-                 'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
-            self.data = self.data.append(newdata)
-        self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
-        self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
-        self.data.reset_index(level=1, inplace=True)
-        self.finish_init()
+        if self.data.empty:
+            for filename in filenames:
+                self.current_file = filename
+                newdata = pd.read_csv(filename,
+                                        delim_whitespace=True, skiprows=8,
+                                        parse_dates={'datetime':['minute_p']},
+                                        date_parser=self.parse_datetime)
+                newdata.rename_axis(
+                    {'vel_v_1':'vel_v', 'vel_h_1':'vel_h', 
+                     'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
+                self.data = self.data.append(newdata)
+            self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
+            self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
+            self.data.reset_index(level=1, inplace=True)
+            self.finish_init()
         
     def lwc(self, rule='1min'):
         d3 = self.data.Wad_Dia**3
