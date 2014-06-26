@@ -148,7 +148,6 @@ class InstrumentData:
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
-            self.finish_init()
             
     def finish_init(self):
         self.data.sort_index(inplace=True)
@@ -210,7 +209,7 @@ class Pluvio(InstrumentData):
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
             self.data.drop(['i_rt'], 1, inplace=True)
-            self.finish_init()
+        self.finish_init()
         
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
@@ -260,9 +259,9 @@ class PipDSD(InstrumentData):
             self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data
             self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1, inplace=True)
-            self.finish_init()
             sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
             self.data = self.data.reindex_axis(sorted_column_index, axis=1)
+        self.finish_init()
 
     def parse_datetime(self, hh, mm):
         dateline = linecache.getline(self.current_file, 6)
@@ -307,7 +306,7 @@ class PipV(InstrumentData):
             self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
             self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
             self.data.reset_index(level=1, inplace=True)
-            self.finish_init()
+        self.finish_init()
         
     def lwc(self, rule='1min'):
         d3 = self.data.Wad_Dia**3
