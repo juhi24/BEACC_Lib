@@ -1,5 +1,6 @@
 """Tools for estimating density and other properties of falling snow"""
 import numpy as np
+import read
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
@@ -17,6 +18,18 @@ class Method1:
         self.rule = rule
         self.result = None
         self.ab = None
+        
+    @classmethod
+    def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
+        pluvio200 = read.Pluvio(filenames, hdf_table='pluvio200')
+        pluvio400 = read.Pluvio(filenames, hdf_table='pluvio400')
+        dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
+        pipv = read.PipV(filenames, hdf_table='pip_vel')
+        for instr in [pluvio200, pluvio400, dsd, pipv]:
+            instr.data = instr.data[dt_start:dt_end]
+        m200 = cls(dsd, pipv, pluvio200, **kwargs)
+        m400 = cls(dsd, pipv, pluvio400, **kwargs)
+        return m200, m400
         
     def rainrate(self, consts=None, simple=False):
         """Calculate rainrate using given or saved constants."""
