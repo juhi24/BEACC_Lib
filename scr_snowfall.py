@@ -27,8 +27,8 @@ def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
 #dt_start = '20140221T16:00:01'
 #dt_end = '20140221T23:45:00'
 
-dt_start = '20140215T21:20:01'
-dt_end = '20140216T1:00:00'
+dt_start = '20140223T00:00:01'
+dt_end = '20140223T23:00:00'
 
 #dt_start = '20140208T0:30:01'
 #dt_end = '20140208T10:30:00'

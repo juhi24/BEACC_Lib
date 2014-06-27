@@ -149,9 +149,10 @@ class InstrumentData:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
             
-    def finish_init(self):
+    def finish_init(self, dt_start, dt_end):
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
+        self.data = self.data[dt_start:dt_end]
         
     def parse_datetime(self):
         """Parse timestamps in data files. Used by class constructor."""
@@ -164,10 +165,10 @@ class InstrumentData:
         
     def to_hdf(self, filename='../DATA/baecc.h5'):
         self.data.to_hdf(filename, self.name, format='table', append=True)
-
+        
 class Pluvio(InstrumentData):
     """Pluviometer data handling"""
-    def __init__(self, filenames, **kwargs):
+    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
         """Create a Pluvio object using data from a list of files."""
         print('Reading pluviometer data...')
         InstrumentData.__init__(self, filenames, **kwargs)
@@ -208,8 +209,8 @@ class Pluvio(InstrumentData):
                             parse_dates={'datetime':['datestr']},
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
-            self.data.drop(['i_rt'], 1, inplace=True)
-        self.finish_init()
+            self.data.drop(['i_rt'], 1, inplace=True) # crap format
+        self.finish_init(dt_start, dt_end)
         
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
@@ -239,10 +240,15 @@ class Pluvio(InstrumentData):
                 
     def acc_raw(self):
         return self.data.bucket_nrt-self.data.bucket_nrt[0]
+        
+    def filter_bias(self, lwc):
+        lwc_filled = lwc.reindex(self.data.index).fillna(0)
+        bias_acc = self.acc_raw().diff()[lwc_filled==0].cumsum()
+        # TODO
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
-    def __init__(self, filenames, **kwargs):
+    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
         """Create a PipDSD object using data from a list of PIP DSD table files."""
         print('Reading PIP DSD data...')
         InstrumentData.__init__(self, filenames, **kwargs)
@@ -256,12 +262,12 @@ class PipDSD(InstrumentData):
                                 parse_dates={'datetime':['hr_d','min_d']},
                                 date_parser=self.parse_datetime,
                                 index_col='datetime'))
-            self.num_d = self.data[['Num_d']]
+            #self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data
             self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1, inplace=True)
             sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
             self.data = self.data.reindex_axis(sorted_column_index, axis=1)
-        self.finish_init()
+        self.finish_init(dt_start, dt_end)
 
     def parse_datetime(self, hh, mm):
         dateline = linecache.getline(self.current_file, 6)
@@ -287,7 +293,7 @@ class PipDSD(InstrumentData):
         
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
-    def __init__(self, filenames, **kwargs):
+    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
         """Create a PipV object using data from a list of PIP velocity table files."""
         print('Reading PIP particle velocity data...')
         InstrumentData.__init__(self, filenames, **kwargs)
@@ -306,7 +312,7 @@ class PipV(InstrumentData):
             self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
             self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
             self.data.reset_index(level=1, inplace=True)
-        self.finish_init()
+        self.finish_init(dt_start, dt_end)
         
     def lwc(self, rule='1min'):
         d3 = self.data.Wad_Dia**3
@@ -319,4 +325,3 @@ class PipV(InstrumentData):
         dd = int(datestr[9:11])
         hh = int(datestr[11:13])
         return datetime.datetime(yr, mo, dd, hh, int(mm))
-        

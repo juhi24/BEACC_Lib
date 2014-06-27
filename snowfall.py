@@ -1,5 +1,6 @@
 """Tools for estimating density and other properties of falling snow"""
 import numpy as np
+import pandas as pd
 import read
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
@@ -103,6 +104,9 @@ class Method1:
         alpha = self.alpha_lsq(beta)
         self.ab = [alpha, beta]
         return self.result
+        
+    def time_range(self):
+        return pd.date_range(self.pluvio.data.index[0], self.pluvio.data.index[-1], freq='1min')
         
     def plot(self, kind='line', **kwargs):
         """Plot calculated (PIP) and pluvio rainrates."""
