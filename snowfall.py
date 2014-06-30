@@ -167,7 +167,7 @@ class Method1:
         if ax is None:
             ax = plt.gca()
         r = self.pluvio.rainrate(rule)
-        lwc = self.pipv.lwc(rule)
+        lwc = self.pipv.lwc(rule).reindex(self.pluvio.data.index).fillna()
         return plt.xcorr(lwc, r, **kwargs)
 
 class Snow2:

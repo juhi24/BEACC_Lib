@@ -173,6 +173,7 @@ class Pluvio(InstrumentData):
         print('Reading pluviometer data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = path.basename(path.dirname(self.filenames[0])).lower()
+        self.bias = 0
         if self.data.empty:
             self.col_description = ['date string',
                     'intensity RT  [mm h]',
@@ -236,15 +237,21 @@ class Pluvio(InstrumentData):
         
     def acc(self, rule='1H'):
         """Resample accumulated precipitation in mm."""
-        return self.acc_raw().resample(rule, how='last', closed='right', label='right').interpolate(method='time')
+        # TODO: test
+        accum = self.acc_raw().asfreq('1min').interpolate(method='time')
+        accum_filtered = accum - self.bias
+        return accum_filtered.resample(rule, how='last', closed='right', label='right')
                 
     def acc_raw(self):
         return self.data.bucket_nrt-self.data.bucket_nrt[0]
         
-    def filter_bias(self, lwc):
+    def noprecip_bias(self, lwc, inplace=True):
         lwc_filled = lwc.reindex(self.data.index).fillna(0)
         bias_acc = self.acc_raw().diff()[lwc_filled==0].cumsum()
-        # TODO
+        bias_acc_filled = bias_acc.reindex(self.data.index).fillna(method='bfill')
+        if inplace:
+            self.bias = bias_acc_filled
+        return bias_acc_filled
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
