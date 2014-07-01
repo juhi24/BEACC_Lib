@@ -222,10 +222,10 @@ class Pluvio(InstrumentData):
             t_end = 5
         return datetime.datetime(*t[:t_end])
         
-    def rainrate(self, rule='1H', upsample=True):
+    def rainrate(self, rule='1H', upsample=True, **kwargs):
         """Calculate rainrate for given time rule"""
         if upsample:
-            acc_1min = self.acc('1min')
+            acc_1min = self.acc('1min', **kwargs)
         else:
             acc_1min = self.acc_raw()
         r = acc_1min.diff().resample(rule, how=self._sum, closed='right', label='right')
@@ -235,20 +235,25 @@ class Pluvio(InstrumentData):
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
         
-    def acc(self, rule='1H'):
-        """Resample accumulated precipitation in mm."""
-        # TODO: test
-        accum = self.acc_raw().asfreq('1min').interpolate(method='time')
-        accum_filtered = accum - self.bias
-        return accum_filtered.resample(rule, how='last', closed='right', label='right')
+    def acc(self, rule='1H', interpolate=True, unbias=True):
+        """Resample unbiased accumulated precipitation in mm."""
+        accum = self.acc_raw().asfreq('1min')
+        if interpolate:
+            accum.interpolate(method='time', inplace=True)
+        else:
+            accum.fillna(method='bfill', inplace=True)
+        if unbias:
+            accum -= self.bias
+        return accum.resample(rule, how='last', closed='right', label='right')
                 
     def acc_raw(self):
         return self.data.bucket_nrt-self.data.bucket_nrt[0]
         
-    def noprecip_bias(self, lwc, inplace=True):
+    def noprecip_bias(self, lwc, inplace=False):
+        """Calculate accumulated bias using LWC."""
         lwc_filled = lwc.reindex(self.data.index).fillna(0)
         bias_acc = self.acc_raw().diff()[lwc_filled==0].cumsum()
-        bias_acc_filled = bias_acc.reindex(self.data.index).fillna(method='bfill')
+        bias_acc_filled = bias_acc.reindex(self.data.index).asfreq('1min').fillna(method='bfill')
         if inplace:
             self.bias = bias_acc_filled
         return bias_acc_filled

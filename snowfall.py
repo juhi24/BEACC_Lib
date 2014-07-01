@@ -9,7 +9,8 @@ TAU = 2*np.pi
 
 class Method1:
     """Calculate snowfall rate from particle size and velocity data."""
-    def __init__(self, dsd, pipv, pluvio, quess=(0.005, 2.1), bnd=((0, 0.1), (1, 3)), rule='15min'):
+    def __init__(self, dsd, pipv, pluvio, unbias=False,
+                 quess=(0.005, 2.1), bnd=((0, 0.1), (1, 3)), rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
@@ -19,9 +20,12 @@ class Method1:
         self.rule = rule
         self.result = None
         self.ab = None
+        if unbias:
+            self.noprecip_bias()
         
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
+        """Create Method1 object from a hdf file."""
         pluvio200 = read.Pluvio(filenames, hdf_table='pluvio200')
         pluvio400 = read.Pluvio(filenames, hdf_table='pluvio400')
         dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
@@ -57,6 +61,10 @@ class Method1:
             else:
                 R = R.add(addition, fill_value=0)
         return R.fillna(0)
+        
+    def noprecip_bias(self):
+        """Wrapper to unbias pluvio using LWC calculated from PIP data."""
+        self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=True)
         
     def cost(self, c):
         """Cost function for minimization"""
@@ -96,6 +104,7 @@ class Method1:
         return self.result
         
     def minimize_lsq(self):
+        """Find beta by minimization and alpha by linear least square."""
         print('Optimizing constants...')
         self.result = minimize(self.cost_lsq, self.quess[1], method='Nelder-Mead')
         #self.result = minimize(self.cost_lsq, self.quess[1], method='SLSQP', bounds=self.bnd[1])
@@ -106,6 +115,7 @@ class Method1:
         return self.result
         
     def time_range(self):
+        """data time ticks on minute interval"""
         return pd.date_range(self.pluvio.data.index[0], self.pluvio.data.index[-1], freq='1min')
         
     def plot(self, kind='line', **kwargs):
@@ -139,7 +149,7 @@ class Method1:
         for i, a in enumerate(alpha):
             for j, b in enumerate(beta):
                 z[i][j] = self.cost((a, b))
-        f, ax = plt.subplot(1)
+        ax = plt.gca()
         heat = ax.pcolor(beta, alpha, z, cmap=cmap, **kwargs)
         ax.colorbar()
         ax.xlabel(r'$\beta$')
@@ -154,7 +164,7 @@ class Method1:
             ax = plt.gca()
         beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
         cost = np.array([self.cost_lsq(b) for b in beta])
-        f, ax =  plt.subplot(1)
+        ax =  plt.gca()
         ax.xlabel(r'$\beta$')
         ax.ylabel('cost')
         ax.title('cost function value')

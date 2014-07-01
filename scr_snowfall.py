@@ -33,7 +33,7 @@ dt_end = '20140223T23:00:00'
 #dt_start = '20140208T0:30:01'
 #dt_end = '20140208T10:30:00'
 
-m200, m400 = Method1.from_hdf(dt_start, dt_end, rule='30min')
+m200, m400 = Method1.from_hdf(dt_start, dt_end, unbias=True, rule='30min')
 
 #m200.plot()
 #m400.plot()
