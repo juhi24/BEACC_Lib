@@ -172,11 +172,11 @@ class Pluvio(InstrumentData):
         """Create a Pluvio object using data from a list of files."""
         print('Reading pluviometer data...')
         InstrumentData.__init__(self, filenames, **kwargs)
-        self.name = path.basename(path.dirname(self.filenames[0])).lower()
         self.bias = 0
         self.shift_periods = 0
         self.shift_freq = None
         if self.data.empty:
+            self.name = path.basename(path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
                     'intensity RT  [mm h]',
                     'accumulated RT NRT [mm]',

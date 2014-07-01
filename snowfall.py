@@ -23,7 +23,7 @@ class Method1:
         if unbias:
             self.noprecip_bias()
         if autoshift:
-            pass
+            self.autoshift()
         
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
@@ -43,7 +43,7 @@ class Method1:
         if self.ab is not None and consts is None:
             consts = self.ab
         dD = self.dsd.d_bin
-        R = None
+        r = None
         for D in self.dsd.bin_cen():
             vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (D-0.5*dD, D+0.5*dD)
             vel = self.pipv.data.query(vcond).vel_v
@@ -52,17 +52,17 @@ class Method1:
             # V(D_i) m/s, query is slow
             vel_down = vel.resample(self.rule, how=np.mean, closed='right', label='right')
             # N(D_i) 1/(mm*m**3)
-            N = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') 
+            n = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') 
             if simple:
-                addition = 3.6*TAU/12*consts[0]*D**3*vel_down*N*dD
+                addition = 3.6*TAU/12*consts[0]*D**3*vel_down*n*dD
             else:
-                addition = 3.6/self.rho_w*consts[0]*D**consts[1]*vel_down*N*dD
+                addition = 3.6/self.rho_w*consts[0]*D**consts[1]*vel_down*n*dD
                 # (mm/h)/(m/s) * kg/m**3 * mg/m**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h
-            if R is None:
-                R = addition
+            if r is None:
+                r = addition
             else:
-                R = R.add(addition, fill_value=0)
-        return R.fillna(0)
+                r = r.add(addition, fill_value=0)
+        return r.reindex(self.pluvio.rainrate(rule=self.rule).index).fillna(0)
         
     def noprecip_bias(self):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""

@@ -24,16 +24,19 @@ def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
     for instr in [pluvio200, pluvio400, pipv, dsd]:
         instr.to_hdf(hdf_file)
 
+dt_start = '20140201T00:00:01'
+dt_end = '20140228T23:45:00'
+
 #dt_start = '20140221T16:00:01'
 #dt_end = '20140221T23:45:00'
 
-dt_start = '20140223T00:00:01'
-dt_end = '20140223T23:00:00'
+#dt_start = '20140223T00:00:01'
+#dt_end = '20140223T23:00:00'
 
 #dt_start = '20140208T0:30:01'
 #dt_end = '20140208T10:30:00'
 
-m200, m400 = Method1.from_hdf(dt_start, dt_end, unbias=True, rule='30min')
+m200, m400 = Method1.from_hdf(dt_start, dt_end, unbias=True, rule='2min')
 
 #m200.plot()
 #m400.plot()
