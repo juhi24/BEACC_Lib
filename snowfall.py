@@ -189,10 +189,13 @@ class Method1:
             self.pluvio.shift_reset()
         xc = self.xcorr(rule=rule)
         imaxcorr = xc[1].argmax()
-        self.pluvio.shift_periods = xc[0][imaxcorr]
-        self.pluvio.shift_freq = rule
-        print('Pluvio timeshift set to %s*%s.' 
-            % (str(self.pluvio.shift_periods), self.pluvio.shift_freq))
+        periods = xc[0][imaxcorr]
+        if inplace:
+            self.pluvio.shift_periods = periods
+            self.pluvio.shift_freq = rule
+            print('Pluvio timeshift set to %s*%s.' 
+                % (str(self.pluvio.shift_periods), self.pluvio.shift_freq))
+        return periods
 
 class Snow2:
     """UNTESTED. 
