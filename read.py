@@ -174,6 +174,8 @@ class Pluvio(InstrumentData):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = path.basename(path.dirname(self.filenames[0])).lower()
         self.bias = 0
+        self.shift_periods = 0
+        self.shift_freq = None
         if self.data.empty:
             self.col_description = ['date string',
                     'intensity RT  [mm h]',
@@ -222,6 +224,10 @@ class Pluvio(InstrumentData):
             t_end = 5
         return datetime.datetime(*t[:t_end])
         
+    def shift_reset(self):
+        self.shift_periods = 0
+        self.shift_freq = None
+        
     def rainrate(self, rule='1H', upsample=True, **kwargs):
         """Calculate rainrate for given time rule"""
         if upsample:
@@ -235,7 +241,7 @@ class Pluvio(InstrumentData):
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
         
-    def acc(self, rule='1H', interpolate=True, unbias=True):
+    def acc(self, rule='1H', interpolate=True, unbias=True, shift=True):
         """Resample unbiased accumulated precipitation in mm."""
         accum = self.acc_raw().asfreq('1min')
         if interpolate:
@@ -244,6 +250,8 @@ class Pluvio(InstrumentData):
             accum.fillna(method='bfill', inplace=True)
         if unbias:
             accum -= self.bias
+        if shift:
+            accum = accum.tshift(periods=self.shift_periods, freq=self.shift_freq)
         return accum.resample(rule, how='last', closed='right', label='right')
                 
     def acc_raw(self):
@@ -251,9 +259,10 @@ class Pluvio(InstrumentData):
         
     def noprecip_bias(self, lwc, inplace=False):
         """Calculate accumulated bias using LWC."""
-        lwc_filled = lwc.reindex(self.data.index).fillna(0)
-        bias_acc = self.acc_raw().diff()[lwc_filled==0].cumsum()
-        bias_acc_filled = bias_acc.reindex(self.data.index).asfreq('1min').fillna(method='bfill')
+        accum = self.acc(rule='1min', unbias=False)
+        lwc_filled = lwc.reindex(accum.index).fillna(0)
+        bias_acc = accum.diff()[lwc_filled==0].cumsum()
+        bias_acc_filled = bias_acc.reindex(accum.index).asfreq('1min').fillna(method='bfill')
         if inplace:
             self.bias = bias_acc_filled
         return bias_acc_filled

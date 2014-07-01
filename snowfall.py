@@ -9,7 +9,7 @@ TAU = 2*np.pi
 
 class Method1:
     """Calculate snowfall rate from particle size and velocity data."""
-    def __init__(self, dsd, pipv, pluvio, unbias=False,
+    def __init__(self, dsd, pipv, pluvio, unbias=False, autoshift=False,
                  quess=(0.005, 2.1), bnd=((0, 0.1), (1, 3)), rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
@@ -22,6 +22,8 @@ class Method1:
         self.ab = None
         if unbias:
             self.noprecip_bias()
+        if autoshift:
+            pass
         
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
@@ -176,9 +178,21 @@ class Method1:
         """
         if ax is None:
             ax = plt.gca()
-        r = self.pluvio.rainrate(rule)
-        lwc = self.pipv.lwc(rule).reindex(self.pluvio.data.index).fillna()
-        return plt.xcorr(lwc, r, **kwargs)
+        r = self.pluvio.rainrate(rule, unbias=False)
+        lwc = self.pipv.lwc(rule).reindex(r.index).fillna(0)
+        return ax.xcorr(lwc, r, **kwargs)
+        
+    def autoshift(self, rule='1min', inplace=False):
+        """Find and correct pluvio time shift using cross correlation."""
+        if self.pluvio.shift_periods != 0:
+            print('Pluvio already timeshifted, resetting.')
+            self.pluvio.shift_reset()
+        xc = self.xcorr(rule=rule)
+        imaxcorr = xc[1].argmax()
+        self.pluvio.shift_periods = xc[0][imaxcorr]
+        self.pluvio.shift_freq = rule
+        print('Pluvio timeshift set to %s*%s.' 
+            % (str(self.pluvio.shift_periods), self.pluvio.shift_freq))
 
 class Snow2:
     """UNTESTED. 
