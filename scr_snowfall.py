@@ -38,6 +38,8 @@ dt_end = '20140228T23:45:00'
 
 m200, m400 = Method1.from_hdf(dt_start, dt_end, unbias=True, rule='2min')
 
+m200.dsd.data.drop(['26.0'], 1, inplace=True)
+
 #m200.plot()
 #m400.plot()
 #plt.show()

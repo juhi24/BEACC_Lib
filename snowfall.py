@@ -10,7 +10,7 @@ TAU = 2*np.pi
 class Method1:
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, unbias=False, autoshift=False,
-                 quess=(0.005, 2.1), bnd=((0, 0.1), (1, 3)), rule='15min'):
+                 quess=(0.01, 2.1), bnd=((0, 0.1), (1, 3)), rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
@@ -52,7 +52,7 @@ class Method1:
             # V(D_i) m/s, query is slow
             vel_down = vel.resample(self.rule, how=np.mean, closed='right', label='right')
             # N(D_i) 1/(mm*m**3)
-            n = self.dsd.data[str(D)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') 
+            n = self.dsd.corrected_data()[str(D)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') 
             if simple:
                 addition = 3.6*TAU/12*consts[0]*D**3*vel_down*n*dD
             else:
