@@ -4,6 +4,7 @@ import pandas as pd
 import read
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
+import copy
 
 TAU = 2*np.pi
 
@@ -37,6 +38,15 @@ class Method1:
         m200 = cls(dsd, pipv, pluvio200, **kwargs)
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
+        
+    def between_datetime(self, dt_start, dt_end, inplace=False):
+        if inplace:
+            m = self
+        else:
+            m = copy.deepcopy(self)
+        for instr in [m.dsd, m.pipv, m.pluvio]:
+            instr.between_datetime(dt_start, dt_end, inplace=True)
+        return m
         
     def rainrate(self, consts=None, simple=False):
         """Calculate rainrate using given or saved constants."""
@@ -154,10 +164,10 @@ class Method1:
         ax = plt.gca()
         heat = ax.pcolor(beta, alpha, z, cmap=cmap, **kwargs)
         ax.colorbar()
-        ax.xlabel(r'$\beta$')
-        ax.ylabel(r'$\alpha$')
+        ax.set_xlabel(r'$\beta$')
+        ax.set_ylabel(r'$\alpha$')
         ax.axis('tight')
-        ax.title('cost function value')
+        ax.set_title('cost function value')
         return z, heat, ax.plot(self.ab[1], self.ab[0], 'ro')
         
     def plot_cost_lsq(self, resolution, ax=None, *args, **kwargs):
@@ -167,9 +177,9 @@ class Method1:
         beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
         cost = np.array([self.cost_lsq(b) for b in beta])
         ax =  plt.gca()
-        ax.xlabel(r'$\beta$')
-        ax.ylabel('cost')
-        ax.title('cost function value')
+        ax.set_xlabel(r'$\beta$')
+        ax.set_ylabel('cost')
+        ax.set_title('cost function value')
         return ax.plot(beta, cost, *args, **kwargs)
         
     def xcorr(self, rule='1min', ax=None, **kwargs):

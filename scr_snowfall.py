@@ -27,18 +27,18 @@ def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
 dt_start = '20140201T00:00:01'
 dt_end = '20140228T23:45:00'
 
-#dt_start = '20140221T16:00:01'
-#dt_end = '20140221T23:45:00'
-
-#dt_start = '20140223T00:00:01'
-#dt_end = '20140223T23:00:00'
-
-#dt_start = '20140208T0:30:01'
-#dt_end = '20140208T10:30:00'
-
 m200, m400 = Method1.from_hdf(dt_start, dt_end, unbias=True, rule='2min')
 
 m200.dsd.data.drop(['26.0'], 1, inplace=True)
+
+case_start = '20140221T16:00:01'
+case_end = '20140222T00:00:00'
+
+#case_start = '20140223T00:00:01'
+#case_end = '20140223T23:00:00'
+
+#case_start = '20140208T0:30:01'
+#case_end = '20140208T10:30:00'
 
 #m200.plot()
 #m400.plot()
