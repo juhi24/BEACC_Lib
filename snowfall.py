@@ -21,14 +21,16 @@ class Method1:
         self.rule = rule
         self.result = None
         self.ab = None
-        if unbias:
-            self.noprecip_bias()
         if autoshift:
             self.autoshift()
+        if unbias:
+            self.noprecip_bias()
         
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
         """Create Method1 object from a hdf file."""
+        for dt in [dt_start, dt_end]:
+            dt = pd.datetools.to_datetime(dt)
         pluvio200 = read.Pluvio(filenames, hdf_table='pluvio200')
         pluvio400 = read.Pluvio(filenames, hdf_table='pluvio400')
         dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
@@ -40,12 +42,19 @@ class Method1:
         return m200, m400
         
     def between_datetime(self, dt_start, dt_end, inplace=False):
+        """Select data only in chosen time frame."""
+        for dt in [dt_start, dt_end]:
+            dt = pd.datetools.to_datetime(dt)
         if inplace:
             m = self
         else:
             m = copy.deepcopy(self)
-        for instr in [m.dsd, m.pipv, m.pluvio]:
+        for instr in [m.dsd, m.pipv]:
             instr.between_datetime(dt_start, dt_end, inplace=True)
+        pluvio_delta = m.pluvio.shift_periods*pd.datetools.to_offset(m.pluvio.shift_freq)
+        pluvio_start = dt_start - pluvio_delta
+        pluvio_end = dt_end - pluvio_delta
+        m.pluvio.between_datetime(pluvio_start, pluvio_end, inplace=True)
         m.pluvio.bias = 0
         return m
         
