@@ -46,6 +46,7 @@ class Method1:
             m = copy.deepcopy(self)
         for instr in [m.dsd, m.pipv, m.pluvio]:
             instr.between_datetime(dt_start, dt_end, inplace=True)
+        m.pluvio.bias = 0
         return m
         
     def rainrate(self, consts=None, simple=False):
@@ -171,7 +172,7 @@ class Method1:
         return z, heat, ax.plot(self.ab[1], self.ab[0], 'ro')
         
     def plot_cost_lsq(self, resolution, ax=None, *args, **kwargs):
-        """Plot cost function value."""
+        """Plot cost function value vs. beta."""
         if ax is None:
             ax = plt.gca()
         beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)

@@ -57,7 +57,7 @@ class Pluvio(InstrumentData):
         if self.data.empty:
             self.name = path.basename(path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
-                    'intensity RT  [mm h]',
+                    'intensity RT [mm h]',
                     'accumulated RT NRT [mm]',
                     'accumulated NRT [mm]',
                     'accumulated total NRT [mm]',
