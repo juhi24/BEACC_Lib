@@ -31,14 +31,29 @@ m200, m400 = Method1.from_hdf(dt_start, dt_end, unbias=True, rule='2min')
 
 m200.dsd.data.drop(['26.0'], 1, inplace=True)
 
-case_start = '20140221T16:00:01'
-case_end = '20140222T00:00:00'
+#case_start = '20140202T16:00:01'
+#case_end = '20140202T18:00:00'
+
+#case_start = '20140208T00:30:01'
+#case_end = '20140208T10:30:00'
+
+#case_start = '20140212T00:00:01'
+#case_end = '20140212T23:30:00'
+
+#case_start = '20140215T21:00:01'
+#case_end = '20140216T01:00:00'
+
+case_start = '20140221T22:00:01'
+case_end = '20140222T23:00:00'
 
 #case_start = '20140223T00:00:01'
 #case_end = '20140223T23:00:00'
 
-#case_start = '20140208T0:30:01'
-#case_end = '20140208T10:30:00'
+#case_start = '20140320T19:00:01'
+#case_end = '20140320T21:00:00'
+
+#case_start = '20140302T10:00:01'
+#case_end = '20140208T11:00:00'
 
 #m200.plot()
 #m400.plot()
