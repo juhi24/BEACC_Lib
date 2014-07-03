@@ -28,7 +28,7 @@ def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
 dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 dt_end = pd.datetime(2014, 2, 28, 23, 45, 0)
 
-m200, m400 = Method1.from_hdf(dt_start, dt_end, unbias=True, rule='2min')
+m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=True, rule='2min')
 
 m200.dsd.data.drop(['26.0'], 1, inplace=True)
 
@@ -55,6 +55,9 @@ case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
 
 #case_start = pd.datetime(2014, 3, 20, 19, 0, 1)
 #case_end = pd.datetime(2014, 3, 20, 21, 0, 0)
+
+m = m200.between_datetime(case_start, case_end)
+m.noprecip_bias()
 
 #m200.plot()
 #m400.plot()

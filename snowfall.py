@@ -25,6 +25,9 @@ class Method1:
             self.autoshift()
         if unbias:
             self.noprecip_bias()
+            
+    def __repr__(self):
+        return self.rule + ' sampling'
         
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
@@ -49,12 +52,12 @@ class Method1:
             m = self
         else:
             m = copy.deepcopy(self)
-        for instr in [m.dsd, m.pipv]:
+        for instr in [m.dsd, m.pipv, m.pluvio]:
             instr.between_datetime(dt_start, dt_end, inplace=True)
-        pluvio_delta = m.pluvio.shift_periods*pd.datetools.to_offset(m.pluvio.shift_freq)
-        pluvio_start = dt_start - pluvio_delta
-        pluvio_end = dt_end - pluvio_delta
-        m.pluvio.between_datetime(pluvio_start, pluvio_end, inplace=True)
+        #pluvio_delta = m.pluvio.shift_periods*pd.datetools.to_offset(m.pluvio.shift_freq)
+        #pluvio_start = dt_start - pluvio_delta
+        #pluvio_end = dt_end - pluvio_delta
+        #m.pluvio.between_datetime(pluvio_start, pluvio_end, inplace=True)
         m.pluvio.bias = 0
         return m
         
@@ -86,7 +89,7 @@ class Method1:
         
     def noprecip_bias(self):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
-        self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=True)
+        return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=True)
         
     def cost(self, c):
         """Cost function for minimization"""

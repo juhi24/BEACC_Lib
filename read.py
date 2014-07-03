@@ -21,7 +21,7 @@ class InstrumentData:
         """Sort and name index, cut time span."""
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
-        self.data = self.data[dt_start:dt_end]
+        self.set_span(dt_start, dt_end)
         
     def parse_datetime(self):
         """Parse timestamps in data files. Used by class constructor."""
@@ -42,8 +42,13 @@ class InstrumentData:
             instr = self
         else:
             instr = copy.deepcopy(self)
-        instr.data = instr.data[date_start:date_end]
+        instr.set_span(date_start, date_end)
         return instr
+        
+    def set_span(self, dt_start, dt_end):
+        for dt in [dt_start, dt_end]:
+            dt = pd.datetools.to_datetime(dt)
+        self.data = self.data[dt_start:dt_end]
         
 class Pluvio(InstrumentData):
     """Pluviometer data handling"""
@@ -92,6 +97,7 @@ class Pluvio(InstrumentData):
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
             self.data.drop(['i_rt'], 1, inplace=True) # crap format
+        self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
         
     def parse_datetime(self, datestr, include_sec=False):
@@ -102,6 +108,30 @@ class Pluvio(InstrumentData):
         else:
             t_end = 5
         return datetime.datetime(*t[:t_end])
+    
+    def set_span(self, dt_start, dt_end):
+        if dt_start is None or dt_end is None:
+            super().set_span(dt_start, dt_end)
+            return
+        for dt in [dt_start, dt_end]:
+            dt = pd.datetools.to_datetime(dt)
+        self.buffer = pd.datetools.timedelta(minutes=10)
+        if dt_start is None or dt_end is None:
+            self.buffer = pd.datetools.timedelta(0)
+        elif dt_start-self.buffer < self.data.index[0] or dt_end+self.buffer > self.data.index[-1]:
+            self.buffer = pd.datetools.timedelta(0)
+        self.data = self.data[dt_start-self.buffer:dt_end+self.buffer]
+        
+    def timeshift(self):
+        if self.shift_periods == 0:
+            return pd.datetools.timedelta(0)
+        return self.shift_periods*pd.datetools.to_offset(self.shift_freq)
+        
+    def dt_start(self):
+        return self.data.index[0] + self.buffer #+ self.timeshift()
+        
+    def dt_end(self):
+        return self.data.index[-1] - self.buffer #+ self.timeshift()
         
     def shift_reset(self):
         self.shift_periods = 0
@@ -127,10 +157,11 @@ class Pluvio(InstrumentData):
             accum.interpolate(method='time', inplace=True)
         else:
             accum.fillna(method='bfill', inplace=True)
-        if unbias:
-            accum -= self.bias
         if shift:
             accum = accum.tshift(periods=self.shift_periods, freq=self.shift_freq)
+        if unbias:
+            accum -= self.bias
+        accum = accum[self.dt_start():self.dt_end()]
         return accum.resample(rule, how='last', closed='right', label='right')
                 
     def acc_raw(self):
@@ -141,7 +172,7 @@ class Pluvio(InstrumentData):
         accum = self.acc(rule='1min', unbias=False)
         lwc_filled = lwc.reindex(accum.index).fillna(0)
         bias_acc = accum.diff()[lwc_filled==0].cumsum()
-        bias_acc_filled = bias_acc.reindex(accum.index).asfreq('1min').fillna(method='bfill')
+        bias_acc_filled = bias_acc.reindex(accum.index).asfreq('1min').fillna(method='bfill').fillna(method='ffill')
         if inplace:
             self.bias = bias_acc_filled
         return bias_acc_filled
