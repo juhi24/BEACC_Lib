@@ -214,9 +214,9 @@ class PipDSD(InstrumentData):
     def plot(self, img=True):
         """Plot particle size distribution over time."""
         if img:
-            plt.matshow(self.data.transpose(), norm=LogNorm(), origin='lower')
+            plt.matshow(self.corrected_data().transpose(), norm=LogNorm(), origin='lower')
         else:
-            plt.pcolor(self.data.transpose(), norm=LogNorm())
+            plt.pcolor(self.corrected_data().transpose(), norm=LogNorm())
         plt.colorbar()
         plt.title('PIP DSD')
         plt.xlabel('time (UTC)')

@@ -28,24 +28,27 @@ def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
 dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 dt_end = pd.datetime(2014, 2, 28, 23, 45, 0)
 
-m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=True, rule='2min')
+m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='15min')
 
 m200.dsd.data.drop(['26.0'], 1, inplace=True)
 
-case_start = pd.datetime(2014, 2, 2, 16, 0, 1)
-case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
+#case_start = pd.datetime(2014, 2, 2, 16, 0, 1)
+#case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
+
+case7_start = pd.datetime(2014, 2, 7, 22, 30, 1)
+case7_end = pd.datetime(2014, 2, 8, 0, 0, 0)
 
 #case_start = pd.datetime(2014, 2, 8, 0, 30, 1)
-#case_end = pd.datetime(2014, 2, 8, 10, 30, 1)
+#case_end = pd.datetime(2014, 2, 8, 10, 30, 0)
 
 #case_start = pd.datetime(2014, 2, 12, 0, 0, 1)
 #case_end = pd.datetime(2014, 2, 12, 23, 30, 0)
 
-#case_start = pd.datetime(2014, 2, 15, 21, 0, 1)
-#case_end = pd.datetime(2014, 2, 16, 1, 0, 0)
+case16_start = pd.datetime(2014, 2, 15, 21, 0, 1)
+case16_end = pd.datetime(2014, 2, 16, 1, 0, 0)
 
-#case_start = pd.datetime(2014, 2, 21, 22, 0, 1)
-#case_end = pd.datetime(2014, 2, 21, 23, 0, 0)
+case21_start = pd.datetime(2014, 2, 21, 22, 0, 1)
+case21_end = pd.datetime(2014, 2, 22, 0, 0, 0)
 
 #case_start = pd.datetime(2014, 2, 23, 0, 0, 1)
 #case_end = pd.datetime(2014, 2, 23, 23, 0, 0)
@@ -56,9 +59,10 @@ case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
 #case_start = pd.datetime(2014, 3, 20, 19, 0, 1)
 #case_end = pd.datetime(2014, 3, 20, 21, 0, 0)
 
-m = m200.between_datetime(case_start, case_end)
-m.noprecip_bias()
+m = m200.between_datetime(case7_start, case7_end)
+m.autoshift(inplace=True)
+m.noprecip_bias(inplace=True)
 
-#m200.plot()
+#m.plot()
 #m400.plot()
 #plt.show()

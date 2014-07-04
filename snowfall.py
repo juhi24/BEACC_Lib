@@ -54,10 +54,6 @@ class Method1:
             m = copy.deepcopy(self)
         for instr in [m.dsd, m.pipv, m.pluvio]:
             instr.between_datetime(dt_start, dt_end, inplace=True)
-        #pluvio_delta = m.pluvio.shift_periods*pd.datetools.to_offset(m.pluvio.shift_freq)
-        #pluvio_start = dt_start - pluvio_delta
-        #pluvio_end = dt_end - pluvio_delta
-        #m.pluvio.between_datetime(pluvio_start, pluvio_end, inplace=True)
         m.pluvio.bias = 0
         return m
         
@@ -87,9 +83,9 @@ class Method1:
                 r = r.add(addition, fill_value=0)
         return r.reindex(self.pluvio.rainrate(rule=self.rule).index).fillna(0)
         
-    def noprecip_bias(self):
+    def noprecip_bias(self, inplace=True):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
-        return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=True)
+        return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
         
     def cost(self, c):
         """Cost function for minimization"""
@@ -117,10 +113,11 @@ class Method1:
         
     def density(self):
         """Calculates mean density estimate for each timeframe."""
-        rho_r_pip = self.rainrate([1], True)
+        rho_r_pip = self.rainrate([1], simple=True)
         rho_r_pip[rho_r_pip < 1000] = np.nan # filter
         return self.pluvio.rainrate(self.rule)/rho_r_pip
         
+
     def minimize(self, method='SLSQP'):
         """Find constants for calculating particle masses. Save and return results."""
         print('Optimizing constants...')
