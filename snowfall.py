@@ -61,28 +61,46 @@ class Method1:
         """Calculate rainrate using given or saved constants."""
         if self.ab is not None and consts is None:
             consts = self.ab
-        dD = self.dsd.d_bin
-        r = None
-        for d in self.dsd.bin_cen():
-            vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*dD, d+0.5*dD)
-            vel = self.pipv.data.query(vcond).vel_v
-            if vel.empty:
-                continue
-            # V(D_i) m/s, query is slow
-            vel_down = vel.resample(self.rule, how=np.mean, closed='right', label='right')
-            # N(D_i) 1/(mm*m**3)
-            n = self.dsd.corrected_data()[str(d)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') 
-            if simple:
-                addition = 3.6*TAU/12*consts[0]*d**3*vel_down*n*dD
-            else:
-                addition = 3.6/RHO_W*consts[0]*d**consts[1]*vel_down*n*dD
-                # (mm/h)/(m/s) * kg/m**3 * mg/m**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h
-            if r is None:
-                r = addition
-            else:
-                r = r.add(addition, fill_value=0)
+        if simple:
+            r = self.sum_over_d(self.r_rho, rho=consts[0])
+        else:
+            r = self.sum_over_d(self.r_ab, alpha=consts[0], beta=consts[1])
         return r.reindex(self.pluvio.rainrate(rule=self.rule).index).fillna(0)
         
+    def n(self, d):
+        """Number concentration N(D) 1/(mm*m**3)"""
+        return self.dsd.corrected_data()[str(d)].resample(self.rule, how=self.dsd._sum, closed='right', label='right')
+        
+    def sum_over_d(self, func, **kwargs):
+        dD = self.dsd.d_bin
+        result = self.df_zeros()
+        for d in self.dsd.bin_cen():
+            result = result.add(func(d, **kwargs)*dD, fill_value=0)
+        return result
+        
+    def r_ab(self, d, alpha, beta):
+        """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h"""
+        return 3.6/RHO_W*alpha*d**beta*self.v_fall(d)*self.n(d)
+        
+    def r_rho(self, d, rho):
+        return 3.6*TAU/12*rho*d**3*self.v_fall(d)*self.n(d)
+        
+    def v_fall(self, d):
+        """v(D) m/s, query is slow"""
+        dD = self.dsd.d_bin
+        vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*dD, d+0.5*dD)
+        vel = self.pipv.data.query(vcond).vel_v
+        if vel.empty:
+            return self.df_zeros()
+        return vel.resample(self.rule, how=np.mean, closed='right', label='right')
+        
+    def n_t(self):
+        """Wrapper for calculating total concentration."""
+        return self.sum_over_d(self.n)
+            
+    def df_zeros(self):
+        return self.pluvio.acc(self.rule)*0
+    
     def noprecip_bias(self, inplace=True):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
         return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
@@ -95,7 +113,7 @@ class Method1:
             cost_method = self.pluvio.acc
         else:
             cost_method = self.pluvio.rainrate
-        return abs(pip_acc.add(-1*cost_method(self.rule).dropna()).sum())
+        return abs(pip_acc.add(-1*cost_method(self.rule)).sum())
         
     def cost_lsq(self, beta):
         """Single variable cost function using lstsq to find linear coef."""
@@ -152,14 +170,16 @@ class Method1:
             self.minimize_lsq()
         f, axarr = plt.subplots(2, sharex=True)
         self.rainrate().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
-        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name, kind=kind, ax=axarr[0], **kwargs)
+        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name,
+                                    kind=kind, ax=axarr[0], **kwargs)
         axarr[0].set_ylabel('mm/%s' % self.rule)
-        axarr[0].set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' % (self.rule, self.ab[0], self.ab[1]))
+        axarr[0].set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' 
+                            % (self.rule, self.ab[0], self.ab[1]))
         rho = 1e6*self.density()
         rho.plot(label='mean density', ax=axarr[1])
         for ax in axarr:
-            ax.legend(loc='upper right')
-            ax.set_xlabel('time')
+            ax.legend(loc='upper left')
+        axarr[-1].set_xlabel('time (UTC)')
         axarr[1].set_ylabel(r'$\rho_{part}$')
         plt.show()
     
@@ -171,7 +191,7 @@ class Method1:
             ax = plt.gca()
         alpha0 = self.ab[0]
         alpha = np.linspace(0.4*alpha0, 1.4*alpha0, num=resolution)
-        beta = np.linspace(self.bnd[1][0], self.bnd[1][1],num=resolution)
+        beta = np.linspace(self.bnd[1][0], self.bnd[1][1], num=resolution)
         z = np.zeros((alpha.size, beta.size))
         for i, a in enumerate(alpha):
             for j, b in enumerate(beta):
@@ -243,12 +263,12 @@ class Snow2:
         return np.exp(logx)
         
     @staticmethod
-    def mass(u, ar, D):
+    def mass(u, ar, d):
         g = 9.81
         fa = 1
         rho_a = 1.275
         nu_a = 1.544e-5
         
-        re = u*D/nu_a
+        re = u*d/nu_a
         return np.pi*rho_a*nu_a**2/(8*g)*Snow2.best(re)*ar*fa
 
