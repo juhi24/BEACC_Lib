@@ -115,7 +115,7 @@ class Pluvio(InstrumentData):
             return
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
-        self.buffer = pd.datetools.timedelta(minutes=10)
+        self.buffer = pd.datetools.timedelta(minutes=15)
         if dt_start is None or dt_end is None:
             self.buffer = pd.datetools.timedelta(0)
         elif dt_start-self.buffer < self.data.index[0] or dt_end+self.buffer > self.data.index[-1]:

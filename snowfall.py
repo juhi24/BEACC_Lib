@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import copy
 
 TAU = 2*np.pi
+RHO_W = 1000
 
 class Method1:
     """Calculate snowfall rate from particle size and velocity data."""
@@ -15,7 +16,6 @@ class Method1:
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
-        self.rho_w = 1000
         self.quess = quess
         self.bnd = bnd
         self.rule = rule
@@ -63,19 +63,19 @@ class Method1:
             consts = self.ab
         dD = self.dsd.d_bin
         r = None
-        for D in self.dsd.bin_cen():
-            vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (D-0.5*dD, D+0.5*dD)
+        for d in self.dsd.bin_cen():
+            vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*dD, d+0.5*dD)
             vel = self.pipv.data.query(vcond).vel_v
             if vel.empty:
                 continue
             # V(D_i) m/s, query is slow
             vel_down = vel.resample(self.rule, how=np.mean, closed='right', label='right')
             # N(D_i) 1/(mm*m**3)
-            n = self.dsd.corrected_data()[str(D)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') 
+            n = self.dsd.corrected_data()[str(d)].resample(self.rule, how=self.dsd._sum, closed='right', label='right') 
             if simple:
-                addition = 3.6*TAU/12*consts[0]*D**3*vel_down*n*dD
+                addition = 3.6*TAU/12*consts[0]*d**3*vel_down*n*dD
             else:
-                addition = 3.6/self.rho_w*consts[0]*D**consts[1]*vel_down*n*dD
+                addition = 3.6/RHO_W*consts[0]*d**consts[1]*vel_down*n*dD
                 # (mm/h)/(m/s) * kg/m**3 * mg/m**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h
             if r is None:
                 r = addition
@@ -87,10 +87,15 @@ class Method1:
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
         return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
         
-    def cost(self, c):
+    def cost(self, c, use_accum=False):
         """Cost function for minimization"""
-        pip_acc = self.rainrate(c).cumsum()
-        return abs(pip_acc.add(-1*self.pluvio.acc().dropna()).sum())
+        pip_acc = self.rainrate(c)
+        if use_accum:
+            pip_acc = pip_acc.cumsum()
+            cost_method = self.pluvio.acc
+        else:
+            cost_method = self.pluvio.rainrate
+        return abs(pip_acc.add(-1*cost_method(self.rule).dropna()).sum())
         
     def cost_lsq(self, beta):
         """Single variable cost function using lstsq to find linear coef."""
@@ -111,12 +116,12 @@ class Method1:
         """Wrapper for const_lsq to calculate mean particle density"""
         return self.const_lsq(c=[1], simple=True)
         
-    def density(self):
+    def density(self, fltr=True):
         """Calculates mean density estimate for each timeframe."""
-        rho_r_pip = self.rainrate([1], simple=True)
-        rho_r_pip[rho_r_pip < 1000] = np.nan # filter
+        rho_r_pip = self.rainrate(consts=[1], simple=True)
+        if fltr:
+            rho_r_pip[rho_r_pip < 1000] = np.nan # filter
         return self.pluvio.rainrate(self.rule)/rho_r_pip
-        
 
     def minimize(self, method='SLSQP'):
         """Find constants for calculating particle masses. Save and return results."""

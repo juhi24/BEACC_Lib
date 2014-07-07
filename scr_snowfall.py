@@ -37,6 +37,7 @@ m200.dsd.data.drop(['26.0'], 1, inplace=True)
 
 case7_start = pd.datetime(2014, 2, 7, 22, 30, 1)
 case7_end = pd.datetime(2014, 2, 8, 0, 0, 0)
+case7 = [case7_start, case7_end]
 
 #case_start = pd.datetime(2014, 2, 8, 0, 30, 1)
 #case_end = pd.datetime(2014, 2, 8, 10, 30, 0)
@@ -46,9 +47,11 @@ case7_end = pd.datetime(2014, 2, 8, 0, 0, 0)
 
 case16_start = pd.datetime(2014, 2, 15, 21, 0, 1)
 case16_end = pd.datetime(2014, 2, 16, 1, 0, 0)
+case16 = [case16_start, case16_end]
 
 case21_start = pd.datetime(2014, 2, 21, 22, 0, 1)
 case21_end = pd.datetime(2014, 2, 22, 0, 0, 0)
+case21 = [case21_start, case21_end]
 
 #case_start = pd.datetime(2014, 2, 23, 0, 0, 1)
 #case_end = pd.datetime(2014, 2, 23, 23, 0, 0)
@@ -59,9 +62,12 @@ case21_end = pd.datetime(2014, 2, 22, 0, 0, 0)
 #case_start = pd.datetime(2014, 3, 20, 19, 0, 1)
 #case_end = pd.datetime(2014, 3, 20, 21, 0, 0)
 
-m = m200.between_datetime(case7_start, case7_end)
-m.autoshift(inplace=True)
-m.noprecip_bias(inplace=True)
+case = []
+for case_span in [case7, case16, case21]:
+    m = m200.between_datetime(*case_span)
+    m.autoshift(inplace=True)
+    m.noprecip_bias(inplace=True)
+    case.append(m)
 
 #m.plot()
 #m400.plot()
