@@ -21,13 +21,15 @@ class Method1:
         self.rule = rule
         self.result = None
         self.ab = None
+        self.scale = 1e6 # mg --> kg
         if autoshift:
             self.autoshift()
         if unbias:
             self.noprecip_bias()
             
     def __repr__(self):
-        return self.rule + ' sampling'
+        return """%s sampling
+                  consts: %s""" % (self.rule, self.ab)
         
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
@@ -79,10 +81,12 @@ class Method1:
         return result
         
     def r_ab(self, d, alpha, beta):
-        """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * m**beta * m/s * 1/(mm*m**3) * mm == mm/h"""
+        """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * m**beta * m/s * 1/(mm*m**3)
+        """
         return 3.6/RHO_W*alpha*d**beta*self.v_fall(d)*self.n(d)
         
     def r_rho(self, d, rho):
+        """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
         return 3.6*TAU/12*rho*d**3*self.v_fall(d)*self.n(d)
         
     def v_fall(self, d):
@@ -95,8 +99,14 @@ class Method1:
         return vel.resample(self.rule, how=np.mean, closed='right', label='right')
         
     def n_t(self):
-        """Wrapper for calculating total concentration."""
+        """total concentration"""
         return self.sum_over_d(self.n)
+        
+    def d_m(self):
+        """mass weighted mean diameter"""
+        d4n = lambda d: d**4*self.n(d)
+        d3n = lambda d: d**3*self.n(d)
+        return self.sum_over_d(d4n)/self.sum_over_d(d3n)
             
     def df_zeros(self):
         return self.pluvio.acc(self.rule)*0
@@ -168,19 +178,22 @@ class Method1:
         if self.ab is None:
             print('Constants not defined. Will now find them via minimization.')
             self.minimize_lsq()
-        f, axarr = plt.subplots(2, sharex=True)
+        f, axarr = plt.subplots(4, sharex=True)
         self.rainrate().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
         self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name,
                                     kind=kind, ax=axarr[0], **kwargs)
         axarr[0].set_ylabel('mm/%s' % self.rule)
         axarr[0].set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' 
                             % (self.rule, self.ab[0], self.ab[1]))
-        rho = 1e6*self.density()
-        rho.plot(label='mean density', ax=axarr[1])
-        for ax in axarr:
-            ax.legend(loc='upper left')
-        axarr[-1].set_xlabel('time (UTC)')
+        rho = self.scale*self.density()
+        rho.plot(label='mean density', ax=axarr[1])      
         axarr[1].set_ylabel(r'$\rho_{part}$')
+        self.n_t().plot(ax=axarr[2])
+        axarr[2].set_ylabel(r'$N_{tot} (m^{-3})$')
+        self.d_m().plot(ax=axarr[3])
+        axarr[3].set_ylabel(r'$D_m$ (mm)')
+        axarr[0].legend(loc='upper left')
+        axarr[-1].set_xlabel('time (UTC)')
         plt.show()
     
     def plot_cost(self, resolution=20, ax=None, cmap='binary', **kwargs):
