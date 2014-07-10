@@ -9,26 +9,33 @@ from os import path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
+def batch_import(dtstr, datadir='../DATA'):
     pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
     dsd_files = glob(path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
-    pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_0?_%s*' % dtstr))
-    pluvio400_files = glob(path.join(datadir, 'Pluvio400/pluvio400_0?_%s*' % dtstr))
-
+    pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
+    pluvio400_files = glob(path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
+    
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
+    return {'vel': pipv, 'dsd': dsd, 
+            'pluvio200': pluvio200, 'pluvio400': pluvio400}
+
+def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
+    instrdict = batch_import(datadir, dtstr)
 
     hdf_file = glob(path.join(datadir, outname))
 
-    for instr in [pluvio200, pluvio400, pipv, dsd]:
+    for instr in [instrdict.values()]:
         instr.to_hdf(hdf_file)
 
 dt_start = pd.datetime(2014, 5, 25, 0, 0, 1)
 dt_end = pd.datetime(2014, 5, 27, 23, 45, 0)
 
-m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='15min')
+#m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='15min')
+instr = batch_import(datadir='.../DATA', dtstr='20140526')
+m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='15min')
 
 m200.dsd.data.drop(['26.0'], 1, inplace=True)
 
@@ -72,11 +79,11 @@ raincase = [case_start, case_end]
 #mar20 = [case_start, case_end]
 
 case = [] # initialize
-#for case_span in [raincase]:
-#    m = m200.between_datetime(*case_span)
-#    m.autoshift(inplace=True)
-#    m.noprecip_bias(inplace=True)
-#    case.append(m)
+for case_span in [raincase]:
+    m = m200.between_datetime(*case_span)
+    m.autoshift(inplace=True)
+    m.noprecip_bias(inplace=True)
+    case.append(m)
 
 #m.plot()
 #m400.plot()

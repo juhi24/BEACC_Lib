@@ -41,7 +41,7 @@ class Method1:
         dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
         pipv = read.PipV(filenames, hdf_table='pip_vel')
         for instr in [pluvio200, pluvio400, dsd, pipv]:
-            instr.data = instr.data[dt_start:dt_end]
+            instr.set_span(dt_start, dt_end)
         m200 = cls(dsd, pipv, pluvio200, **kwargs)
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
@@ -259,7 +259,7 @@ class Snow2:
     """UNTESTED. 
     Calculate snowfall rate using Szyrmer Zawadski's method from Snow Study II.
     """
-    def __init__():
+    def __init__(self):
         return
 
     @staticmethod
