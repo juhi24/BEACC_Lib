@@ -23,66 +23,67 @@ def batch_import(dtstr, datadir='../DATA'):
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
 def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
-    instrdict = batch_import(datadir, dtstr)
+    instrdict = batch_import(dtstr, datadir)
 
     hdf_file = glob(path.join(datadir, outname))
 
     for instr in [instrdict.values()]:
         instr.to_hdf(hdf_file)
 
-dt_start = pd.datetime(2014, 5, 25, 0, 0, 1)
-dt_end = pd.datetime(2014, 5, 27, 23, 45, 0)
+dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
+dt_end = pd.datetime(2014, 3, 1, 23, 45, 0)
 
-#m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='15min')
-instr = batch_import(datadir='.../DATA', dtstr='20140526')
-m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='15min')
+m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
+#instr = batch_import(dtstr='20140526', datadir='../DATA')
+#m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='15min')
 
 m200.dsd.data.drop(['26.0'], 1, inplace=True)
 
-#case_start = pd.datetime(2014, 2, 2, 16, 0, 1)
-#case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
-#case2 = [case_start, case_end]
+case_start = pd.datetime(2014, 2, 2, 16, 0, 1)
+case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
+case2 = [case_start, case_end]
 
-case_start = pd.datetime(2014, 5, 26, 17, 0, 1)
-case_end = pd.datetime(2014, 5, 26, 20, 0, 0)
-raincase = [case_start, case_end]
+case_start = pd.datetime(2014, 5, 26, 17, 30, 1)
+case_end = pd.datetime(2014, 5, 26, 19, 30, 0)
+raincase26 = [case_start, case_end]
 
-#case7_start = pd.datetime(2014, 2, 7, 22, 30, 1)
-#case7_end = pd.datetime(2014, 2, 8, 0, 0, 0)
-#case7 = [case7_start, case7_end]
+case7_start = pd.datetime(2014, 2, 7, 23, 15, 1)
+case7_end = pd.datetime(2014, 2, 8, 0, 0, 0)
+case7 = [case7_start, case7_end]
 
-#case_start = pd.datetime(2014, 2, 8, 0, 30, 1)
-#case_end = pd.datetime(2014, 2, 8, 10, 30, 0)
+case_start = pd.datetime(2014, 2, 8, 0, 30, 1)
+case_end = pd.datetime(2014, 2, 8, 10, 30, 0)
 
-#case_start = pd.datetime(2014, 2, 12, 0, 0, 1)
-#case_end = pd.datetime(2014, 2, 12, 23, 30, 0)
-#case12 = [case_start, case_end]
+case_start = pd.datetime(2014, 2, 12, 0, 0, 1)
+case_end = pd.datetime(2014, 2, 12, 23, 30, 0)
+case12 = [case_start, case_end]
 
-#case16_start = pd.datetime(2014, 2, 15, 21, 0, 1)
-#case16_end = pd.datetime(2014, 2, 16, 1, 0, 0)
-#case16 = [case16_start, case16_end]
+case16_start = pd.datetime(2014, 2, 15, 21, 0, 1)
+case16_end = pd.datetime(2014, 2, 16, 1, 0, 0)
+case16 = [case16_start, case16_end]
 
-#case21_start = pd.datetime(2014, 2, 21, 22, 0, 1)
-#case21_end = pd.datetime(2014, 2, 22, 0, 0, 0)
-#case21 = [case21_start, case21_end]
+case21_start = pd.datetime(2014, 2, 21, 23, 0, 1)
+case21_end = pd.datetime(2014, 2, 22, 0, 0, 0)
+case21 = [case21_start, case21_end]
 
-#case_start = pd.datetime(2014, 2, 23, 0, 0, 1)
-#case_end = pd.datetime(2014, 2, 23, 23, 0, 0)
-#case23 = [case_start, case_end]
+case_start = pd.datetime(2014, 2, 23, 0, 0, 1)
+case_end = pd.datetime(2014, 2, 23, 23, 0, 0)
+case23 = [case_start, case_end]
 
-#case_start = pd.datetime(2014, 3, 2, 10, 0, 1)
-#case_end = pd.datetime(2014, 3, 2, 11, 0, 0)
-#mar2 = [case_start, case_end]
+case_start = pd.datetime(2014, 3, 2, 10, 0, 1)
+case_end = pd.datetime(2014, 3, 2, 11, 0, 0)
+mar2 = [case_start, case_end]
 
-#case_start = pd.datetime(2014, 3, 20, 19, 0, 1)
-#case_end = pd.datetime(2014, 3, 20, 21, 0, 0)
-#mar20 = [case_start, case_end]
+case_start = pd.datetime(2014, 3, 20, 19, 0, 1)
+case_end = pd.datetime(2014, 3, 20, 21, 0, 0)
+mar20 = [case_start, case_end]
 
 case = [] # initialize
-for case_span in [raincase]:
+for case_span in [case7, case21]:
     m = m200.between_datetime(*case_span)
     m.autoshift(inplace=True)
     m.noprecip_bias(inplace=True)
+    m.plot()
     case.append(m)
 
 #m.plot()

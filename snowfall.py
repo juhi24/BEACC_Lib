@@ -9,7 +9,7 @@ import copy
 TAU = 2*np.pi
 RHO_W = 1000
 
-class Method1:
+class Method1(read.PrecipMeasurer):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, unbias=False, autoshift=False,
                  quess=(0.01, 2.1), bnd=((0, 0.1), (1, 3)), rule='15min'):
@@ -151,10 +151,10 @@ class Method1:
             rho_r_pip[rho_r_pip < 1000] = np.nan # filter
         return self.pluvio.rainrate(self.rule)/rho_r_pip
 
-    def minimize(self, method='SLSQP'):
+    def minimize(self, method='SLSQP', **kwargs):
         """Find constants for calculating particle masses. Save and return results."""
         print('Optimizing constants...')
-        self.result = minimize(self.cost, self.quess, method=method, bounds=self.bnd)
+        self.result = minimize(self.cost, self.quess, method=method, **kwargs)
         self.ab = self.result.x
         return self.result
         
@@ -179,20 +179,20 @@ class Method1:
             print('Constants not defined. Will now find them via minimization.')
             self.minimize_lsq()
         f, axarr = plt.subplots(4, sharex=True)
-        self.rainrate().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
-        self.pluvio.rainrate(self.rule).plot(label=self.pluvio.name,
+        self.intensity().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
+        self.pluvio.intensity(rule=self.rule).plot(label=self.pluvio.name,
                                     kind=kind, ax=axarr[0], **kwargs)
-        axarr[0].set_ylabel('mm/%s' % self.rule)
-        axarr[0].set_title(r'%s rainrate, $\alpha=%s, \beta=%s$' 
-                            % (self.rule, self.ab[0], self.ab[1]))
-        rho = self.scale*self.density()
+        axarr[0].set_ylabel('mm/h')
+        axarr[0].set_title(r'precipitation intensity, $\alpha=%s, \beta=%s$' 
+                            % (self.ab[0], self.ab[1]))
+        rho = self.scale*self.density(fltr=False)
         rho.plot(label='mean density', ax=axarr[1])      
         axarr[1].set_ylabel(r'$\rho_{part}$')
         self.n_t().plot(ax=axarr[2])
         axarr[2].set_ylabel(r'$N_{tot} (m^{-3})$')
         self.d_m().plot(ax=axarr[3])
         axarr[3].set_ylabel(r'$D_m$ (mm)')
-        axarr[0].legend(loc='upper left')
+        axarr[0].legend(loc='upper right')
         axarr[-1].set_xlabel('time (UTC)')
         plt.show()
     

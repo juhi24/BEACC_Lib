@@ -7,6 +7,24 @@ import linecache
 from os import path
 import copy
 
+class PrecipMeasurer:
+    """parent for classes with precipitation measurements
+    Either rainrate or acc (or both) methods should be overridden."""
+    def __init__(self):
+        pass
+    
+    def rainrate(self, **kwargs):
+        return self.acc(**kwargs).diff()
+    
+    def acc(self, **kwargs):
+        return self.rainrate(**kwargs).cumsum()
+        
+    def intensity(self, **kwargs):
+        """precipitation intensity in mm/h"""
+        r = self.rainrate(**kwargs)
+        frac = pd.datetools.timedelta(hours=1)/r.index.freq.delta
+        return frac * r
+
 class InstrumentData:
     """Parent for instrument data classes."""
     def __init__(self, filenames, hdf_table=None):
@@ -50,7 +68,7 @@ class InstrumentData:
             dt = pd.datetools.to_datetime(dt)
         self.data = self.data[dt_start:dt_end]
         
-class Pluvio(InstrumentData):
+class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
         """Create a Pluvio object using data from a list of files."""
@@ -223,7 +241,7 @@ class PipDSD(InstrumentData):
         plt.ylabel('D (mm)')
         
     def corrected_data(self):
-        return 2*self.data
+        return 0.02*self.data
         
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
