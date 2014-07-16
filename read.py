@@ -237,11 +237,18 @@ class PipDSD(InstrumentData):
             plt.pcolor(self.corrected_data().transpose(), norm=LogNorm())
         plt.colorbar()
         plt.title('PIP DSD')
-        plt.xlabel('time (UTC)')
-        plt.ylabel('D (mm)')
+        plt.xlabel('time (UTC) BROKEN')
+        plt.ylabel('D (mm) BROKEN')
         
-    def corrected_data(self):
-        return 0.02*self.data
+    def cat_and_dog_filter(self, window=5):
+        is_dog = pd.rolling_count(self.data.mask(self.data==0).T, window).T == 1
+        is_dog.ix[:,:window] = False
+        filtered = self.data
+        filtered[is_dog] = 0
+        return filtered
+        
+    def corrected_data(self, **kwargs):
+        return 2*self.cat_and_dog_filter(**kwargs)
         
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""

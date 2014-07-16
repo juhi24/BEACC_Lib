@@ -71,7 +71,7 @@ class Method1(read.PrecipMeasurer):
         
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
-        return self.dsd.corrected_data()[str(d)].resample(self.rule, how=self.dsd._sum, closed='right', label='right')
+        return self.dsd.corrected_data()[str(d)].resample(self.rule, how=np.mean, closed='right', label='right')
         
     def sum_over_d(self, func, **kwargs):
         dD = self.dsd.d_bin
