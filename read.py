@@ -242,8 +242,8 @@ class PipDSD(InstrumentData):
         
     def cat_and_dog_filter(self, window=5):
         is_dog = pd.rolling_count(self.data.mask(self.data==0).T, window).T == 1
-        is_dog.ix[:,:window] = False
-        filtered = self.data
+        is_dog.ix[:,:window] = False # ignore first columns
+        filtered = copy.deepcopy(self.data)
         filtered[is_dog] = 0
         return filtered
         
@@ -284,3 +284,17 @@ class PipV(InstrumentData):
         dd = int(datestr[9:11])
         hh = int(datestr[11:13])
         return datetime.datetime(yr, mo, dd, hh, int(mm))
+        
+    def plot(self, ax=None, style='+', **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        self.data.plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, **kwargs)
+        partcount = self.data.Part_ID.count()
+        margin = 0.1
+        xmax = self.data.Wad_Dia.max() + margin
+        ymax = self.data.vel_v.max() + margin
+        ax.axis([0, xmax, 0, ymax])
+        ax.set_title('PIP: particle size vs. fall velocity')
+        ax.text(0.1, round(ymax)-1, 'particle count: %s' % str(partcount))
+        ax.set_xlabel('D (mm)')
+        ax.set_ylabel('Vertical velocity (m/s)')

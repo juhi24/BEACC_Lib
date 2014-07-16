@@ -83,7 +83,7 @@ for case_span in [raincase26]:
     m = m200.between_datetime(*case_span)
     m.autoshift(inplace=True)
     m.noprecip_bias(inplace=True)
-    m.plot()
+    #m.plot()
     case.append(m)
 
 #m.plot()
