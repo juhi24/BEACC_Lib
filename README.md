@@ -1,7 +1,7 @@
 BAECC
 =====
 
-A Python 3 module to read baecc campaing data
+A Python 3 module to work with baecc campaign in situ data
 
 Installation
 ------------
@@ -24,9 +24,11 @@ Then install the requirements inside the virtual environment using pip.
     pip install pandas
     pip install matplotlib
 
-Clone the baecc python library using git.
+Clone the baecc python library.
 
     git clone https://github.com/juhi24/baecc.git
+    
+You should now have a everything ready to start working with the data.
   
 Getting started
 ---------------
