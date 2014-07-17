@@ -35,7 +35,7 @@ dt_end = pd.datetime(2014, 3, 1, 23, 45, 0)
 
 #m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
 instr = batch_import(dtstr='20140526', datadir='../DATA')
-m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='15min')
+m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='5min')
 
 m200.dsd.data.drop(['26.0'], 1, inplace=True)
 

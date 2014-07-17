@@ -3,9 +3,23 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import datetime
 import pandas as pd
+import numpy as np
 import linecache
 from os import path
 import copy
+
+def v_gunn_keizer(d):
+    """d in mm --> return v in m/s"""
+    v = 965 - 1030*np.exp(-0.6*d) # cm/s
+    return 0.01*v
+    
+def plot_gunn_keizer(dmax, samples=100, ax=None):
+    if ax is None:
+        ax = plt.gca()
+    diam = np.linspace(0,dmax,samples)
+    vel = [v_gunn_keizer(d) for d in diam]
+    ax.plot(diam, vel)
+    return ax
 
 class PrecipMeasurer:
     """parent for classes with precipitation measurements
@@ -294,7 +308,8 @@ class PipV(InstrumentData):
         xmax = self.data.Wad_Dia.max() + margin
         ymax = self.data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
-        ax.set_title('PIP: particle size vs. fall velocity')
+        ax.set_title('PIP velocity data %s' % self.data.index[0].date().isoformat())
         ax.text(0.1, round(ymax)-1, 'particle count: %s' % str(partcount))
         ax.set_xlabel('D (mm)')
         ax.set_ylabel('Vertical velocity (m/s)')
+        return ax

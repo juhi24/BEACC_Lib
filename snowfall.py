@@ -20,7 +20,8 @@ class Method1(read.PrecipMeasurer):
         self.bnd = bnd
         self.rule = rule
         self.result = None
-        self.ab = None
+        self.ab = None # alpha, beta
+        self.abc = None # Gunn&Keizer constants
         self.scale = 1e6 # mg --> kg
         if autoshift:
             self.autoshift()
@@ -75,7 +76,7 @@ class Method1(read.PrecipMeasurer):
         
     def sum_over_d(self, func, **kwargs):
         dD = self.dsd.d_bin
-        result = self.df_zeros()
+        result = self.series_zeros()
         for d in self.dsd.bin_cen():
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
@@ -90,13 +91,28 @@ class Method1(read.PrecipMeasurer):
         return 3.6*TAU/12*rho*d**3*self.v_fall(d)*self.n(d)
         
     def v_fall(self, d):
-        """v(D) m/s, query is slow"""
+        """v(D) m/s for every timestep, query is slow"""
         dD = self.dsd.d_bin
         vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*dD, d+0.5*dD)
         vel = self.pipv.data.query(vcond).vel_v
         if vel.empty:
-            return self.df_zeros()
+            return self.series_nans()
         return vel.resample(self.rule, how=np.mean, closed='right', label='right')
+        
+    def v_fall_all(self):
+        v_d = []
+        for d in self.dsd.bin_cen():
+            vel = self.v_fall(d)
+            vel.name = d
+            v_d.append(vel)
+        return pd.concat(v_d, axis=1)
+        
+    def v_fit(self, d, abc=None):
+        if abc is None:
+            abc = self.abc
+            if abc is None:
+                return
+        return abc[0]*(1 - abc[1]*np.exp(-abc[2]*d))
         
     def n_t(self):
         """total concentration"""
@@ -108,12 +124,20 @@ class Method1(read.PrecipMeasurer):
         d3n = lambda d: d**3*self.n(d)
         return self.sum_over_d(d4n)/self.sum_over_d(d3n)
             
-    def df_zeros(self):
+    def series_zeros(self):
+        """Return series of zeros of the shape of timestep averaged data."""
         return self.pluvio.acc(self.rule)*0
+        
+    def series_nans(self):
+        """Return series of nans of the shape of timestep averaged data."""
+        return self.series_zeros()*np.nan
     
     def noprecip_bias(self, inplace=True):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
         return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
+        
+    def cost_v(self, abc):
+        return
         
     def cost(self, c, use_accum=False):
         """Cost function for minimization"""
@@ -229,6 +253,19 @@ class Method1(read.PrecipMeasurer):
         ax.set_ylabel('cost')
         ax.set_title('cost function value')
         return ax.plot(beta, cost, *args, **kwargs)
+        
+    def plot_v_d(self, ax=None):
+        if ax is None:
+            ax=plt.gca()
+        diam = []
+        vel = []
+        for d in self.dsd.bin_cen():
+            v_new = self.v_fall(d).values
+            d_new = [d]*len(v_new)
+            vel.extend(v_new)
+            diam.extend(d_new)
+        ax.plot(diam, vel, 'h')
+        return ax
         
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio rainrate. 
