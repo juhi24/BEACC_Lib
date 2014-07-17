@@ -72,12 +72,12 @@ class Method1(read.PrecipMeasurer):
         
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
-        return self.dsd.corrected_data()[str(d)].resample(self.rule, how=np.mean, closed='right', label='right')
+        return self.dsd.corrected_data()[d].resample(self.rule, how=np.mean, closed='right', label='right')
         
     def sum_over_d(self, func, **kwargs):
         dD = self.dsd.d_bin
         result = self.series_zeros()
-        for d in self.dsd.bin_cen():
+        for d in self.dsd.data.columns:
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
         
@@ -101,7 +101,7 @@ class Method1(read.PrecipMeasurer):
         
     def v_fall_all(self):
         v_d = []
-        for d in self.dsd.bin_cen():
+        for d in self.dsd.data.columns:
             vel = self.v_fall(d)
             vel.name = d
             v_d.append(vel)

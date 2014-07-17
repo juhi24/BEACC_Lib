@@ -228,8 +228,8 @@ class PipDSD(InstrumentData):
             #self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data, last sometimes nans
             self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1, inplace=True)
-            sorted_column_index = list(map(str,(sorted(self.bin_cen())))) # trust me
-            self.data = self.data.reindex_axis(sorted_column_index, axis=1)
+            self.data.columns = pd.Index([float(i) for i in self.data.columns])
+            self.data.sort_index(axis=1)
         self.finish_init(dt_start, dt_end)
 
     def parse_datetime(self, hh, mm):
@@ -238,10 +238,6 @@ class PipDSD(InstrumentData):
         d = datetime.date(*datearr)
         t = datetime.time(int(hh), int(mm))
         return datetime.datetime.combine(d, t)
-        
-    def bin_cen(self):
-        """Return size bin centers in numeric format."""
-        return list(map(float, self.data.columns))
         
     def plot(self, img=True):
         """Plot particle size distribution over time."""

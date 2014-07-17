@@ -37,7 +37,7 @@ dt_end = pd.datetime(2014, 3, 1, 23, 45, 0)
 instr = batch_import(dtstr='20140526', datadir='../DATA')
 m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='5min')
 
-m200.dsd.data.drop(['26.0'], 1, inplace=True)
+m200.dsd.data.drop([26.0], 1, inplace=True)
 
 case_start = pd.datetime(2014, 2, 2, 16, 0, 1)
 case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
