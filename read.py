@@ -13,12 +13,12 @@ def v_gunn_keizer(d):
     v = 965 - 1030*np.exp(-0.6*d) # cm/s
     return 0.01*v
     
-def plot_gunn_keizer(dmax, samples=100, ax=None):
+def plot_gunn_keizer(dmax, samples=100, ax=None, **kwargs):
     if ax is None:
         ax = plt.gca()
     diam = np.linspace(0,dmax,samples)
     vel = [v_gunn_keizer(d) for d in diam]
-    ax.plot(diam, vel)
+    ax.plot(diam, vel, **kwargs)
     return ax
 
 class PrecipMeasurer:
@@ -298,7 +298,7 @@ class PipV(InstrumentData):
     def plot(self, ax=None, style='+', **kwargs):
         if ax is None:
             ax = plt.gca()
-        self.data.plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, **kwargs)
+        self.data.plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, label='pip raw', **kwargs)
         partcount = self.data.Part_ID.count()
         margin = 0.1
         xmax = self.data.Wad_Dia.max() + margin

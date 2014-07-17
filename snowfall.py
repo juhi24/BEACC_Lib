@@ -137,6 +137,7 @@ class Method1(read.PrecipMeasurer):
         return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
         
     def cost_v(self, abc):
+        
         return
         
     def cost(self, c, use_accum=False):
@@ -254,17 +255,27 @@ class Method1(read.PrecipMeasurer):
         ax.set_title('cost function value')
         return ax.plot(beta, cost, *args, **kwargs)
         
-    def plot_v_d(self, ax=None):
+    def plot_v_d(self, ax=None, **kwargs):
         if ax is None:
             ax=plt.gca()
         diam = []
         vel = []
-        for d in self.dsd.bin_cen():
+        for d in self.dsd.data.columns:
             v_new = self.v_fall(d).values
             d_new = [d]*len(v_new)
             vel.extend(v_new)
             diam.extend(d_new)
-        ax.plot(diam, vel, 'h')
+        ax.plot(diam, vel, 'h', **kwargs)
+        return ax
+        
+    def plot_v_stuff(self, ax=None, **kwargs):
+        if ax is None:
+            ax=plt.gca()
+        self.plot_v_d(ax=ax, zorder=2, **kwargs)
+        read.plot_gunn_keizer(dmax=20, ax=ax, zorder=5, **kwargs)
+        self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4, **kwargs)
+        self.pipv.plot(ax=ax, zorder=1, **kwargs)
+        ax.legend()
         return ax
         
     def xcorr(self, rule='1min', ax=None, **kwargs):
