@@ -7,17 +7,25 @@ import numpy as np
 import linecache
 from os import path
 import copy
+from scipy import stats
 
-def v_gunn_keizer(d):
+GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
+
+def v_fit(d, a, b, c):
+    return a*(1 - b*np.exp(-c*d))
+
+def v_gunn_kinzer(d):
     """d in mm --> return v in m/s"""
-    v = 965 - 1030*np.exp(-0.6*d) # cm/s
-    return 0.01*v
+    return v_fit(d, *GUNN_KINZER)
     
-def plot_gunn_keizer(dmax, samples=100, ax=None, **kwargs):
+def plot_gunn_kinzer(dmax, samples=100, ax=None, **kwargs):
+    return plot_v_fit(*GUNN_KINZER, dmax=dmax, samples=samples, ax=ax, **kwargs)
+    
+def plot_v_fit(a, b, c, dmax=20, samples=100, ax=None, **kwargs):
     if ax is None:
         ax = plt.gca()
     diam = np.linspace(0,dmax,samples)
-    vel = [v_gunn_keizer(d) for d in diam]
+    vel = [v_fit(d, a, b, c) for d in diam]
     ax.plot(diam, vel, **kwargs)
     return ax
 
@@ -295,10 +303,24 @@ class PipV(InstrumentData):
         hh = int(datestr[11:13])
         return datetime.datetime(yr, mo, dd, hh, int(mm))
         
-    def plot(self, ax=None, style='+', **kwargs):
+    def plot_kde(self, ax=None):
         if ax is None:
             ax = plt.gca()
-        self.data.plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, label='pip raw', **kwargs)
+        d = self.data.Wad_Dia.values
+        v = self.data.vel_v.values
+        X, Y = np.meshgrid(np.linspace(d.min(),d.max(),100), np.linspace(v.min(),v.max(),100))
+        positions = np.vstack([X.ravel(), Y.ravel()])
+        values = np.vstack([d, v])
+        kernel = stats.gaussian_kde(values)
+        Z = np.reshape(kernel.evaluate(positions).T, X.shape)
+        ax.pcolor(X,Y,np.flipud(np.rot90(Z)), cmap=plt.cm.gist_earth_r)
+        return ax
+        
+    def plot(self, ax=None, style=',', label='pip raw', **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        self.plot_kde(ax=ax)
+        self.data.plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, label=label, alpha=0.2,  color='black', **kwargs)
         partcount = self.data.Part_ID.count()
         margin = 0.1
         xmax = self.data.Wad_Dia.max() + margin

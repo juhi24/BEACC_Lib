@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import read
-from scipy.optimize import minimize
+from scipy.optimize import minimize, curve_fit
 import matplotlib.pyplot as plt
 import copy
 
@@ -97,7 +97,7 @@ class Method1(read.PrecipMeasurer):
         vel = self.pipv.data.query(vcond).vel_v
         if vel.empty:
             return self.series_nans()
-        return vel.resample(self.rule, how=np.mean, closed='right', label='right')
+        return vel.resample(self.rule, how=np.median, closed='right', label='right')
         
     def v_fall_all(self):
         v_d = []
@@ -106,13 +106,6 @@ class Method1(read.PrecipMeasurer):
             vel.name = d
             v_d.append(vel)
         return pd.concat(v_d, axis=1)
-        
-    def v_fit(self, d, abc=None):
-        if abc is None:
-            abc = self.abc
-            if abc is None:
-                return
-        return abc[0]*(1 - abc[1]*np.exp(-abc[2]*d))
         
     def n_t(self):
         """total concentration"""
@@ -255,7 +248,7 @@ class Method1(read.PrecipMeasurer):
         ax.set_title('cost function value')
         return ax.plot(beta, cost, *args, **kwargs)
         
-    def plot_v_d(self, ax=None, **kwargs):
+    def plot_v_binned(self, ax=None, **kwargs):
         if ax is None:
             ax=plt.gca()
         diam = []
@@ -271,12 +264,25 @@ class Method1(read.PrecipMeasurer):
     def plot_v_stuff(self, ax=None, **kwargs):
         if ax is None:
             ax=plt.gca()
-        self.plot_v_d(ax=ax, zorder=2, **kwargs)
-        read.plot_gunn_keizer(dmax=20, ax=ax, zorder=5, **kwargs)
+        if self.abc is None:
+            self.v_fit()
+        self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3, **kwargs)
+        read.plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--', **kwargs)
+        read.plot_v_fit(*self.abc, label='raw data fit', ax=ax, zorder=6, **kwargs)
         self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4, **kwargs)
-        self.pipv.plot(ax=ax, zorder=1, **kwargs)
-        ax.legend()
+        self.pipv.plot(ax=ax, zorder=2, **kwargs)
+        
+        
+        ax.legend(loc='lower right')
         return ax
+        
+    def v_fit(self, d_min=0.375):
+        vdata = self.pipv.data
+        vdata_selected = vdata[vdata.Wad_Dia>d_min]
+        xdata = vdata_selected.Wad_Dia.values
+        ydata = vdata_selected.vel_v.values
+        self.abc, pcov = curve_fit(read.v_fit, xdata, ydata)
+        return self.abc, pcov
         
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio rainrate. 
