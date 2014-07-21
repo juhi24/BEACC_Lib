@@ -83,11 +83,11 @@ class Method1(read.PrecipMeasurer):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * m**beta * m/s * 1/(mm*m**3)
         """
-        return 3.6/RHO_W*alpha*d**beta*self.v_fall(d)*self.n(d)
+        return 3.6/RHO_W*alpha*d**beta*self.pipv.v(d)*self.n(d)
         
     def r_rho(self, d, rho):
         """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
-        return 3.6*TAU/12*rho*d**3*self.v_fall(d)*self.n(d)
+        return 3.6*TAU/12*rho*d**3*self.pipv.v(d)*self.n(d)
         
     def v_fall(self, d):
         """v(D) m/s for every timestep, query is slow"""

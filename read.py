@@ -220,6 +220,10 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         accum = self.acc(rule='1min', unbias=False)
         lwc_filled = lwc.reindex(accum.index).fillna(0)
         bias_acc = accum.diff()[lwc_filled==0].cumsum()
+        if bias_acc.empty:
+            if inplace:
+                self.bias = 0
+            return 0
         bias_acc_filled = bias_acc.reindex(accum.index).asfreq('1min').fillna(method='bfill').fillna(method='ffill')
         if inplace:
             self.bias = bias_acc_filled
@@ -304,9 +308,14 @@ class PipV(InstrumentData):
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)
         
+    def v(self, d):
+        if self.abc is None:
+            self.find_fit()
+        return v_fit(d, *self.abc)
+        
     def lwc(self, rule='1min'):
         """liquid water content"""
-        d3 = self.data.Wad_Dia**3
+        d3 = self.good_data().Wad_Dia**3
         return d3.resample(rule, how=self._sum, closed='right', label='right')
     
     def parse_datetime(self, mm):
