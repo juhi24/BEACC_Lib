@@ -62,8 +62,8 @@ case16_start = pd.datetime(2014, 2, 15, 21, 0, 1)
 case16_end = pd.datetime(2014, 2, 16, 1, 0, 0)
 case16 = [case16_start, case16_end]
 
-case21_start = pd.datetime(2014, 2, 21, 23, 15, 1)
-case21_end = pd.datetime(2014, 2, 21, 23, 30, 0)
+case21_start = pd.datetime(2014, 2, 21, 22, 0, 1)
+case21_end = pd.datetime(2014, 2, 22, 00, 0, 0)
 case21 = [case21_start, case21_end]
 
 case_start = pd.datetime(2014, 2, 23, 0, 0, 1)

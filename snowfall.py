@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import read
-from scipy.optimize import minimize, curve_fit
+from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import copy
 
@@ -21,7 +21,6 @@ class Method1(read.PrecipMeasurer):
         self.rule = rule
         self.result = None
         self.ab = None # alpha, beta
-        self.abc = None # Gunn&Keizer constants
         self.scale = 1e6 # mg --> kg
         if autoshift:
             self.autoshift()
@@ -72,7 +71,7 @@ class Method1(read.PrecipMeasurer):
         
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
-        return self.dsd.corrected_data()[d].resample(self.rule, how=np.mean, closed='right', label='right')
+        return self.dsd.good_data()[d].resample(self.rule, how=np.mean, closed='right', label='right')
         
     def sum_over_d(self, func, **kwargs):
         dD = self.dsd.d_bin
@@ -94,7 +93,7 @@ class Method1(read.PrecipMeasurer):
         """v(D) m/s for every timestep, query is slow"""
         dD = self.dsd.d_bin
         vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*dD, d+0.5*dD)
-        vel = self.pipv.data.query(vcond).vel_v
+        vel = self.pipv.good_data().query(vcond).vel_v
         if vel.empty:
             return self.series_nans()
         return vel.resample(self.rule, how=np.median, closed='right', label='right')
@@ -128,10 +127,6 @@ class Method1(read.PrecipMeasurer):
     def noprecip_bias(self, inplace=True):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
         return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
-        
-    def cost_v(self, abc):
-        
-        return
         
     def cost(self, c, use_accum=False):
         """Cost function for minimization"""
@@ -189,7 +184,7 @@ class Method1(read.PrecipMeasurer):
         
     def time_range(self):
         """data time ticks on minute interval"""
-        return pd.date_range(self.pluvio.data.index[0], self.pluvio.data.index[-1], freq='1min')
+        return pd.date_range(self.pluvio.good_data().index[0], self.pluvio.good_data().index[-1], freq='1min')
         
     def plot(self, kind='line', **kwargs):
         """Plot calculated (PIP) and pluvio rainrates."""
@@ -264,25 +259,15 @@ class Method1(read.PrecipMeasurer):
     def plot_v_stuff(self, ax=None, **kwargs):
         if ax is None:
             ax=plt.gca()
-        if self.abc is None:
-            self.v_fit()
+        if self.pipv.abc is None:
+            self.pipv.find_fit()
         self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3, **kwargs)
         read.plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--', **kwargs)
-        read.plot_v_fit(*self.abc, label='raw data fit', ax=ax, zorder=6, **kwargs)
+        read.plot_v_fit(*self.pipv.abc, label='raw data fit', ax=ax, zorder=6, **kwargs)
         self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4, **kwargs)
         self.pipv.plot(ax=ax, zorder=2, **kwargs)
-        
-        
         ax.legend(loc='lower right')
         return ax
-        
-    def v_fit(self, d_min=0.375):
-        vdata = self.pipv.data
-        vdata_selected = vdata[vdata.Wad_Dia>d_min]
-        xdata = vdata_selected.Wad_Dia.values
-        ydata = vdata_selected.vel_v.values
-        self.abc, pcov = curve_fit(read.v_fit, xdata, ydata)
-        return self.abc, pcov
         
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio rainrate. 

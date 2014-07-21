@@ -8,6 +8,7 @@ import linecache
 from os import path
 import copy
 from scipy import stats
+from scipy.optimize import curve_fit
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
@@ -66,6 +67,10 @@ class InstrumentData:
     def parse_datetime(self):
         """Parse timestamps in data files. Used by class constructor."""
         pass
+    
+    def good_data(self):
+        """Return useful data with filters and corrections applied."""
+        return self.data
         
     @staticmethod    
     def _sum(x):
@@ -163,6 +168,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.data = self.data[dt_start-self.buffer:dt_end+self.buffer]
         
     def timeshift(self):
+        """Return timeshift as timedelta."""
         if self.shift_periods == 0:
             return pd.datetools.timedelta(0)
         return self.shift_periods*pd.datetools.to_offset(self.shift_freq)
@@ -174,6 +180,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return self.data.index[-1] - self.buffer #+ self.timeshift()
         
     def shift_reset(self):
+        """Reset time shift."""
         self.shift_periods = 0
         self.shift_freq = None
         
@@ -205,6 +212,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return accum.resample(rule, how='last', closed='right', label='right')
                 
     def acc_raw(self):
+        """accumulation from raw data"""
         return self.data.bucket_nrt-self.data.bucket_nrt[0]
         
     def noprecip_bias(self, lwc, inplace=False):
@@ -250,23 +258,23 @@ class PipDSD(InstrumentData):
     def plot(self, img=True):
         """Plot particle size distribution over time."""
         if img:
-            plt.matshow(self.corrected_data().transpose(), norm=LogNorm(), origin='lower')
+            plt.matshow(self.good_data().transpose(), norm=LogNorm(), origin='lower')
         else:
-            plt.pcolor(self.corrected_data().transpose(), norm=LogNorm())
+            plt.pcolor(self.good_data().transpose(), norm=LogNorm())
         plt.colorbar()
         plt.title('PIP DSD')
         plt.xlabel('time (UTC) BROKEN')
         plt.ylabel('D (mm) BROKEN')
         
-    def cat_and_dog_filter(self, window=5):
+    def filter_cat_and_dog(self, window=5):
         is_dog = pd.rolling_count(self.data.mask(self.data==0).T, window).T == 1
         is_dog.ix[:,:window] = False # ignore first columns
         filtered = copy.deepcopy(self.data)
         filtered[is_dog] = 0
         return filtered
         
-    def corrected_data(self, **kwargs):
-        return 2*self.cat_and_dog_filter(**kwargs)
+    def good_data(self, **kwargs):
+        return 2*self.filter_cat_and_dog(**kwargs)
         
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
@@ -275,6 +283,11 @@ class PipV(InstrumentData):
         print('Reading PIP particle velocity data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
+        self.dmin = 0.375 # smallest diameter where data is good
+        self.abc = None # Gunn&Keizer constants
+        self.D = None
+        self.V = None
+        self.Z = None
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
@@ -292,6 +305,7 @@ class PipV(InstrumentData):
         self.finish_init(dt_start, dt_end)
         
     def lwc(self, rule='1min'):
+        """liquid water content"""
         d3 = self.data.Wad_Dia**3
         return d3.resample(rule, how=self._sum, closed='right', label='right')
     
@@ -303,30 +317,63 @@ class PipV(InstrumentData):
         hh = int(datestr[11:13])
         return datetime.datetime(yr, mo, dd, hh, int(mm))
         
+    def good_data(self):
+        return self.data[self.data.Wad_Dia>self.dmin]
+        
+    def find_fit(self, kde=True):
+        if kde:
+            d, v = self.kde_peak()
+        else:
+            d = self.good_data().Wad_Dia.values
+            v = self.good_data().vel_v.values
+        self.abc, pcov = curve_fit(v_fit, d, v)
+        return self.abc, pcov
+        
+    def kde(self):
+        d = self.good_data().Wad_Dia.values
+        v = self.good_data().vel_v.values
+        values = np.vstack([d, v])
+        return stats.gaussian_kde(values)
+        
+    def set_kde_grid(self, resolution=100):
+        d = self.good_data().Wad_Dia.values
+        v = self.good_data().vel_v.values
+        X, Y = np.meshgrid(np.linspace(d.min(),d.max(),resolution), 
+                           np.linspace(v.min(),v.max(),resolution))
+        points = np.vstack([X.ravel(), Y.ravel()])
+        kernel = self.kde()       
+        Z = np.reshape(kernel(points).T, X.shape)
+        self.D = X
+        self.V = Y
+        self.Z = Z
+        return X, Y, Z
+        
+    def kde_peak(self):
+        if self.Z is None:
+            self.set_kde_grid()
+        x = self.D[0,:]
+        y = self.V[:,0][self.Z.argmax(axis=1)]
+        return x, y
+        
     def plot_kde(self, ax=None):
         if ax is None:
             ax = plt.gca()
-        d = self.data.Wad_Dia.values
-        v = self.data.vel_v.values
-        X, Y = np.meshgrid(np.linspace(d.min(),d.max(),100), np.linspace(v.min(),v.max(),100))
-        positions = np.vstack([X.ravel(), Y.ravel()])
-        values = np.vstack([d, v])
-        kernel = stats.gaussian_kde(values)
-        Z = np.reshape(kernel.evaluate(positions).T, X.shape)
-        ax.pcolor(X,Y,np.flipud(np.rot90(Z)), cmap=plt.cm.gist_earth_r)
+        if self.Z is None:
+            self.set_kde_grid()
+        ax.pcolor(self.D,self.V,np.flipud(np.rot90(self.Z)), cmap=plt.cm.gist_earth_r)
         return ax
         
     def plot(self, ax=None, style=',', label='pip raw', **kwargs):
         if ax is None:
             ax = plt.gca()
         self.plot_kde(ax=ax)
-        self.data.plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, label=label, alpha=0.2,  color='black', **kwargs)
-        partcount = self.data.Part_ID.count()
+        self.good_data().plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, label=label, alpha=0.2,  color='black', **kwargs)
+        partcount = self.good_data().Part_ID.count()
         margin = 0.1
-        xmax = self.data.Wad_Dia.max() + margin
-        ymax = self.data.vel_v.max() + margin
+        xmax = self.good_data().Wad_Dia.max() + margin
+        ymax = self.good_data().vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
-        ax.set_title('PIP velocity data %s' % self.data.index[0].date().isoformat())
+        ax.set_title('PIP velocity data %s' % self.good_data().index[0].date().isoformat())
         ax.text(0.1, round(ymax)-1, 'particle count: %s' % str(partcount))
         ax.set_xlabel('D (mm)')
         ax.set_ylabel('Vertical velocity (m/s)')
