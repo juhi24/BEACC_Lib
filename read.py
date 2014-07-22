@@ -1,3 +1,4 @@
+"""tools for reading and working with baecc data"""
 import time
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -8,7 +9,7 @@ import linecache
 from os import path
 import copy
 from scipy import stats
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, fmin
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
@@ -271,6 +272,7 @@ class PipDSD(InstrumentData):
         plt.ylabel('D (mm) BROKEN')
         
     def filter_cat_and_dog(self, window=5):
+        """a rolling window filter for isolated data points"""
         is_dog = pd.rolling_count(self.data.mask(self.data==0).T, window).T == 1
         is_dog.ix[:,:window] = False # ignore first columns
         filtered = copy.deepcopy(self.data)
@@ -329,22 +331,41 @@ class PipV(InstrumentData):
     def good_data(self):
         return self.data[self.data.Wad_Dia>self.dmin]
         
-    def find_fit(self, kde=True):
+    def frac_larger(self, d):
+        """Return fraction of particles that are larger than d."""
+        vdata = self.good_data()
+        return vdata[vdata.Wad_Dia>d].vel_v.count()/vdata[vdata.Wad_Dia<d].vel_v.count()
+        
+    def d_cut(self, frac=0.01, d0=6):
+        """Return d for which given fraction of particles are larger."""
+        dcost = lambda d: abs(self.frac_larger(d[0])-frac)
+        return fmin(dcost, d0)[0]
+        
+    def find_fit(self, kde=True, cut_d=True, **cutkwargs):
+        """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
+        """
         if kde:
             d, v = self.kde_peak()
         else:
             d = self.good_data().Wad_Dia.values
             v = self.good_data().vel_v.values
+        if cut_d:
+            dcut = self.d_cut(**cutkwargs)
+            d = d[d<dcut]
+            v = v[d<dcut]
         self.abc, pcov = curve_fit(v_fit, d, v)
         return self.abc, pcov
         
     def kde(self):
+        """kernel-density estimate of d,v data using gaussian kernels"""
         d = self.good_data().Wad_Dia.values
         v = self.good_data().vel_v.values
         values = np.vstack([d, v])
         return stats.gaussian_kde(values)
         
     def set_kde_grid(self, resolution=100):
+        """Calculate and store kernel-density estimate with given resolution
+        """
         d = self.good_data().Wad_Dia.values
         v = self.good_data().vel_v.values
         X, Y = np.meshgrid(np.linspace(d.min(),d.max(),resolution), 
@@ -358,6 +379,7 @@ class PipV(InstrumentData):
         return X, Y, Z
         
     def kde_peak(self):
+        """the most propable velocities for each diameter in grid"""
         if self.Z is None:
             self.set_kde_grid()
         x = self.D[0,:]
@@ -365,6 +387,7 @@ class PipV(InstrumentData):
         return x, y
         
     def plot_kde(self, ax=None):
+        """Plot kde grid"""
         if ax is None:
             ax = plt.gca()
         if self.Z is None:
