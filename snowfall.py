@@ -244,6 +244,7 @@ class Method1(read.PrecipMeasurer):
         return ax.plot(beta, cost, *args, **kwargs)
         
     def plot_v_binned(self, ax=None, **kwargs):
+        """Plot velocity in diameter bins."""
         if ax is None:
             ax=plt.gca()
         diam = []
@@ -257,6 +258,7 @@ class Method1(read.PrecipMeasurer):
         return ax
         
     def plot_v_stuff(self, ax=None, **kwargs):
+        """Plot a lot of velocity related stuff in a single figure."""
         if ax is None:
             ax=plt.gca()
         if self.pipv.abc is None:

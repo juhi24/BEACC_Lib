@@ -392,10 +392,12 @@ class PipV(InstrumentData):
             ax = plt.gca()
         if self.Z is None:
             self.set_kde_grid()
-        ax.pcolor(self.D,self.V,np.flipud(np.rot90(self.Z)), cmap=plt.cm.gist_earth_r)
-        return ax
+        pc = ax.pcolor(self.D,self.V,np.flipud(np.rot90(self.Z)), 
+                  cmap=plt.cm.gist_earth_r)
+        return pc
         
     def plot(self, ax=None, style=',', label='pip raw', **kwargs):
+        """Plot datapoints and kde."""
         if ax is None:
             ax = plt.gca()
         self.plot_kde(ax=ax)
