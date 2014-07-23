@@ -89,14 +89,12 @@ class Method1(read.PrecipMeasurer):
         """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
         return 3.6*TAU/12*rho*d**3*self.pipv.v(d)*self.n(d)
         
-    def v_fall(self, d):
+    def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
-        dD = self.dsd.d_bin
-        vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*dD, d+0.5*dD)
-        vel = self.pipv.good_data().query(vcond).vel_v
+        vel = self.pipv.dbin(d, self.dsd.d_bin).vel_v
         if vel.empty:
             return self.series_nans()
-        return vel.resample(self.rule, how=np.median, closed='right', label='right')
+        return vel.resample(self.rule, how=how, closed='right', label='right')
         
     def v_fall_all(self):
         v_d = []
@@ -265,7 +263,7 @@ class Method1(read.PrecipMeasurer):
             self.pipv.find_fit()
         self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3, **kwargs)
         read.plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--', **kwargs)
-        read.plot_v_fit(*self.pipv.abc, label='raw data fit', ax=ax, zorder=6, **kwargs)
+        self.pipv.plot_fit(label='kde peak fit', ax=ax, zorder=6, **kwargs)
         self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4, **kwargs)
         self.pipv.plot(ax=ax, zorder=2, **kwargs)
         ax.legend(loc='lower right')

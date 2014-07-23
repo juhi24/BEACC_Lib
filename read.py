@@ -15,6 +15,9 @@ GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
 def v_fit(d, a, b, c):
     return a*(1 - b*np.exp(-c*d))
+    
+def v_polfit(d, a, b):
+    return a*d**b
 
 def v_gunn_kinzer(d):
     """d in mm --> return v in m/s"""
@@ -22,14 +25,14 @@ def v_gunn_kinzer(d):
     
 def plot_gunn_kinzer(dmax, samples=100, ax=None, **kwargs):
     """Plot Gunn&Kinzer v(d) relation."""
-    return plot_v_fit(*GUNN_KINZER, dmax=dmax, samples=samples, ax=ax, **kwargs)
+    return plot_v_fit(*GUNN_KINZER, func=v_fit, dmax=dmax, samples=samples, ax=ax, **kwargs)
     
-def plot_v_fit(a, b, c, dmax=20, samples=100, ax=None, **kwargs):
+def plot_v_fit(*args, func=v_fit, dmax=20, samples=100, ax=None, **kwargs):
     """Plot Gunn&Kinzer shape v(d) relation with custom parameters."""
     if ax is None:
         ax = plt.gca()
     diam = np.linspace(0,dmax,samples)
-    vel = [v_fit(d, a, b, c) for d in diam]
+    vel = [func(d, *args) for d in diam]
     ax.plot(diam, vel, **kwargs)
     return ax
 
@@ -292,7 +295,8 @@ class PipV(InstrumentData):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
         self.dmin = 0.375 # smallest diameter where data is good
-        self.abc = None # Gunn&Keizer constants
+        self._fit_func = v_fit
+        self._fit_params = None
         self.D = None
         self.V = None
         self.Z = None
@@ -312,10 +316,31 @@ class PipV(InstrumentData):
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)
         
-    def v(self, d):
-        if self.abc is None:
+    @property
+    def fit_func(self):
+        return self._fit_func
+        
+    @fit_func.setter
+    def fit_func(self, func):
+        self._fit_func = func
+        self.find_fit()
+        
+    @property   
+    def fit_params(self):
+        if self.fit_params is None:
             self.find_fit()
-        return v_fit(d, *self.abc)
+        return self.fit_params
+    
+    @fit_params.setter
+    def fit_params(self, params):
+        self._fit_params = params
+    
+    @fit_params.deleter
+    def fit_params(self):
+        self._fit_params = None
+        
+    def v(self, d):
+        return self.fit_func(d, *self.fit_params)
         
     def lwc(self, rule='1min'):
         """liquid water content"""
@@ -333,6 +358,11 @@ class PipV(InstrumentData):
     def good_data(self):
         return self.data[self.data.Wad_Dia>self.dmin]
         
+    def dbin(self, d, binwidth):
+        """Return data that falls into given size bin."""
+        vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*binwidth, d+0.5*binwidth)
+        return self.good_data().query(vcond)
+        
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
         vdata = self.good_data()
@@ -343,7 +373,7 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
         
-    def find_fit(self, kde=True, cut_d=True, **cutkwargs):
+    def find_fit(self, kde=True, cut_d=True, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
         if kde:
@@ -352,11 +382,11 @@ class PipV(InstrumentData):
             d = self.good_data().Wad_Dia.values
             v = self.good_data().vel_v.values
         if cut_d:
-            dcut = self.d_cut(**cutkwargs)
+            dcut = self.d_cut(**kwargs)
             d = d[d<dcut]
             v = v[d<dcut]
-        self.abc, pcov = curve_fit(v_fit, d, v)
-        return self.abc, pcov
+        self.fit_params, pcov = curve_fit(self.fit_func, d, v)
+        return self.fit_params, pcov
         
     def kde(self):
         """kernel-density estimate of d,v data using gaussian kernels"""
@@ -398,12 +428,17 @@ class PipV(InstrumentData):
                   cmap=plt.cm.gist_earth_r)
         return pc
         
+    def plot_fit(self, **kwargs):
+        plot_v_fit(self.fit_params, self.fit_func, **kwargs)
+        
     def plot(self, ax=None, style=',', label='pip raw', **kwargs):
         """Plot datapoints and kde."""
         if ax is None:
             ax = plt.gca()
         self.plot_kde(ax=ax)
-        self.good_data().plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, label=label, alpha=0.2,  color='black', **kwargs)
+        self.good_data().plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, 
+                              label=label, alpha=0.2, color='black', 
+                              **kwargs)
         partcount = self.good_data().Part_ID.count()
         margin = 0.1
         xmax = self.good_data().Wad_Dia.max() + margin
