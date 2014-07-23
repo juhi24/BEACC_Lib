@@ -21,9 +21,11 @@ def v_gunn_kinzer(d):
     return v_fit(d, *GUNN_KINZER)
     
 def plot_gunn_kinzer(dmax, samples=100, ax=None, **kwargs):
+    """Plot Gunn&Kinzer v(d) relation."""
     return plot_v_fit(*GUNN_KINZER, dmax=dmax, samples=samples, ax=ax, **kwargs)
     
 def plot_v_fit(a, b, c, dmax=20, samples=100, ax=None, **kwargs):
+    """Plot Gunn&Kinzer shape v(d) relation with custom parameters."""
     if ax is None:
         ax = plt.gca()
     diam = np.linspace(0,dmax,samples)
@@ -336,7 +338,7 @@ class PipV(InstrumentData):
         vdata = self.good_data()
         return vdata[vdata.Wad_Dia>d].vel_v.count()/vdata[vdata.Wad_Dia<d].vel_v.count()
         
-    def d_cut(self, frac=0.01, d0=6):
+    def d_cut(self, frac=0.02, d0=2):
         """Return d for which given fraction of particles are larger."""
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
@@ -364,7 +366,7 @@ class PipV(InstrumentData):
         return stats.gaussian_kde(values)
         
     def set_kde_grid(self, resolution=100):
-        """Calculate and store kernel-density estimate with given resolution
+        """Calculate and store kernel-density estimate with given resolution.
         """
         d = self.good_data().Wad_Dia.values
         v = self.good_data().vel_v.values
@@ -383,16 +385,16 @@ class PipV(InstrumentData):
         if self.Z is None:
             self.set_kde_grid()
         x = self.D[0,:]
-        y = self.V[:,0][self.Z.argmax(axis=1)]
+        y = self.V[:,0][self.Z.argmax(axis=0)]
         return x, y
         
     def plot_kde(self, ax=None):
-        """Plot kde grid"""
+        """Plot kde grid."""
         if ax is None:
             ax = plt.gca()
         if self.Z is None:
             self.set_kde_grid()
-        pc = ax.pcolor(self.D,self.V,np.flipud(np.rot90(self.Z)), 
+        pc = ax.pcolor(self.D,self.V,self.Z, 
                   cmap=plt.cm.gist_earth_r)
         return pc
         
