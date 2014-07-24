@@ -327,9 +327,9 @@ class PipV(InstrumentData):
         
     @property   
     def fit_params(self):
-        if self.fit_params is None:
+        if self._fit_params is None:
             self.find_fit()
-        return self.fit_params
+        return self._fit_params
     
     @fit_params.setter
     def fit_params(self, params):
@@ -368,7 +368,7 @@ class PipV(InstrumentData):
         vdata = self.good_data()
         return vdata[vdata.Wad_Dia>d].vel_v.count()/vdata[vdata.Wad_Dia<d].vel_v.count()
         
-    def d_cut(self, frac=0.02, d0=2):
+    def d_cut(self, frac=0.05, d0=2):
         """Return d for which given fraction of particles are larger."""
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
@@ -429,7 +429,7 @@ class PipV(InstrumentData):
         return pc
         
     def plot_fit(self, **kwargs):
-        plot_v_fit(self.fit_params, self.fit_func, **kwargs)
+        plot_v_fit(*self.fit_params, func=self.fit_func, **kwargs)
         
     def plot(self, ax=None, style=',', label='pip raw', **kwargs):
         """Plot datapoints and kde."""

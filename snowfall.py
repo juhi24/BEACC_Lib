@@ -72,7 +72,10 @@ class Method1(read.PrecipMeasurer):
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
         return self.dsd.good_data()[d].resample(self.rule, how=np.mean, closed='right', label='right')
-        
+
+    def se(self, measure):
+        return measure.resample(self.rule, how=np.std, closed='right', label='right')/np.sqrt(self.n_t())
+    
     def sum_over_d(self, func, **kwargs):
         dD = self.dsd.d_bin
         result = self.series_zeros()
@@ -259,8 +262,6 @@ class Method1(read.PrecipMeasurer):
         """Plot a lot of velocity related stuff in a single figure."""
         if ax is None:
             ax=plt.gca()
-        if self.pipv.abc is None:
-            self.pipv.find_fit()
         self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3, **kwargs)
         read.plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--', **kwargs)
         self.pipv.plot_fit(label='kde peak fit', ax=ax, zorder=6, **kwargs)
