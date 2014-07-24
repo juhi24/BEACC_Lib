@@ -297,6 +297,7 @@ class PipV(InstrumentData):
         self.dmin = 0.375 # smallest diameter where data is good
         self._fit_func = v_fit
         self._fit_params = None
+        self.dbins = np.linspace(0.375, 25.875, num=103)
         self.D = None
         self.V = None
         self.Z = None
@@ -373,7 +374,7 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
         
-    def find_fit(self, kde=True, cut_d=True, **kwargs):
+    def find_fit(self, kde=True, cut_d=False, bin_num_min=10, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
         if kde:
@@ -385,8 +386,14 @@ class PipV(InstrumentData):
             dcut = self.d_cut(**kwargs)
             d = d[d<dcut]
             v = v[d<dcut]
-        self.fit_params, pcov = curve_fit(self.fit_func, d, v)
-        return self.fit_params, pcov
+        binwidth = (d[-1]-d[0])/(len(d)-1)
+        num = np.array([self.dbin(diam, binwidth).vel_v.count() for diam in d])
+        d = d[num>bin_num_min]
+        v = v[num>bin_num_min]
+        sig = [self.dbin(diam, binwidth).vel_v.sem() for diam in d]
+        self.fit_params, pcov = curve_fit(self.fit_func, d, v, sigma=sig, 
+                                          absolute_sigma=True)
+        return self.fit_params, pcov, sig
         
     def kde(self):
         """kernel-density estimate of d,v data using gaussian kernels"""
@@ -395,13 +402,13 @@ class PipV(InstrumentData):
         values = np.vstack([d, v])
         return stats.gaussian_kde(values)
         
-    def set_kde_grid(self, resolution=100):
+    def set_kde_grid(self):
         """Calculate and store kernel-density estimate with given resolution.
         """
         d = self.good_data().Wad_Dia.values
         v = self.good_data().vel_v.values
-        X, Y = np.meshgrid(np.linspace(d.min(),d.max(),resolution), 
-                           np.linspace(v.min(),v.max(),resolution))
+        X, Y = np.meshgrid(self.dbins, 
+                           np.linspace(v.min(),v.max(),len(self.dbins)))
         points = np.vstack([X.ravel(), Y.ravel()])
         kernel = self.kde()       
         Z = np.reshape(kernel(points).T, X.shape)
