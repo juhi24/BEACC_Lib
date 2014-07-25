@@ -42,11 +42,11 @@ class PrecipMeasurer:
     def __init__(self):
         pass
     
-    def rainrate(self, **kwargs):
+    def amount(self, **kwargs):
         return self.acc(**kwargs).diff()
     
     def acc(self, **kwargs):
-        return self.rainrate(**kwargs).cumsum()
+        return self.amount(**kwargs).cumsum()
         
     def intensity(self, **kwargs):
         """precipitation intensity in mm/h"""
@@ -77,11 +77,6 @@ class InstrumentData:
     def good_data(self):
         """Return useful data with filters and corrections applied."""
         return self.data
-        
-    @staticmethod    
-    def _sum(x):
-        if len(x) < 1: return 0
-        else: return sum(x)
         
     def to_hdf(self, filename='../DATA/baecc.h5'):
         """Save object in hdf5 format."""
@@ -190,13 +185,13 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.shift_periods = 0
         self.shift_freq = None
         
-    def rainrate(self, rule='1H', upsample=True, **kwargs):
-        """Calculate rainrate for given time rule"""
+    def amount(self, rule='1H', upsample=True, **kwargs):
+        """Calculate precipitation amount"""
         if upsample:
             acc_1min = self.acc('1min', **kwargs)
         else:
             acc_1min = self.acc_raw()
-        r = acc_1min.diff().resample(rule, how=self._sum, closed='right', label='right')
+        r = acc_1min.diff().resample(rule, how=np.sum, closed='right', label='right')
         if not upsample:
             return r.fillna(0)
         t_r0 = r.index[0]
@@ -346,7 +341,7 @@ class PipV(InstrumentData):
     def lwc(self, rule='1min'):
         """liquid water content"""
         d3 = self.good_data().Wad_Dia**3
-        return d3.resample(rule, how=self._sum, closed='right', label='right')
+        return d3.resample(rule, how=np.sum, closed='right', label='right')
     
     def parse_datetime(self, mm):
         datestr = self.current_file.split('/')[-1].split('_')[0]

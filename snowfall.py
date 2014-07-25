@@ -19,7 +19,6 @@ class Method1(read.PrecipMeasurer):
         self.quess = quess
         self.bnd = bnd
         self.rule = rule
-        self.result = None
         self.ab = None # alpha, beta
         self.scale = 1e6 # mg --> kg
         if autoshift:
@@ -126,15 +125,15 @@ class Method1(read.PrecipMeasurer):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
         return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
         
-    def cost(self, c, use_accum=False):
+    def cost(self, c, use_accum=True):
         """Cost function for minimization"""
-        pip_acc = self.rainrate(c)
         if use_accum:
-            pip_acc = pip_acc.cumsum()
+            pip_precip = self.rainrate(consts=c).cumsum()
             cost_method = self.pluvio.acc
         else:
-            cost_method = self.pluvio.rainrate
-        return abs(pip_acc.add(-1*cost_method(self.rule)).sum())
+            pip_precip = self.intesity(consts=c)
+            cost_method = self.pluvio.intensity()
+        return abs(pip_precip.add(-1*cost_method(self.rule)).sum())
         
     def cost_lsq(self, beta):
         """Single variable cost function using lstsq to find linear coef."""
@@ -165,20 +164,20 @@ class Method1(read.PrecipMeasurer):
     def minimize(self, method='SLSQP', **kwargs):
         """Find constants for calculating particle masses. Save and return results."""
         print('Optimizing constants...')
-        self.result = minimize(self.cost, self.quess, method=method, **kwargs)
-        self.ab = self.result.x
-        return self.result
+        result = minimize(self.cost, self.quess, method=method, **kwargs)
+        self.ab = result.x
+        return result
         
     def minimize_lsq(self):
         """Find beta by minimization and alpha by linear least square."""
         print('Optimizing constants...')
-        self.result = minimize(self.cost_lsq, self.quess[1], method='Nelder-Mead')
+        result = minimize(self.cost_lsq, self.quess[1], method='Nelder-Mead')
         #self.result = minimize(self.cost_lsq, self.quess[1], method='SLSQP', bounds=self.bnd[1])
-        print(self.result.message)
-        beta = self.result.x[0]
+        print(result.message)
+        beta = result.x[0]
         alpha = self.alpha_lsq(beta)
         self.ab = [alpha, beta]
-        return self.result
+        return result
         
     def time_range(self):
         """data time ticks on minute interval"""
@@ -208,7 +207,7 @@ class Method1(read.PrecipMeasurer):
         plt.show()
     
     def plot_cost(self, resolution=20, ax=None, cmap='binary', **kwargs):
-        """The slowest plot you've made"""
+        """The slowest plot you've drawn"""
         if self.ab is None:
             return
         if ax is None:
