@@ -280,7 +280,7 @@ class PipDSD(InstrumentData):
         return filtered
         
     def good_data(self, **kwargs):
-        return 2*self.filter_cat_and_dog(**kwargs)
+        return self.filter_cat_and_dog(**kwargs)
         
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""

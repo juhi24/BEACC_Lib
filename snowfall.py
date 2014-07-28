@@ -58,7 +58,7 @@ class Method1(read.PrecipMeasurer):
         m.pluvio.bias = 0
         return m
         
-    def amount(self, consts=None, simple=False):
+    def intensity(self, consts=None, simple=False):
         """Calculate precipitation in mm using given or saved constants."""
         if self.ab is not None and consts is None:
             consts = self.ab
@@ -67,6 +67,10 @@ class Method1(read.PrecipMeasurer):
         else:
             r = self.sum_over_d(self.r_ab, alpha=consts[0], beta=consts[1])
         return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)
+        
+    def amount(self, **kwargs):
+        i = self.intensity(**kwargs)
+        return i*i.index.freq.delta/pd.datetools.timedelta(hours=1)
         
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
@@ -128,7 +132,7 @@ class Method1(read.PrecipMeasurer):
     def cost(self, c, use_accum=True):
         """Cost function for minimization"""
         if use_accum:
-            pip_precip = self.amount(consts=c).cumsum()
+            pip_precip = self.acc(consts=c)
             cost_method = self.pluvio.acc
         else:
             pip_precip = self.intesity(consts=c)
@@ -141,7 +145,7 @@ class Method1(read.PrecipMeasurer):
         return self.cost([alpha, beta])
     
     def const_lsq(self, c, simple):
-        acc_arr = self.amount(consts=c, simple=simple).cumsum().values
+        acc_arr = self.acc(consts=c, simple=simple).values
         A = np.vstack([acc_arr, np.ones(len(acc_arr))]).T
         y = self.pluvio.acc(self.rule).values
         return np.linalg.lstsq(A, y)[0][0]
@@ -159,7 +163,7 @@ class Method1(read.PrecipMeasurer):
         rho_r_pip = self.amount(consts=[1], simple=True)
         if fltr:
             rho_r_pip[rho_r_pip < 1000] = np.nan # filter
-        return self.pluvio.amount(self.rule)/rho_r_pip
+        return self.pluvio.amount(rule=self.rule)/rho_r_pip
 
     def minimize(self, method='SLSQP', **kwargs):
         """Find constants for calculating particle masses. Save and return results."""
@@ -272,7 +276,7 @@ class Method1(read.PrecipMeasurer):
         """
         if ax is None:
             ax = plt.gca()
-        r = self.pluvio.intensity(rule, unbias=False)
+        r = self.pluvio.intensity(rule=rule, unbias=False)
         lwc = self.pipv.lwc(rule).reindex(r.index).fillna(0)
         return ax.xcorr(lwc, r, **kwargs)
         
