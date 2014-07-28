@@ -38,7 +38,7 @@ def plot_v_fit(*args, func=v_fit, dmax=20, samples=100, ax=None, **kwargs):
 
 class PrecipMeasurer:
     """parent for classes with precipitation measurements
-    Either rainrate or acc (or both) methods should be overridden."""
+    Either amount or acc (or both) methods should be overridden."""
     def __init__(self):
         pass
     
@@ -50,7 +50,7 @@ class PrecipMeasurer:
         
     def intensity(self, **kwargs):
         """precipitation intensity in mm/h"""
-        r = self.rainrate(**kwargs)
+        r = self.amount(**kwargs)
         frac = pd.datetools.timedelta(hours=1)/r.index.freq.delta
         return frac * r
 

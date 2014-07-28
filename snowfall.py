@@ -58,15 +58,15 @@ class Method1(read.PrecipMeasurer):
         m.pluvio.bias = 0
         return m
         
-    def rainrate(self, consts=None, simple=False):
-        """Calculate rainrate using given or saved constants."""
+    def amount(self, consts=None, simple=False):
+        """Calculate precipitation in mm using given or saved constants."""
         if self.ab is not None and consts is None:
             consts = self.ab
         if simple:
             r = self.sum_over_d(self.r_rho, rho=consts[0])
         else:
             r = self.sum_over_d(self.r_ab, alpha=consts[0], beta=consts[1])
-        return r.reindex(self.pluvio.rainrate(rule=self.rule).index).fillna(0)
+        return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)
         
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
@@ -128,7 +128,7 @@ class Method1(read.PrecipMeasurer):
     def cost(self, c, use_accum=True):
         """Cost function for minimization"""
         if use_accum:
-            pip_precip = self.rainrate(consts=c).cumsum()
+            pip_precip = self.amount(consts=c).cumsum()
             cost_method = self.pluvio.acc
         else:
             pip_precip = self.intesity(consts=c)
@@ -141,7 +141,7 @@ class Method1(read.PrecipMeasurer):
         return self.cost([alpha, beta])
     
     def const_lsq(self, c, simple):
-        acc_arr = self.rainrate(consts=c, simple=simple).cumsum().values
+        acc_arr = self.amount(consts=c, simple=simple).cumsum().values
         A = np.vstack([acc_arr, np.ones(len(acc_arr))]).T
         y = self.pluvio.acc(self.rule).values
         return np.linalg.lstsq(A, y)[0][0]
@@ -156,10 +156,10 @@ class Method1(read.PrecipMeasurer):
         
     def density(self, fltr=True):
         """Calculates mean density estimate for each timeframe."""
-        rho_r_pip = self.rainrate(consts=[1], simple=True)
+        rho_r_pip = self.amount(consts=[1], simple=True)
         if fltr:
             rho_r_pip[rho_r_pip < 1000] = np.nan # filter
-        return self.pluvio.rainrate(self.rule)/rho_r_pip
+        return self.pluvio.amount(self.rule)/rho_r_pip
 
     def minimize(self, method='SLSQP', **kwargs):
         """Find constants for calculating particle masses. Save and return results."""
@@ -184,7 +184,7 @@ class Method1(read.PrecipMeasurer):
         return pd.date_range(self.pluvio.good_data().index[0], self.pluvio.good_data().index[-1], freq='1min')
         
     def plot(self, kind='line', **kwargs):
-        """Plot calculated (PIP) and pluvio rainrates."""
+        """Plot calculated (PIP) and pluvio intensities."""
         if self.ab is None:
             print('Constants not defined. Will now find them via minimization.')
             self.minimize_lsq()
@@ -267,12 +267,12 @@ class Method1(read.PrecipMeasurer):
         return ax
         
     def xcorr(self, rule='1min', ax=None, **kwargs):
-        """Plot cross-correlation between lwc estimate and pluvio rainrate. 
+        """Plot cross-correlation between lwc estimate and pluvio intensity. 
         Extra arguments are passed to pyplot.xcorr.
         """
         if ax is None:
             ax = plt.gca()
-        r = self.pluvio.rainrate(rule, unbias=False)
+        r = self.pluvio.intensity(rule, unbias=False)
         lwc = self.pipv.lwc(rule).reindex(r.index).fillna(0)
         return ax.xcorr(lwc, r, **kwargs)
         
