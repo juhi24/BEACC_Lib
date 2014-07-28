@@ -59,7 +59,7 @@ class Method1(read.PrecipMeasurer):
         return m
         
     def intensity(self, consts=None, simple=False):
-        """Calculate precipitation in mm using given or saved constants."""
+        """Calculate precipitation intensity using given or saved parameters."""
         if self.ab is not None and consts is None:
             consts = self.ab
         if simple:
@@ -69,12 +69,14 @@ class Method1(read.PrecipMeasurer):
         return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)
         
     def amount(self, **kwargs):
+        """Calculate precipitation in mm using given or saved parameters."""
         i = self.intensity(**kwargs)
         return i*i.index.freq.delta/pd.datetools.timedelta(hours=1)
         
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
-        return self.dsd.good_data()[d].resample(self.rule, how=np.mean, closed='right', label='right')
+        return self.dsd.good_data()[d].resample(self.rule, how=np.mean,
+                                                closed='right', label='right')
     
     def sum_over_d(self, func, **kwargs):
         dD = self.dsd.d_bin
@@ -86,11 +88,11 @@ class Method1(read.PrecipMeasurer):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * m**beta * m/s * 1/(mm*m**3)
         """
-        return 3.6/RHO_W*alpha*d**beta*self.pipv.v(d)*self.n(d)
+        return 3.6/RHO_W*alpha*d**beta*self.pipv.v(d, self.rule)*self.n(d)
         
     def r_rho(self, d, rho):
         """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
-        return 3.6*TAU/12*rho*d**3*self.pipv.v(d)*self.n(d)
+        return 3.6*TAU/12*rho*d**3*self.pipv.v(d, self.rule)*self.n(d)
         
     def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
@@ -100,6 +102,7 @@ class Method1(read.PrecipMeasurer):
         return vel.resample(self.rule, how=how, closed='right', label='right')
         
     def v_fall_all(self):
+        """v(D) in m/s for every timestep and diameter bin"""
         v_d = []
         for d in self.dsd.data.columns:
             vel = self.v_fall(d)
@@ -185,7 +188,8 @@ class Method1(read.PrecipMeasurer):
         
     def time_range(self):
         """data time ticks on minute interval"""
-        return pd.date_range(self.pluvio.good_data().index[0], self.pluvio.good_data().index[-1], freq='1min')
+        return pd.date_range(self.pluvio.good_data().index[0], 
+                             self.pluvio.good_data().index[-1], freq='1min')
         
     def plot(self, kind='line', **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""

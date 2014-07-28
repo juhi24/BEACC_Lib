@@ -35,7 +35,7 @@ dt_end = pd.datetime(2014, 3, 1, 23, 45, 0)
 
 #m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
 instr = batch_import(dtstr='2014022[1-2]', datadir='../DATA')
-m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='2min')
+m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='15min')
 
 m200.dsd.data.drop([26.0], 1, inplace=True)
 
@@ -62,8 +62,8 @@ case16_start = pd.datetime(2014, 2, 15, 21, 0, 1)
 case16_end = pd.datetime(2014, 2, 16, 1, 0, 0)
 case16 = [case16_start, case16_end]
 
-case21_start = pd.datetime(2014, 2, 21, 22, 0, 1)
-case21_end = pd.datetime(2014, 2, 22, 0, 55, 0)
+case21_start = pd.datetime(2014, 2, 21, 22, 30, 1)
+case21_end = pd.datetime(2014, 2, 21, 23, 30, 0)
 case21 = [case21_start, case21_end]
 
 case_start = pd.datetime(2014, 2, 23, 0, 0, 1)
@@ -89,9 +89,9 @@ for case_span in [case21]:
     m = m200.between_datetime(*case_span)
     m.autoshift(inplace=True)
     m.noprecip_bias(inplace=True)
-    m.plot()
-    plt.figure()
-    m.plot_v_stuff()
+    #m.plot()
+    #plt.figure()
+    #m.plot_v_stuff()
     case.append(m)
 
 #plt.figure()
