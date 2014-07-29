@@ -170,14 +170,14 @@ class Method1(read.PrecipMeasurer):
 
     def minimize(self, method='SLSQP', **kwargs):
         """Find constants for calculating particle masses. Save and return results."""
-        print('Optimizing constants...')
+        print('Optimizing parameters...')
         result = minimize(self.cost, self.quess, method=method, **kwargs)
         self.ab = result.x
         return result
         
     def minimize_lsq(self):
         """Find beta by minimization and alpha by linear least square."""
-        print('Optimizing constants...')
+        print('Optimizing parameters...')
         result = minimize(self.cost_lsq, self.quess[1], method='Nelder-Mead')
         #self.result = minimize(self.cost_lsq, self.quess[1], method='SLSQP', bounds=self.bnd[1])
         print(result.message)

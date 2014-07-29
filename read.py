@@ -309,7 +309,13 @@ class PipV(InstrumentData):
             self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)
-        
+    
+    @property
+    def rule(self):
+        if self.fit_params is None:
+            return None
+        return self.fit_params.index.freq.freqstr
+    
     @property
     def binwidth(self):
         d = self.dbins
@@ -325,7 +331,9 @@ class PipV(InstrumentData):
         num_vbins = round(len(self.dbins)/2)
         return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
         
-    def grouped(self, rule):
+    def grouped(self, rule=None):
+        if rule is None:
+            rule = self.rule
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
         
     def v(self, d, rule='1H'):
@@ -434,24 +442,25 @@ class PipV(InstrumentData):
         pc = ax.pcolor(D, V, Z, cmap=plt.cm.gist_earth_r)
         return pc
         
-    def plot_fit(self, **kwargs):
-        plot_v_fit(*self.fit_params, func=self.fit_func, **kwargs)
+    def plot_fit(self, name, **kwargs):
+        plot_v_fit(*self.fit_params.loc[name].values, func=self.fit_func, **kwargs)
         
-    def plot(self, ax=None, style=',', label='pip raw', **kwargs):
+    def plot(self, style=',', label='pip raw', **kwargs):
         """Plot datapoints and kde."""
-        if ax is None:
-            ax = plt.gca()
-        self.plot_kde(ax=ax)
-        self.good_data().plot(x='Wad_Dia', y='vel_v', ax=ax, style=style, 
-                              label=label, alpha=0.2, color='black', 
-                              **kwargs)
-        partcount = self.good_data().Part_ID.count()
+        f, axarr = plt.subplots(self.grouped().ngroups, sharex=True)
         margin = 0.1
-        xmax = self.good_data().Wad_Dia.max() + margin
-        ymax = self.good_data().vel_v.max() + margin
-        ax.axis([0, xmax, 0, ymax])
-        ax.set_title('PIP velocity data %s' % self.good_data().index[0].date().isoformat())
-        ax.text(0.1, round(ymax)-1, 'particle count: %s' % str(partcount))
-        ax.set_xlabel('D (mm)')
-        ax.set_ylabel('Vertical velocity (m/s)')
-        return ax
+        for i, (name, group) in enumerate(self.grouped()):
+            self.plot_kde(ax=axarr[i])
+            group.plot(x='Wad_Dia', y='vel_v', ax=axarr[i], 
+                                  style=style, label=label, alpha=0.2, 
+                                  color='black', **kwargs)
+            self.plot_fit(name, ax=axarr[i])
+            partcount = group.Part_ID.count()
+            xmax = group.Wad_Dia.max() + margin
+            ymax = group.vel_v.max() + margin
+            axarr[i].axis([0, xmax, 0, ymax])
+            axarr[i].set_title(group.index[0].time().isoformat())
+            axarr[i].text(0.1, round(ymax)-1, 'particle count: %s' % str(partcount))
+            axarr[i].set_ylabel('Vertical velocity (m/s)')
+        axarr[-1].set_xlabel('D (mm)')
+        return axarr

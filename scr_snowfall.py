@@ -34,7 +34,7 @@ dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 dt_end = pd.datetime(2014, 3, 1, 23, 45, 0)
 
 #m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
-instr = batch_import(dtstr='2014022[1-2]', datadir='../DATA')
+instr = batch_import(dtstr='20140212', datadir='../DATA')
 m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='15min')
 
 m200.dsd.data.drop([26.0], 1, inplace=True)
@@ -85,7 +85,7 @@ mar20 = [case_start, case_end]
 
 
 case = [] # initialize
-for case_span in [case21]:
+for case_span in [case12]:
     m = m200.between_datetime(*case_span)
     m.autoshift(inplace=True)
     m.noprecip_bias(inplace=True)
