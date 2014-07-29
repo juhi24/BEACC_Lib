@@ -156,6 +156,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return datetime.datetime(*t[:t_end])
     
     def set_span(self, dt_start, dt_end):
+        """Set time span with a buffer for timeshift."""
         if dt_start is None or dt_end is None:
             super().set_span(dt_start, dt_end)
             return
@@ -175,10 +176,10 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return self.shift_periods*pd.datetools.to_offset(self.shift_freq)
         
     def dt_start(self):
-        return self.data.index[0] + self.buffer #+ self.timeshift()
+        return self.data.index[0] + self.buffer
         
     def dt_end(self):
-        return self.data.index[-1] - self.buffer #+ self.timeshift()
+        return self.data.index[-1] - self.buffer
         
     def shift_reset(self):
         """Reset time shift."""
@@ -309,6 +310,21 @@ class PipV(InstrumentData):
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)
         
+    @property
+    def binwidth(self):
+        d = self.dbins
+        return (d[-1]-d[0])/(len(d)-1)
+        
+    def grids(self, data=None):
+        if data is None:
+            data = self.good_data()
+        d = data.Wad_Dia.values
+        v = data.vel_v.values
+        dmax = d.max()+10*self.binwidth
+        dbins = self.dbins[self.dbins<dmax]
+        num_vbins = round(len(self.dbins)/2)
+        return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
+        
     def grouped(self, rule):
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
         
@@ -367,11 +383,10 @@ class PipV(InstrumentData):
             dcut = self.d_cut(**kwargs)
             d = d[d<dcut]
             v = v[d<dcut]
-        binwidth = (d[-1]-d[0])/(len(d)-1)
-        num = np.array([self.dbin(diam, binwidth).vel_v.count() for diam in d])
+        num = np.array([self.dbin(diam, self.binwidth).vel_v.count() for diam in d])
         d = d[num>bin_num_min]
         v = v[num>bin_num_min]
-        sig = [self.dbin(diam, binwidth).vel_v.sem() for diam in d]
+        sig = [self.dbin(diam, self.binwidth).vel_v.sem() for diam in d]
         fit_params, pcov = curve_fit(self.fit_func, d, v, sigma=sig, 
                                           absolute_sigma=True)
         return fit_params
@@ -398,12 +413,7 @@ class PipV(InstrumentData):
         
     def kde_grid(self, data=None):
         """Calculate kernel-density estimate with given resolution."""
-        if data is None:
-            data = self.good_data()
-        d = data.Wad_Dia.values
-        v = data.vel_v.values
-        X, Y = np.meshgrid(self.dbins, 
-                           np.linspace(v.min(),v.max(),len(self.dbins)))
+        X, Y = self.grids(data)
         points = np.vstack([X.ravel(), Y.ravel()])
         kernel = self.kde()       
         Z = np.reshape(kernel(points).T, X.shape)
