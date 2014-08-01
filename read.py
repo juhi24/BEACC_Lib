@@ -2,6 +2,7 @@
 import time
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from matplotlib.gridspec import GridSpec
 import datetime
 import pandas as pd
 import numpy as np
@@ -22,6 +23,9 @@ def v_polfit(d, a, b):
 def v_gunn_kinzer(d):
     """d in mm --> return v in m/s"""
     return v_fit(d, *GUNN_KINZER)
+    
+def datenum2datetime(matlab_datenum):
+    return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days = 366)
     
 def plot_gunn_kinzer(dmax, samples=100, ax=None, **kwargs):
     """Plot Gunn&Kinzer v(d) relation."""
@@ -326,7 +330,7 @@ class PipV(InstrumentData):
             data = self.good_data()
         d = data.Wad_Dia.values
         v = data.vel_v.values
-        dmax = d.max()+10*self.binwidth
+        dmax = d.max()+20*self.binwidth
         dbins = self.dbins[self.dbins<dmax]
         num_vbins = round(len(self.dbins)/2)
         return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
@@ -399,13 +403,25 @@ class PipV(InstrumentData):
                                           absolute_sigma=True)
         return fit_params
         
-    def find_fits(self, rule, **kwargs):
+    def find_fits(self, rule, draw_plots=False, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         params_list = []
         names = []
         for name, group in self.grouped(rule):
-            params_list.append(self.find_fit(data=group, **kwargs))
+            try:
+                params = self.find_fit(data=group, **kwargs)
+            except RuntimeError as err:
+                print('%s: %s' % (name, err))
+                print('Particle count: %s' % group.vel_v.count())
+                print('Using fit from previous time step.')
+                params = params_list[-1]
+            params_list.append(params)
             names.append(name)
+            if draw_plots:
+                f, ax = plt.subplots()
+                self.plot_kde(data=group, ax=ax)
+                self.plot(data=group, hexbin=False, ax=ax)
+                plt.show()
         periods = pd.DatetimeIndex(names, freq=rule)
         self.fit_params = pd.DataFrame(params_list, index=periods)
         return self.fit_params
@@ -423,7 +439,7 @@ class PipV(InstrumentData):
         """Calculate kernel-density estimate with given resolution."""
         X, Y = self.grids(data)
         points = np.vstack([X.ravel(), Y.ravel()])
-        kernel = self.kde()       
+        kernel = self.kde(data)       
         Z = np.reshape(kernel(points).T, X.shape)
         return X, Y, Z
         
@@ -442,25 +458,49 @@ class PipV(InstrumentData):
         pc = ax.pcolor(D, V, Z, cmap=plt.cm.gist_earth_r)
         return pc
         
-    def plot_fit(self, name, **kwargs):
-        plot_v_fit(*self.fit_params.loc[name].values, func=self.fit_func, **kwargs)
+    def plot_fit(self, tstep=None, **kwargs):
+        if tstep is None:
+            return plot_v_fit(*self.find_fit(), func=self.fit_func, **kwargs)
+        return plot_v_fit(*self.fit_params.loc[tstep].values, 
+                          func=self.fit_func, **kwargs)
         
-    def plot(self, style=',', label='pip raw', **kwargs):
-        """Plot datapoints and kde."""
-        f, axarr = plt.subplots(self.grouped().ngroups, sharex=True)
+    def plot(self, data=None, hexbin=True, ax=None, **kwargs):
+        if ax is None:
+            ax=plt.gca()
+        if data is None:
+            data = self.good_data()
         margin = 0.1
+        xmax = np.ceil(self.d_cut(frac=0.05))
+        right = xmax-2+margin
+        if hexbin:
+            data.plot(x='Wad_Dia', y='vel_v', kind='hexbin', label='hexbinned',
+                      ax=ax, gridsize=int(8*data.Wad_Dia.max()**0.8), **kwargs)
+        else:
+            data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax, 
+                      alpha=0.2, color='black', label='pip raw', **kwargs)
+        plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
+        partcount = data.Part_ID.count()
+        ymax = data.vel_v.max() + margin
+        ax.axis([0, xmax, 0, ymax])
+        ax.set_title('%s - %s' % (data.index[0], data.index[-1]))
+        ax.text(right, margin, 'particle count: %s' % str(partcount))
+        #ax.text(right) #TODO
+        ax.set_ylabel('Vertical velocity (m/s)')
+        ax.set_xlabel('D (mm)')
+        ax.legend()
+        return ax
+        
+    def plots(self, ncols=1, **kwargs):
+        """Plot datapoints and fit for each timestep."""
+        ngroups = self.grouped().ngroups
+        nrows = int(np.ceil(ngroups/ncols))
+        #gs = GridSpec(nrows, ncols)
+        #axarr = []
+        f, axarr = plt.subplots(ngroups, sharex='col', 
+                                figsize=(10,ngroups*4), tight_layout=True)
         for i, (name, group) in enumerate(self.grouped()):
-            self.plot_kde(ax=axarr[i])
-            group.plot(x='Wad_Dia', y='vel_v', ax=axarr[i], 
-                                  style=style, label=label, alpha=0.2, 
-                                  color='black', **kwargs)
-            self.plot_fit(name, ax=axarr[i])
-            partcount = group.Part_ID.count()
-            xmax = group.Wad_Dia.max() + margin
-            ymax = group.vel_v.max() + margin
-            axarr[i].axis([0, xmax, 0, ymax])
-            axarr[i].set_title(group.index[0].time().isoformat())
-            axarr[i].text(0.1, round(ymax)-1, 'particle count: %s' % str(partcount))
-            axarr[i].set_ylabel('Vertical velocity (m/s)')
-        axarr[-1].set_xlabel('D (mm)')
+            #axarr.append(plt.subplot(gs[i]))
+            #self.plot_kde(data=group, ax=axarr[i])
+            self.plot_fit(tstep=name, zorder=6, ax=axarr[i])
+            self.plot(data=group, ax=axarr[i], **kwargs)
         return axarr

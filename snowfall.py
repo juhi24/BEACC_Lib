@@ -194,7 +194,7 @@ class Method1(read.PrecipMeasurer):
     def plot(self, kind='line', **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
         if self.ab is None:
-            print('Constants not defined. Will now find them via minimization.')
+            print('Parameters not defined. Will now find them via minimization.')
             self.minimize_lsq()
         f, axarr = plt.subplots(4, sharex=True)
         self.intensity().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
@@ -267,8 +267,6 @@ class Method1(read.PrecipMeasurer):
         if ax is None:
             ax=plt.gca()
         self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3, **kwargs)
-        read.plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--', **kwargs)
-        self.pipv.plot_fit(label='kde peak fit', ax=ax, zorder=6, **kwargs)
         self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4, **kwargs)
         self.pipv.plot(ax=ax, zorder=2, **kwargs)
         ax.legend(loc='lower right')
