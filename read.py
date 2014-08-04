@@ -2,7 +2,6 @@
 import time
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from matplotlib.gridspec import GridSpec
 import datetime
 import pandas as pd
 import numpy as np
@@ -19,26 +18,9 @@ def expfit(d, a, b, c):
     
 def polfit(d, a, b):
     return a*d**b
-
-def v_gunn_kinzer(d):
-    """d in mm --> return v in m/s"""
-    return expfit(d, *GUNN_KINZER)
     
 def datenum2datetime(matlab_datenum):
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days = 366)
-    
-def plot_gunn_kinzer(dmax, samples=100, ax=None, **kwargs):
-    """Plot Gunn&Kinzer v(d) relation."""
-    return plot_v_fit(*GUNN_KINZER, func=expfit, dmax=dmax, samples=samples, ax=ax, **kwargs)
-    
-def plot_v_fit(*args, func=expfit, dmax=20, samples=300, ax=None, **kwargs):
-    """Plot a velocity fit with given parameters."""
-    if ax is None:
-        ax = plt.gca()
-    diam = np.linspace(0,dmax,samples)
-    vel = [func(d, *args) for d in diam]
-    ax.plot(diam, vel, **kwargs)
-    return ax
     
 class Fit:
     def __init__(self, func, params):
@@ -54,6 +36,8 @@ class Fit:
             label = self.func.__name__
         ax.plot(x, y, **kwargs)
         return ax
+
+gunn_kinzer = Fit(func=expfit, params=GUNN_KINZER)
 
 class PrecipMeasurer:
     """parent for classes with precipitation measurements
@@ -499,7 +483,7 @@ class PipV(InstrumentData):
         else:
             data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax, 
                       alpha=0.2, color='black', label='pip raw', **kwargs)
-        #plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
+        #gunn_kinzer.plot(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
         partcount = data.Part_ID.count()
         ymax = data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
