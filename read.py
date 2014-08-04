@@ -31,7 +31,7 @@ def plot_gunn_kinzer(dmax, samples=100, ax=None, **kwargs):
     """Plot Gunn&Kinzer v(d) relation."""
     return plot_v_fit(*GUNN_KINZER, func=v_fit, dmax=dmax, samples=samples, ax=ax, **kwargs)
     
-def plot_v_fit(*args, func=v_fit, dmax=20, samples=100, ax=None, **kwargs):
+def plot_v_fit(*args, func=v_fit, dmax=20, samples=300, ax=None, **kwargs):
     """Plot Gunn&Kinzer shape v(d) relation with custom parameters."""
     if ax is None:
         ax = plt.gca()
@@ -460,9 +460,15 @@ class PipV(InstrumentData):
         
     def plot_fit(self, tstep=None, **kwargs):
         if tstep is None:
-            return plot_v_fit(*self.find_fit(), func=self.fit_func, **kwargs)
-        return plot_v_fit(*self.fit_params.loc[tstep].values, 
-                          func=self.fit_func, **kwargs)
+            params = self.find_fit() 
+        else:
+            params = self.fit_params.loc[tstep].values
+        paramstr = ['{0:.3f}'.format(p) for p in params]
+        if self.fit_func.__name__ == v_fit.__name__:
+            label = r'$%s(1-%s\exp(-%sD))$' % (paramstr[0], paramstr[1], paramstr[2])
+        elif self.fit_func.__name__ == v_polfit.__name__:
+            label = r'$%sD^{%s}$' % (paramstr[0], paramstr[1])
+        return plot_v_fit(*params, func=self.fit_func, label=label, **kwargs)
         
     def plot(self, data=None, hexbin=True, ax=None, **kwargs):
         if ax is None:
@@ -478,29 +484,24 @@ class PipV(InstrumentData):
         else:
             data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax, 
                       alpha=0.2, color='black', label='pip raw', **kwargs)
-        plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
+        #plot_gunn_kinzer(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
         partcount = data.Part_ID.count()
         ymax = data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
         ax.set_title('%s - %s' % (data.index[0], data.index[-1]))
         ax.text(right, margin, 'particle count: %s' % str(partcount))
-        #ax.text(right) #TODO
         ax.set_ylabel('Vertical velocity (m/s)')
         ax.set_xlabel('D (mm)')
-        ax.legend()
+        ax.legend(loc='upper right')
         return ax
         
     def plots(self, ncols=1, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
         nrows = int(np.ceil(ngroups/ncols))
-        #gs = GridSpec(nrows, ncols)
-        #axarr = []
-        f, axarr = plt.subplots(ngroups, sharex='col', 
-                                figsize=(10,ngroups*4), tight_layout=True)
+        f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
+                                figsize=(ngroups*8, 7), tight_layout=True)
         for i, (name, group) in enumerate(self.grouped()):
-            #axarr.append(plt.subplot(gs[i]))
-            #self.plot_kde(data=group, ax=axarr[i])
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i])
             self.plot(data=group, ax=axarr[i], **kwargs)
         return axarr
