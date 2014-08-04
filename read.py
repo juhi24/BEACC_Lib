@@ -14,31 +14,46 @@ from scipy.optimize import curve_fit, fmin
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
-def v_fit(d, a, b, c):
+def expfit(d, a, b, c):
     return a*(1 - b*np.exp(-c*d))
     
-def v_polfit(d, a, b):
+def polfit(d, a, b):
     return a*d**b
 
 def v_gunn_kinzer(d):
     """d in mm --> return v in m/s"""
-    return v_fit(d, *GUNN_KINZER)
+    return expfit(d, *GUNN_KINZER)
     
 def datenum2datetime(matlab_datenum):
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days = 366)
     
 def plot_gunn_kinzer(dmax, samples=100, ax=None, **kwargs):
     """Plot Gunn&Kinzer v(d) relation."""
-    return plot_v_fit(*GUNN_KINZER, func=v_fit, dmax=dmax, samples=samples, ax=ax, **kwargs)
+    return plot_v_fit(*GUNN_KINZER, func=expfit, dmax=dmax, samples=samples, ax=ax, **kwargs)
     
-def plot_v_fit(*args, func=v_fit, dmax=20, samples=300, ax=None, **kwargs):
-    """Plot Gunn&Kinzer shape v(d) relation with custom parameters."""
+def plot_v_fit(*args, func=expfit, dmax=20, samples=300, ax=None, **kwargs):
+    """Plot a velocity fit with given parameters."""
     if ax is None:
         ax = plt.gca()
     diam = np.linspace(0,dmax,samples)
     vel = [func(d, *args) for d in diam]
     ax.plot(diam, vel, **kwargs)
     return ax
+    
+class Fit:
+    def __init__(self, func, params):
+        self.func = func
+        self.params = params
+    
+    def plot(self, xmax=20, samples=300, ax=None, label=None, **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        x = np.linspace(0,xmax,samples)
+        y = [self.func(xi, *self.params) for xi in x]
+        if label is None:
+            label = self.func.__name__
+        ax.plot(x, y, **kwargs)
+        return ax
 
 class PrecipMeasurer:
     """parent for classes with precipitation measurements
@@ -295,8 +310,7 @@ class PipV(InstrumentData):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
         self.dmin = 0.375 # smallest diameter where data is good
-        self.fit_func = v_fit
-        self.fit_params = None
+        self.fits = pd.DataFrame()
         self.dbins = np.linspace(0.375, 25.875, num=103)
         if self.data.empty:
             for filename in filenames:
@@ -316,9 +330,9 @@ class PipV(InstrumentData):
     
     @property
     def rule(self):
-        if self.fit_params is None:
+        if self.fits.empty:
             return None
-        return self.fit_params.index.freq.freqstr
+        return self.fits.index.freq.freqstr
     
     @property
     def binwidth(self):
@@ -340,15 +354,15 @@ class PipV(InstrumentData):
             rule = self.rule
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
         
-    def v(self, d, rule='1H'):
-        if self.fit_params is None:
-            self.find_fits(rule)
-        elif pd.datetools.to_offset(rule) != self.fit_params.index.freq:
-            self.find_fits(rule)
+    def v(self, d, fit_func=expfit, rule='1H'):
+        if self.fits.empty:
+            self.find_fits(rule, func=fit_func)
+        elif pd.datetools.to_offset(rule) != self.fits.index.freq:
+            self.find_fits(rule, func=fit_func)
         v = []
-        for params in self.fit_params.values:
-            v.append(self.fit_func(d, *params))
-        return pd.Series(v, index=self.fit_params.index, name='v')
+        for fit in self.fits[fit_func.__name__].values:
+            v.append(self.fit_func(d, *fit.params))
+        return pd.Series(v, index=self.fits.index, name='v')
         
     def lwc(self, rule='1min'):
         """liquid water content"""
@@ -381,7 +395,7 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
         
-    def find_fit(self, data=None, kde=True, cut_d=False, bin_num_min=10, **kwargs):
+    def find_fit(self, func=expfit, data=None, kde=True, cut_d=False, bin_num_min=10, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
         if kde:
@@ -399,32 +413,37 @@ class PipV(InstrumentData):
         d = d[num>bin_num_min]
         v = v[num>bin_num_min]
         sig = [self.dbin(diam, self.binwidth).vel_v.sem() for diam in d]
-        fit_params, pcov = curve_fit(self.fit_func, d, v, sigma=sig, 
+        params, pcov = curve_fit(func, d, v, sigma=sig, 
                                           absolute_sigma=True)
-        return fit_params
+        return Fit(func, params)
         
-    def find_fits(self, rule, draw_plots=False, **kwargs):
+    def find_fits(self, rule, func=expfit, draw_plots=False, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
-        params_list = []
         names = []
+        fits = []
         for name, group in self.grouped(rule):
             try:
-                params = self.find_fit(data=group, **kwargs)
+                fit = self.find_fit(data=group, **kwargs)
             except RuntimeError as err:
                 print('%s: %s' % (name, err))
                 print('Particle count: %s' % group.vel_v.count())
                 print('Using fit from previous time step.')
-                params = params_list[-1]
-            params_list.append(params)
+                fit = fits[-1]
+            fits.append(fit)
             names.append(name)
             if draw_plots:
                 f, ax = plt.subplots()
                 self.plot_kde(data=group, ax=ax)
                 self.plot(data=group, hexbin=False, ax=ax)
                 plt.show()
-        periods = pd.DatetimeIndex(names, freq=rule)
-        self.fit_params = pd.DataFrame(params_list, index=periods)
-        return self.fit_params
+        timestamps = pd.DatetimeIndex(names, freq=rule)
+        if self.fits.empty:
+            self.fits = pd.DataFrame(fits, index=timestamps, columns=[func.__name__])
+        elif (self.fits.index==timestamps).all():
+            self.fits[func.__name__] = fits
+        else:
+            self.fits = pd.DataFrame(fits, index=timestamps, columns=[func.__name__])
+        return self.fits
         
     def kde(self, data=None):
         """kernel-density estimate of d,v data using gaussian kernels"""
@@ -460,15 +479,11 @@ class PipV(InstrumentData):
         
     def plot_fit(self, tstep=None, **kwargs):
         if tstep is None:
-            params = self.find_fit() 
+            fits = [self.find_fit()]
         else:
-            params = self.fit_params.loc[tstep].values
-        paramstr = ['{0:.3f}'.format(p) for p in params]
-        if self.fit_func.__name__ == v_fit.__name__:
-            label = r'$%s(1-%s\exp(-%sD))$' % (paramstr[0], paramstr[1], paramstr[2])
-        elif self.fit_func.__name__ == v_polfit.__name__:
-            label = r'$%sD^{%s}$' % (paramstr[0], paramstr[1])
-        return plot_v_fit(*params, func=self.fit_func, label=label, **kwargs)
+            fits = self.fits.loc[tstep].values
+        for fit in fits:
+            fit.plot(**kwargs)
         
     def plot(self, data=None, hexbin=True, ax=None, **kwargs):
         if ax is None:
