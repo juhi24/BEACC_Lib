@@ -9,7 +9,7 @@ import linecache
 from os import path
 import copy
 from scipy import stats
-from scipy.optimize import curve_fit, fmin
+from scipy.optimize import curve_fit, fmin, minimize
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
     
@@ -26,7 +26,8 @@ class Fit:
             return self.func(x, *self.params)
         pass
     
-    def penalty():
+    @staticmethod
+    def penalty(self, params):
         return 0
     
     def plot(self, xmax=20, samples=300, ax=None, label=None, **kwargs):
@@ -35,32 +36,43 @@ class Fit:
         x = np.linspace(0,xmax,samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
-            label = self.func.__name__
-        ax.plot(x, y, **kwargs)
+            label = str(self)
+        ax.plot(x, y, label=label, **kwargs)
         return ax
+        
+    def cost(self, params, xarr, yarr):
+        cost = 0
+        for i, x in enumerate(xarr):
+            y = yarr[i]
+            cost += abs(y - self.func(x, *params)) + self.penalty(params)
+        return cost
         
 class ExpFit(Fit):
     def __init__(self, params=None):
         super().__init__(params, name='expfit')
+        self.quess = (1., 1., 1.)
         
     def __repr__(self):
         if self.params is None:
             paramstr = 'abc'
         else:
             paramstr = ['{0:.3f}'.format(p) for p in self.params]           
-        return '%s*(1-%s*exp(-%s*D))' % (paramstr[0], paramstr[1], paramstr[2])
+        s = '%s*(1-%s*exp(-%s*D))' % (paramstr[0], paramstr[1], paramstr[2])
+        return s.replace('--', '+')
     
     def func(self, x, a=None, b=None, c=None):
         if a is None:
             return self.func(x, *self.params)
         return a*(1-b*np.exp(-c*x))
         
-    def penalty(self):
-        return 1000*max(0, 0.4-self.params[2])
+    def penalty(self, params):
+        #return 0
+        return 1000*(max(0, -params[1]) + max(0, 0.4-params[2]))
 
 class PolFit(Fit):
     def __init__(self, params=None):
-        super().__init__(params, name='polfit')    
+        super().__init__(params, name='polfit')
+        self.quess = (1., 1.)
         
     def __repr__(self):
         if self.params is None:
@@ -74,8 +86,8 @@ class PolFit(Fit):
             return self.func(x, *self.params)
         return a*x**b
         
-    def penalty(self):
-        return 1000*max(0, -self.params[1])
+    def penalty(self, params):
+        return 1000*max(0, -params[1])
 
 gunn_kinzer = ExpFit(params=GUNN_KINZER)
 
@@ -423,7 +435,7 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
         
-    def find_fit(self, fit=None, data=None, kde=True, cut_d=False, bin_num_min=10, **kwargs):
+    def find_fit(self, fit=None, data=None, kde=True, cut_d=False, use_curve_fit=False, bin_num_min=10, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
         if fit is None:
@@ -443,8 +455,12 @@ class PipV(InstrumentData):
         d = d[num>bin_num_min]
         v = v[num>bin_num_min]
         sig = [self.dbin(diam, self.binwidth).vel_v.sem() for diam in d]
-        params, pcov = curve_fit(fit.func, d, v, sigma=sig, 
-                                          absolute_sigma=True)
+        if use_curve_fit:
+            params, pcov = curve_fit(fit.func, d, v, sigma=sig, 
+                                     absolute_sigma=True)
+        else:
+            result = minimize(fit.cost, fit.quess, method='Nelder-Mead', args=(d, v))
+            params = result.x
         fit.params = params
         return fit
         
