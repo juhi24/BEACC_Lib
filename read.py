@@ -12,20 +12,22 @@ from scipy import stats
 from scipy.optimize import curve_fit, fmin
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
-
-def expfit(d, a, b, c):
-    return a*(1 - b*np.exp(-c*d))
-    
-def polfit(d, a, b):
-    return a*d**b
     
 def datenum2datetime(matlab_datenum):
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days = 366)
     
 class Fit:
-    def __init__(self, func, params):
-        self.func = func
+    def __init__(self, params=None, name='fit'):
         self.params = params
+        self.name = name
+        
+    def func(self, x, a=None):
+        if a is None:
+            return self.func(x, *self.params)
+        pass
+    
+    def penalty():
+        return 0
     
     def plot(self, xmax=20, samples=300, ax=None, label=None, **kwargs):
         if ax is None:
@@ -36,8 +38,46 @@ class Fit:
             label = self.func.__name__
         ax.plot(x, y, **kwargs)
         return ax
+        
+class ExpFit(Fit):
+    def __init__(self, params=None):
+        super().__init__(params, name='expfit')
+        
+    def __repr__(self):
+        if self.params is None:
+            paramstr = 'abc'
+        else:
+            paramstr = ['{0:.3f}'.format(p) for p in self.params]           
+        return '%s*(1-%s*exp(-%s*D))' % (paramstr[0], paramstr[1], paramstr[2])
+    
+    def func(self, x, a=None, b=None, c=None):
+        if a is None:
+            return self.func(x, *self.params)
+        return a*(1-b*np.exp(-c*x))
+        
+    def penalty(self):
+        return 1000*max(0, 0.4-self.params[2])
 
-gunn_kinzer = Fit(func=expfit, params=GUNN_KINZER)
+class PolFit(Fit):
+    def __init__(self, params=None):
+        super().__init__(params, name='polfit')    
+        
+    def __repr__(self):
+        if self.params is None:
+            paramstr = 'ab'
+        else:
+            paramstr = ['{0:.3f}'.format(p) for p in self.params]          
+        return '%s*D^%s' % (paramstr[0], paramstr[1])
+        
+    def func(self, x, a=None, b=None):
+        if a is None:
+            return self.func(x, *self.params)
+        return a*x**b
+        
+    def penalty(self):
+        return 1000*max(0, -self.params[1])
+
+gunn_kinzer = ExpFit(params=GUNN_KINZER)
 
 class PrecipMeasurer:
     """parent for classes with precipitation measurements
@@ -338,14 +378,18 @@ class PipV(InstrumentData):
             rule = self.rule
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
         
-    def v(self, d, fit_func=expfit, rule='1H'):
+    def v(self, d, emptyfit=None, rule=None):
+        if emptyfit is None:
+            emptyfit = ExpFit()
+        if rule is None:
+            rule = self.rule
         if self.fits.empty:
-            self.find_fits(rule, func=fit_func)
+            self.find_fits(rule, emptyfit=emptyfit)
         elif pd.datetools.to_offset(rule) != self.fits.index.freq:
-            self.find_fits(rule, func=fit_func)
+            self.find_fits(rule, emptyfit=emptyfit)
         v = []
-        for fit in self.fits[fit_func.__name__].values:
-            v.append(self.fit_func(d, *fit.params))
+        for fit in self.fits[emptyfit.name].values:
+            v.append(fit.func(d))
         return pd.Series(v, index=self.fits.index, name='v')
         
     def lwc(self, rule='1min'):
@@ -379,9 +423,11 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
         
-    def find_fit(self, func=expfit, data=None, kde=True, cut_d=False, bin_num_min=10, **kwargs):
+    def find_fit(self, fit=None, data=None, kde=True, cut_d=False, bin_num_min=10, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
+        if fit is None:
+            fit = ExpFit()
         if kde:
             d, v = self.kde_peak(data=data)
         else:
@@ -397,17 +443,18 @@ class PipV(InstrumentData):
         d = d[num>bin_num_min]
         v = v[num>bin_num_min]
         sig = [self.dbin(diam, self.binwidth).vel_v.sem() for diam in d]
-        params, pcov = curve_fit(func, d, v, sigma=sig, 
+        params, pcov = curve_fit(fit.func, d, v, sigma=sig, 
                                           absolute_sigma=True)
-        return Fit(func, params)
+        fit.params = params
+        return fit
         
-    def find_fits(self, rule, func=expfit, draw_plots=False, **kwargs):
+    def find_fits(self, rule, emptyfit=None, draw_plots=False, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         names = []
         fits = []
         for name, group in self.grouped(rule):
             try:
-                fit = self.find_fit(data=group, **kwargs)
+                fit = copy.deepcopy(self.find_fit(fit=emptyfit, data=group, **kwargs))
             except RuntimeError as err:
                 print('%s: %s' % (name, err))
                 print('Particle count: %s' % group.vel_v.count())
@@ -422,11 +469,11 @@ class PipV(InstrumentData):
                 plt.show()
         timestamps = pd.DatetimeIndex(names, freq=rule)
         if self.fits.empty:
-            self.fits = pd.DataFrame(fits, index=timestamps, columns=[func.__name__])
+            self.fits = pd.DataFrame(fits, index=timestamps, columns=[fit.name])
         elif (self.fits.index==timestamps).all():
-            self.fits[func.__name__] = fits
+            self.fits[fit.name] = fits
         else:
-            self.fits = pd.DataFrame(fits, index=timestamps, columns=[func.__name__])
+            self.fits = pd.DataFrame(fits, index=timestamps, columns=[fit.name])
         return self.fits
         
     def kde(self, data=None):
@@ -497,7 +544,7 @@ class PipV(InstrumentData):
     def plots(self, ncols=1, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
-        nrows = int(np.ceil(ngroups/ncols))
+        #nrows = int(np.ceil(ngroups/ncols))
         f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
                                 figsize=(ngroups*8, 7), tight_layout=True)
         for i, (name, group) in enumerate(self.grouped()):
