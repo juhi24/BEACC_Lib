@@ -47,7 +47,7 @@ case_start = pd.datetime(2014, 5, 26, 17, 30, 1)
 case_end = pd.datetime(2014, 5, 26, 19, 30, 0)
 raincase26 = [case_start, case_end]
 
-case7_start = pd.datetime(2014, 2, 7, 23, 15, 1)
+case7_start = pd.datetime(2014, 2, 7, 22, 45, 1)
 case7_end = pd.datetime(2014, 2, 8, 0, 0, 0)
 case7 = [case7_start, case7_end]
 
@@ -58,12 +58,12 @@ case_start = pd.datetime(2014, 2, 12, 0, 0, 1)
 case_end = pd.datetime(2014, 2, 12, 23, 30, 0)
 case12 = [case_start, case_end]
 
-case16_start = pd.datetime(2014, 2, 15, 21, 0, 1)
+case16_start = pd.datetime(2014, 2, 16, 0, 0, 1)
 case16_end = pd.datetime(2014, 2, 16, 1, 0, 0)
 case16 = [case16_start, case16_end]
 
-case21_start = pd.datetime(2014, 2, 21, 22, 0, 1)
-case21_end = pd.datetime(2014, 2, 22, 0, 0, 0)
+case21_start = pd.datetime(2014, 2, 21, 22, 50, 1)
+case21_end = pd.datetime(2014, 2, 21, 23, 20, 0)
 case21 = [case21_start, case21_end]
 
 case_start = pd.datetime(2014, 2, 23, 0, 0, 1)

@@ -20,13 +20,14 @@ class Fit:
     def __init__(self, params=None, name='fit'):
         self.params = params
         self.name = name
+        self.x = None
+        self.y = None
         
     def func(self, x, a=None):
         if a is None:
             return self.func(x, *self.params)
         pass
     
-    @staticmethod
     def penalty(self, params):
         return 0
     
@@ -38,13 +39,15 @@ class Fit:
         if label is None:
             label = str(self)
         ax.plot(x, y, label=label, **kwargs)
+        ax.plot(self.x, self.y, 'ro')
         return ax
         
-    def cost(self, params, xarr, yarr):
+    def cost(self, params, xarr, yarr, sigarr):
         cost = 0
         for i, x in enumerate(xarr):
             y = yarr[i]
-            cost += abs(y - self.func(x, *params)) + self.penalty(params)
+            sig = sigarr[i]
+            cost += 1/sig**2*(y - self.func(x, *params))**2 + self.penalty(params)
         return cost
         
 class ExpFit(Fit):
@@ -66,8 +69,8 @@ class ExpFit(Fit):
         return a*(1-b*np.exp(-c*x))
         
     def penalty(self, params):
-        #return 0
-        return 1000*(max(0, -params[1]) + max(0, 0.4-params[2]))
+        return 0
+        return 1000*(max(0, 0.1-params[1]) + max(0, 0.4-params[2]))
 
 class PolFit(Fit):
     def __init__(self, params=None):
@@ -87,7 +90,8 @@ class PolFit(Fit):
         return a*x**b
         
     def penalty(self, params):
-        return 1000*max(0, -params[1])
+        #return 0
+        return 1000*max(0, 0.2-params[1])
 
 gunn_kinzer = ExpFit(params=GUNN_KINZER)
 
@@ -98,9 +102,11 @@ class PrecipMeasurer:
         pass
     
     def amount(self, **kwargs):
+        """timestep precipitation in mm"""
         return self.acc(**kwargs).diff()
     
     def acc(self, **kwargs):
+        """precipitation accumulation in mm"""
         return self.amount(**kwargs).cumsum()
         
     def intensity(self, **kwargs):
@@ -420,10 +426,12 @@ class PipV(InstrumentData):
     def good_data(self):
         return self.data[self.data.Wad_Dia>self.dmin]
         
-    def dbin(self, d, binwidth):
+    def dbin(self, d, binwidth, data=None):
         """Return data that falls into given size bin."""
+        if data is None:
+            data = self.good_data()
         vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*binwidth, d+0.5*binwidth)
-        return self.good_data().query(vcond)
+        return data.query(vcond)
         
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
@@ -435,33 +443,38 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
         
-    def find_fit(self, fit=None, data=None, kde=True, cut_d=False, use_curve_fit=False, bin_num_min=10, **kwargs):
+    def find_fit(self, fit=None, data=None, kde=True, cut_d=False, use_curve_fit=False, bin_num_min=25, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
+        if data is None:
+            data = self.good_data()
         if fit is None:
             fit = ExpFit()
         if kde:
             d, v = self.kde_peak(data=data)
         else:
-            if data is None:
-                data = self.good_data()
             d = data.Wad_Dia.values
             v = data.vel_v.values
         if cut_d:
             dcut = self.d_cut(**kwargs)
             d = d[d<dcut]
             v = v[d<dcut]
-        num = np.array([self.dbin(diam, self.binwidth).vel_v.count() for diam in d])
-        d = d[num>bin_num_min]
-        v = v[num>bin_num_min]
-        sig = [self.dbin(diam, self.binwidth).vel_v.sem() for diam in d]
+        if kde:
+            num = np.array([self.dbin(diam, self.binwidth, data=data).vel_v.count() for diam in d])
+            d = d[num>bin_num_min]
+            v = v[num>bin_num_min]
+            sig = [self.dbin(diam, self.binwidth, data=data).vel_v.sem() for diam in d]
+        else:
+            sig = np.zeros(d.size)
         if use_curve_fit:
             params, pcov = curve_fit(fit.func, d, v, sigma=sig, 
                                      absolute_sigma=True)
         else:
-            result = minimize(fit.cost, fit.quess, method='Nelder-Mead', args=(d, v))
+            result = minimize(fit.cost, fit.quess, method='Nelder-Mead', args=(d, v, sig))
             params = result.x
         fit.params = params
+        fit.x = d
+        fit.y = v
         return fit
         
     def find_fits(self, rule, emptyfit=None, draw_plots=False, **kwargs):
@@ -542,7 +555,7 @@ class PipV(InstrumentData):
         right = xmax-2+margin
         if hexbin:
             data.plot(x='Wad_Dia', y='vel_v', kind='hexbin', label='hexbinned',
-                      ax=ax, gridsize=int(8*data.Wad_Dia.max()**0.8), **kwargs)
+                      ax=ax, gridsize=int(12*data.Wad_Dia.max()**0.5), **kwargs)
         else:
             data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax, 
                       alpha=0.2, color='black', label='pip raw', **kwargs)
@@ -557,7 +570,7 @@ class PipV(InstrumentData):
         ax.legend(loc='upper right')
         return ax
         
-    def plots(self, ncols=1, **kwargs):
+    def plots(self, peak=False, ncols=1, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
         #nrows = int(np.ceil(ngroups/ncols))
@@ -566,4 +579,6 @@ class PipV(InstrumentData):
         for i, (name, group) in enumerate(self.grouped()):
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i])
             self.plot(data=group, ax=axarr[i], **kwargs)
+            if peak:
+                axarr[i].scatter(*self.kde_peak(data=group), label='kde peak')
         return axarr
