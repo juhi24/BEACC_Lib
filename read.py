@@ -342,7 +342,8 @@ class PipDSD(InstrumentData):
         return filtered
         
     def good_data(self, **kwargs):
-        return self.filter_cat_and_dog(**kwargs)
+        gain_correction = 1
+        return gain_correction*self.filter_cat_and_dog(**kwargs)
         
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
@@ -450,6 +451,9 @@ class PipV(InstrumentData):
             data = self.good_data()
         if fit is None:
             fit = ExpFit()
+        if data.count()[0]<2:
+            print('Too few particles for kde.')
+            kde = False
         if kde:
             d, v = self.kde_peak(data=data)
         else:
@@ -563,7 +567,7 @@ class PipV(InstrumentData):
         partcount = data.Part_ID.count()
         ymax = data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
-        ax.set_title('%s - %s' % (data.index[0], data.index[-1]))
+        ax.set_title('%s - %s' % (data.index[0]-datetime.timedelta(minutes=1), data.index[-1]))
         ax.text(right, margin, 'particle count: %s' % str(partcount))
         ax.set_ylabel('Vertical velocity (m/s)')
         ax.set_xlabel('D (mm)')

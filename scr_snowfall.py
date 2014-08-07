@@ -34,7 +34,7 @@ dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 dt_end = pd.datetime(2014, 3, 1, 23, 45, 0)
 
 #m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
-instr = batch_import(dtstr='20140221', datadir='../DATA')
+instr = batch_import(dtstr='201402??', datadir='../DATA')
 m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='5min')
 
 m200.dsd.data.drop([26.0], 1, inplace=True)
@@ -42,6 +42,10 @@ m200.dsd.data.drop([26.0], 1, inplace=True)
 case_start = pd.datetime(2014, 2, 2, 16, 0, 1)
 case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
 case2 = [case_start, case_end]
+
+case_start = pd.datetime(2014, 5, 9, 16, 0, 1)
+case_end = pd.datetime(2014, 5, 9, 21, 0, 0)
+raincase9 = [case_start, case_end]
 
 case_start = pd.datetime(2014, 5, 26, 17, 30, 1)
 case_end = pd.datetime(2014, 5, 26, 19, 30, 0)
@@ -83,7 +87,7 @@ case_end = pd.datetime(2014, 3, 20, 21, 0, 0)
 mar20 = [case_start, case_end]
 
 case = [] # initialize
-for case_span in [case21]:
+for case_span in [case7, case16, case21]:
     m = m200.between_datetime(*case_span)
     m.autoshift(inplace=True)
     m.noprecip_bias(inplace=True)
