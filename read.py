@@ -215,6 +215,16 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         else:
             t_end = 5
         return datetime.datetime(*t[:t_end])
+        
+    def good_data(self):
+        data = copy.deepcopy(self.data)
+        swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
+        if self.data.index[-1] > swap_date:
+            if self.name == 'pluvio200':
+                data.bucket_nrt = self.data.bucket_nrt*2
+            elif self.name == 'pluvio400':
+                data.bucket_nrt = self.data.bucket_nrt*0.5
+        return data
     
     def set_span(self, dt_start, dt_end):
         """Set time span with a buffer for timeshift."""
@@ -276,7 +286,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                 
     def acc_raw(self):
         """accumulation from raw data"""
-        return self.data.bucket_nrt-self.data.bucket_nrt[0]
+        return self.good_data().bucket_nrt-self.data.bucket_nrt[0]
         
     def noprecip_bias(self, lwc, inplace=False):
         """Calculate accumulated bias using LWC."""
@@ -342,7 +352,7 @@ class PipDSD(InstrumentData):
         return filtered
         
     def good_data(self, **kwargs):
-        gain_correction = 1
+        gain_correction = 2
         return gain_correction*self.filter_cat_and_dog(**kwargs)
         
 class PipV(InstrumentData):
@@ -574,13 +584,18 @@ class PipV(InstrumentData):
         ax.legend(loc='upper right')
         return ax
         
-    def plots(self, peak=False, ncols=1, **kwargs):
+    def plots(self, separate=False, peak=False, ncols=1, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
         #nrows = int(np.ceil(ngroups/ncols))
-        f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
-                                figsize=(ngroups*8, 7), tight_layout=True)
+        if not separate:
+            f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
+                                    figsize=(ngroups*8, 7), tight_layout=True)
+        else:
+            axarr = []
         for i, (name, group) in enumerate(self.grouped()):
+            if separate:
+                axarr[i] = plt.gca()
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i])
             self.plot(data=group, ax=axarr[i], **kwargs)
             if peak:

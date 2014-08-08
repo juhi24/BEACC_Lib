@@ -12,14 +12,16 @@ RHO_W = 1000
 class Method1(read.PrecipMeasurer):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, unbias=False, autoshift=False,
-                 quess=(0.01, 2.1), bnd=((0, 0.1), (1, 3)), rule='15min'):
+                 liquid=False, quess=(0.01, 2.1), bnd=((0, 0.1), (1, 3)),
+                 rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
         self.quess = quess
         self.bnd = bnd
         self.rule = rule
-        self.ab = None # alpha, beta
+        self.liquid = liquid
+        self._ab = None # alpha, beta
         self.scale = 1e6 # mg --> kg
         if autoshift:
             self.autoshift()
@@ -27,8 +29,25 @@ class Method1(read.PrecipMeasurer):
             self.noprecip_bias()
             
     def __repr__(self):
-        return """%s sampling
-                  consts: %s""" % (self.rule, self.ab)
+        if self.liquid:
+            casetype = 'rain'
+        else:
+            casetype = 'snow'
+        t = self.time_range()
+        dt_start = t[0]
+        dt_end = t[-1]
+        return '%s case from %s to %s, %s sampling' % (casetype, dt_start, dt_end, self.rule)
+                  
+    @property
+    def ab(self):
+        if self._ab is None:
+            print('Parameters not defined. Will now find them via minimization.')
+            self.minimize_lsq()
+        return self._ab
+        
+    @ab.setter
+    def ab(self, ab):
+        self._ab = ab
         
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
@@ -60,13 +79,19 @@ class Method1(read.PrecipMeasurer):
         
     def intensity(self, consts=None, simple=False):
         """Calculate precipitation intensity using given or saved parameters."""
-        if self.ab is not None and consts is None:
+        if consts is None and not self.liquid:
             consts = self.ab
-        if simple:
+        if self.liquid:
+            fits = self.series_nans()
+            fits.loc[:] = read.gunn_kinzer
+            fits.name = read.gunn_kinzer.name
+            self.pipv.fits = pd.DataFrame(fits)
+            r = self.sum_over_d(self.r_rho, rho=RHO_W)
+        elif simple:
             r = self.sum_over_d(self.r_rho, rho=consts[0])
         else:
             r = self.sum_over_d(self.r_ab, alpha=consts[0], beta=consts[1])
-        return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)
+        return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)/self.scale
         
     def amount(self, **kwargs):
         """Calculate precipitation in mm using given or saved parameters."""
@@ -88,11 +113,11 @@ class Method1(read.PrecipMeasurer):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * m**beta * m/s * 1/(mm*m**3)
         """
-        return 3.6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
+        return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
         
     def r_rho(self, d, rho):
         """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
-        return 3.6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
+        return self.scale*3.6e-6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
         
     def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
@@ -165,7 +190,7 @@ class Method1(read.PrecipMeasurer):
         """Calculates mean density estimate for each timeframe."""
         rho_r_pip = self.amount(consts=[1], simple=True)
         if fltr:
-            rho_r_pip[rho_r_pip < 1000] = np.nan # filter
+            rho_r_pip[self.pluvio.intensity(rule=self.rule) < 0.2] = np.nan # filter
         return self.pluvio.amount(rule=self.rule)/rho_r_pip
 
     def minimize(self, method='SLSQP', **kwargs):
@@ -188,22 +213,22 @@ class Method1(read.PrecipMeasurer):
         
     def time_range(self):
         """data time ticks on minute interval"""
-        return pd.date_range(self.pluvio.good_data().index[0], 
-                             self.pluvio.good_data().index[-1], freq='1min')
+        return pd.date_range(self.pluvio.acc().index[0], 
+                             self.pluvio.acc().index[-1], freq='1min')
         
     def plot(self, kind='line', **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
-        if self.ab is None:
-            print('Parameters not defined. Will now find them via minimization.')
-            self.minimize_lsq()
         f, axarr = plt.subplots(4, sharex=True)
         self.intensity().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
         self.pluvio.intensity(rule=self.rule).plot(label=self.pluvio.name,
                                     kind=kind, ax=axarr[0], **kwargs)
         axarr[0].set_ylabel('mm/h')
-        axarr[0].set_title(r'precipitation intensity, $\alpha=%s, \beta=%s$' 
-                            % (self.ab[0], self.ab[1]))
-        rho = self.scale*self.density(fltr=False)
+        if self.liquid:
+            title = 'rain intensity'
+        else:
+            title = r'precipitation intensity, $\alpha=%s, \beta=%s$' % (self.ab[0], self.ab[1])
+        axarr[0].set_title(title)
+        rho = self.density(fltr=False)
         rho.plot(label='mean density', ax=axarr[1])      
         axarr[1].set_ylabel(r'$\rho_{part}$')
         self.n_t().plot(ax=axarr[2])
@@ -216,8 +241,6 @@ class Method1(read.PrecipMeasurer):
     
     def plot_cost(self, resolution=20, ax=None, cmap='binary', **kwargs):
         """The slowest plot you've drawn"""
-        if self.ab is None:
-            return
         if ax is None:
             ax = plt.gca()
         alpha0 = self.ab[0]
