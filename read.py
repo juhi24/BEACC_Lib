@@ -593,9 +593,10 @@ class PipV(InstrumentData):
                                     figsize=(ngroups*8, 7), tight_layout=True)
         else:
             axarr = []
+            farr = []
         for i, (name, group) in enumerate(self.grouped()):
             if separate:
-                axarr[i] = plt.gca()
+                farr[i], axarr[i] = plt.subplots(1)
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i])
             self.plot(data=group, ax=axarr[i], **kwargs)
             if peak:
