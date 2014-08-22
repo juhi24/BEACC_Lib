@@ -1,5 +1,6 @@
 """tools for reading and working with baecc data"""
 import time
+import os
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import datetime
@@ -364,7 +365,7 @@ class PipV(InstrumentData):
         self.name = 'pip_vel'
         self.dmin = 0.375 # smallest diameter where data is good
         self.fits = pd.DataFrame()
-        self.dbins = np.linspace(0.375, 25.875, num=103)
+        self.dbins = np.linspace(0.625, 25.875, num=204)
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
@@ -399,7 +400,7 @@ class PipV(InstrumentData):
         v = data.vel_v.values
         dmax = d.max()+20*self.binwidth
         dbins = self.dbins[self.dbins<dmax]
-        num_vbins = round(len(self.dbins)/2)
+        num_vbins = round(len(self.dbins)/5)
         return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
         
     def grouped(self, rule=None):
@@ -437,12 +438,34 @@ class PipV(InstrumentData):
     def good_data(self):
         return self.data[self.data.Wad_Dia>self.dmin]
         
-    def dbin(self, d, binwidth, data=None):
+    def dbin(self, d, binwidth=None, data=None, vmin=None, vmax=None):
         """Return data that falls into given size bin."""
+        if binwidth is None:
+            binwidth = self.binwidth
         if data is None:
             data = self.good_data()
-        vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (d-0.5*binwidth, d+0.5*binwidth)
+        dmin = d-0.5*binwidth
+        dmax = d+0.5*binwidth
+        vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (dmin, dmax)
+        if vmin is not None and vmax is not None:
+            vcond += ' and vel_v > %s and vel_v < %s' % (vmin, vmax)
         return data.query(vcond)
+    
+    def filter_outlier(self, data=None, frac=0.5):
+        filtered = pd.DataFrame()
+        X, Y, Z = self.kde_grid(data)
+        y = Y[:, 0]
+        for i in range(0, Z.shape[1]):
+            z = Z[:, i]
+            z_lim = z.max()*frac
+            y_fltr = y[z>z_lim]
+            if y_fltr.size==0:
+                continue
+            vmin = y_fltr[0]
+            vmax = y_fltr[-1]
+            d = X[:,i][0]
+            filtered = filtered.append(self.dbin(d=d, data=data, vmin=vmin, vmax=vmax))
+        return filtered
         
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
@@ -454,7 +477,7 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
         
-    def find_fit(self, fit=None, data=None, kde=True, cut_d=False, use_curve_fit=False, bin_num_min=25, **kwargs):
+    def find_fit(self, fit=None, data=None, kde=False, cut_d=False, use_curve_fit=False, bin_num_min=5, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
         if data is None:
@@ -584,10 +607,16 @@ class PipV(InstrumentData):
         ax.legend(loc='upper right')
         return ax
         
-    def plots(self, separate=False, peak=False, ncols=1, **kwargs):
+    def plots(self, separate=False, peak=False, save=False, ncols=1, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
         #nrows = int(np.ceil(ngroups/ncols))
+        if save:
+            home = os.curdir
+            if 'HOME' in os.environ:
+                home = os.environ['HOME']
+            savedir = path.join(home, 'Pictures', 'vel_plots')
+            suffix = '_' + self.rule
         if not separate:
             f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
                                     figsize=(ngroups*8, 7), tight_layout=True)
@@ -596,9 +625,18 @@ class PipV(InstrumentData):
             farr = []
         for i, (name, group) in enumerate(self.grouped()):
             if separate:
-                farr[i], axarr[i] = plt.subplots(1)
+                f, ax = plt.subplots(1)
+                farr.append(f)
+                axarr.append(ax)
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i])
             self.plot(data=group, ax=axarr[i], **kwargs)
+            if save and separate:
+                t = group.index[-1]
+                fname = t.strftime('%Y%m%d%H%M.png')
+                f.savefig(path.join(savedir, fname))
             if peak:
                 axarr[i].scatter(*self.kde_peak(data=group), label='kde peak')
+        if save and not separate:
+            fname = t.strftime('%Y%m%d.png')
+            f.savefig(path.join(savedir, fname))
         return axarr
