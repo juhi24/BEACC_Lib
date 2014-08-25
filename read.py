@@ -32,15 +32,17 @@ class Fit:
     def penalty(self, params):
         return 0
     
-    def plot(self, xmax=20, samples=300, ax=None, label=None, **kwargs):
+    def plot(self, xmax=20, samples=300, ax=None, label=None, marker='ro', **kwargs):
         if ax is None:
             ax = plt.gca()
+        if self.params is None:
+            return ax
         x = np.linspace(0,xmax,samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
             label = str(self)
         ax.plot(x, y, label=label, **kwargs)
-        ax.plot(self.x, self.y, 'ro')
+        ax.plot(self.x, self.y, marker)
         return ax
         
     def cost(self, params, xarr, yarr, sigarr):
@@ -365,7 +367,7 @@ class PipV(InstrumentData):
         self.name = 'pip_vel'
         self.dmin = 0.375 # smallest diameter where data is good
         self.fits = pd.DataFrame()
-        self.dbins = np.linspace(0.625, 25.875, num=204)
+        self.dbins = np.linspace(0.375, 25.875, num=206)
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
@@ -414,9 +416,9 @@ class PipV(InstrumentData):
         if rule is None:
             rule = self.rule
         if self.fits.empty:
-            self.find_fits(rule, emptyfit=emptyfit)
+            self.find_fits(rule, fit=emptyfit)
         elif pd.datetools.to_offset(rule) != self.fits.index.freq:
-            self.find_fits(rule, emptyfit=emptyfit)
+            self.find_fits(rule, fit=emptyfit)
         v = []
         for fit in self.fits[emptyfit.name].values:
             v.append(fit.func(d))
@@ -477,16 +479,21 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
         
-    def find_fit(self, fit=None, data=None, kde=False, cut_d=False, use_curve_fit=False, bin_num_min=5, **kwargs):
+    def find_fit(self, fit=None, data=None, kde=False, cut_d=False, use_curve_fit=True, bin_num_min=5, filter_outliers=True, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
         if data is None:
             data = self.good_data()
         if fit is None:
             fit = ExpFit()
-        if data.count()[0]<2:
-            print('Too few particles for kde.')
+        if data.count()[0]<3 and (use_curve_fit or kde):
+            print('Too few particles.')
             kde = False
+            use_curve_fit = False
+        elif filter_outliers:
+            data = self.filter_outlier(data)
+        else:
+            print('Could not apply filter.')
         if kde:
             d, v = self.kde_peak(data=data)
         else:
@@ -501,11 +508,12 @@ class PipV(InstrumentData):
             d = d[num>bin_num_min]
             v = v[num>bin_num_min]
             sig = [self.dbin(diam, self.binwidth, data=data).vel_v.sem() for diam in d]
+            sigargs = {'sigma': sig, 'absolute_sigma': True}
         else:
-            sig = np.zeros(d.size)
+            sig = np.ones(d.size)
+            sigargs = {}
         if use_curve_fit:
-            params, pcov = curve_fit(fit.func, d, v, sigma=sig, 
-                                     absolute_sigma=True)
+            params, pcov = curve_fit(fit.func, d, v, **sigargs)
         else:
             result = minimize(fit.cost, fit.quess, method='Nelder-Mead', args=(d, v, sig))
             params = result.x
@@ -514,19 +522,23 @@ class PipV(InstrumentData):
         fit.y = v
         return fit
         
-    def find_fits(self, rule, emptyfit=None, draw_plots=False, **kwargs):
+    def find_fits(self, rule, draw_plots=False, empty_on_fail=True, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         names = []
         fits = []
         for name, group in self.grouped(rule):
             try:
-                fit = copy.deepcopy(self.find_fit(fit=emptyfit, data=group, **kwargs))
+                newfit = copy.deepcopy(self.find_fit(data=group, **kwargs))
             except RuntimeError as err:
                 print('%s: %s' % (name, err))
                 print('Particle count: %s' % group.vel_v.count())
-                print('Using fit from previous time step.')
-                fit = fits[-1]
-            fits.append(fit)
+                if len(fits) == 0 or empty_on_fail:
+                    print('Using an empty fit')
+                    newfit = ExpFit()
+                else:
+                    print('Using fit from previous time step.')
+                    newfit = fits[-1]
+            fits.append(newfit)
             names.append(name)
             if draw_plots:
                 f, ax = plt.subplots()
@@ -535,11 +547,11 @@ class PipV(InstrumentData):
                 plt.show()
         timestamps = pd.DatetimeIndex(names, freq=rule)
         if self.fits.empty:
-            self.fits = pd.DataFrame(fits, index=timestamps, columns=[fit.name])
+            self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
         elif (self.fits.index==timestamps).all():
-            self.fits[fit.name] = fits
+            self.fits[newfit.name] = fits
         else:
-            self.fits = pd.DataFrame(fits, index=timestamps, columns=[fit.name])
+            self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
         return self.fits
         
     def kde(self, data=None):
@@ -607,7 +619,7 @@ class PipV(InstrumentData):
         ax.legend(loc='upper right')
         return ax
         
-    def plots(self, separate=False, peak=False, save=False, ncols=1, **kwargs):
+    def plots(self, separate=True, peak=False, save=False, ncols=1, prefix='', **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
         #nrows = int(np.ceil(ngroups/ncols))
@@ -616,7 +628,7 @@ class PipV(InstrumentData):
             if 'HOME' in os.environ:
                 home = os.environ['HOME']
             savedir = path.join(home, 'Pictures', 'vel_plots')
-            suffix = '_' + self.rule
+            #suffix = '_' + self.rule
         if not separate:
             f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
                                     figsize=(ngroups*8, 7), tight_layout=True)
@@ -628,11 +640,11 @@ class PipV(InstrumentData):
                 f, ax = plt.subplots(1)
                 farr.append(f)
                 axarr.append(ax)
-            self.plot_fit(tstep=name, zorder=6, ax=axarr[i])
+            self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',')
             self.plot(data=group, ax=axarr[i], **kwargs)
             if save and separate:
                 t = group.index[-1]
-                fname = t.strftime('%Y%m%d%H%M.png')
+                fname = t.strftime(prefix + '%Y%m%d%H%M.png')
                 f.savefig(path.join(savedir, fname))
             if peak:
                 axarr[i].scatter(*self.kde_peak(data=group), label='kde peak')
