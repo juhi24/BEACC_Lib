@@ -350,9 +350,12 @@ class PipDSD(InstrumentData):
         """a rolling window filter for isolated data points"""
         is_dog = pd.rolling_count(self.data.mask(self.data==0).T, window).T == 1
         is_dog.ix[:,:window] = False # ignore first columns
+        is_dog[is_dog==False] = np.nan
+        is_dog = is_dog.ffill(axis=1).fillna(False)
+        is_dog = is_dog.astype(np.bool)
         filtered = copy.deepcopy(self.data)
         filtered[is_dog] = 0
-        return is_dog
+        return filtered
         
     def good_data(self, **kwargs):
         gain_correction = 2
@@ -594,7 +597,7 @@ class PipV(InstrumentData):
         for fit in fits:
             fit.plot(**kwargs)
         
-    def plot(self, data=None, hexbin=True, ax=None, **kwargs):
+    def plot(self, data=None, hexbin=True, ax=None, ymax=None, **kwargs):
         if ax is None:
             ax=plt.gca()
         if data is None:
@@ -612,16 +615,19 @@ class PipV(InstrumentData):
             data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax, 
                       alpha=0.2, color='black', label='pip raw', **kwargs)
         #gunn_kinzer.plot(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
-        ymax = data.vel_v.max() + margin
+        if ymax is None:
+            ymax = data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
-        ax.set_title('%s - %s' % (data.index[0]-datetime.timedelta(minutes=1), data.index[-1]))
+        ax.set_title('%s - %s' % (data.index[0]-datetime.timedelta(minutes=1), 
+                                  data.index[-1]))
         ax.text(right, margin, 'particle count: %s' % str(partcount))
         ax.set_ylabel('Vertical velocity (m/s)')
         ax.set_xlabel('D (mm)')
         ax.legend(loc='upper right')
         return ax
         
-    def plots(self, separate=True, peak=False, save=False, ncols=1, prefix='', **kwargs):
+    def plots(self, separate=True, peak=False, save=False, ncols=1, 
+              prefix='', **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
         #nrows = int(np.ceil(ngroups/ncols))
@@ -645,7 +651,8 @@ class PipV(InstrumentData):
             if group.Part_ID.count() < 1:
                 continue
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',')
-            self.plot(data=group, ax=axarr[i], **kwargs)
+            self.plot(data=group, ax=axarr[i], 
+                      ymax=self.good_data().vel_v.max(), **kwargs)
             if save and separate:
                 t = group.index[-1]
                 fname = t.strftime(prefix + '%Y%m%d%H%M.png')
