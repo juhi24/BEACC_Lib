@@ -352,7 +352,7 @@ class PipDSD(InstrumentData):
         is_dog.ix[:,:window] = False # ignore first columns
         filtered = copy.deepcopy(self.data)
         filtered[is_dog] = 0
-        return filtered
+        return is_dog
         
     def good_data(self, **kwargs):
         gain_correction = 2
@@ -602,6 +602,9 @@ class PipV(InstrumentData):
         margin = 0.1
         xmax = np.ceil(self.d_cut(frac=0.05))
         right = xmax-2+margin
+        partcount = data.Part_ID.count()
+        if partcount<1:
+            return ax
         if hexbin:
             data.plot(x='Wad_Dia', y='vel_v', kind='hexbin', label='hexbinned',
                       ax=ax, gridsize=int(12*data.Wad_Dia.max()**0.5), **kwargs)
@@ -609,7 +612,6 @@ class PipV(InstrumentData):
             data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax, 
                       alpha=0.2, color='black', label='pip raw', **kwargs)
         #gunn_kinzer.plot(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
-        partcount = data.Part_ID.count()
         ymax = data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
         ax.set_title('%s - %s' % (data.index[0]-datetime.timedelta(minutes=1), data.index[-1]))
@@ -640,6 +642,8 @@ class PipV(InstrumentData):
                 f, ax = plt.subplots(1)
                 farr.append(f)
                 axarr.append(ax)
+            if group.Part_ID.count() < 1:
+                continue
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',')
             self.plot(data=group, ax=axarr[i], **kwargs)
             if save and separate:
