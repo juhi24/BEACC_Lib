@@ -371,6 +371,7 @@ class PipV(InstrumentData):
         self.dmin = 0.375 # smallest diameter where data is good
         self.fits = pd.DataFrame()
         self.dbins = np.linspace(0.375, 25.875, num=206)
+        self._default_fit = PolFit()
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
@@ -398,6 +399,14 @@ class PipV(InstrumentData):
         d = self.dbins
         return (d[-1]-d[0])/(len(d)-1)
         
+    @property
+    def default_fit(self):
+        return copy.deepcopy(self._default_fit)
+        
+    @default_fit.setter
+    def default_fit(self, emptyfit):
+        self._default_fit = emptyfit
+        
     def grids(self, data=None):
         if data is None:
             data = self.good_data()
@@ -415,7 +424,7 @@ class PipV(InstrumentData):
         
     def v(self, d, emptyfit=None, rule=None):
         if emptyfit is None:
-            emptyfit = ExpFit()
+            emptyfit = self.default_fit
         if rule is None:
             rule = self.rule
         if self.fits.empty:
@@ -488,7 +497,7 @@ class PipV(InstrumentData):
         if data is None:
             data = self.good_data()
         if fit is None:
-            fit = ExpFit()
+            fit = self.default_fit
         if data.count()[0]<3 and (use_curve_fit or kde):
             print('Too few particles.')
             kde = False
@@ -537,7 +546,7 @@ class PipV(InstrumentData):
                 print('Particle count: %s' % group.vel_v.count())
                 if len(fits) == 0 or empty_on_fail:
                     print('Using an empty fit')
-                    newfit = ExpFit()
+                    newfit = self.default_fit
                 else:
                     print('Using fit from previous time step.')
                     newfit = fits[-1]
