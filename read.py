@@ -169,6 +169,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.bias = 0
         self.shift_periods = 0
         self.shift_freq = None
+        self.bucket_col = 'bucket_nrt'
         if self.data.empty:
             self.name = path.basename(path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
@@ -224,9 +225,10 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
         if self.data.index[-1] > swap_date:
             if self.name == 'pluvio200':
-                data.bucket_nrt = self.data.bucket_nrt*2
+                correction = 2
             elif self.name == 'pluvio400':
-                data.bucket_nrt = self.data.bucket_nrt*0.5
+                correction = 0.5
+            data[self.bucket_col] = self.data[self.bucket_col]*correction
         return data
     
     def set_span(self, dt_start, dt_end):
@@ -289,7 +291,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                 
     def acc_raw(self):
         """accumulation from raw data"""
-        return self.good_data().bucket_nrt-self.data.bucket_nrt[0]
+        return self.good_data()[self.bucket_col]-self.good_data()[self.bucket_col][0]
         
     def noprecip_bias(self, lwc, inplace=False):
         """Calculate accumulated bias using LWC."""

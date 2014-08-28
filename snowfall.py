@@ -190,7 +190,7 @@ class Method1(read.PrecipMeasurer):
         """Calculates mean density estimate for each timeframe."""
         rho_r_pip = self.amount(consts=[1], simple=True)
         if fltr:
-            rho_r_pip[self.pluvio.intensity(rule=self.rule) < 0.2] = np.nan # filter
+            rho_r_pip[self.intensity() < 0.1] = np.nan # filter
         return self.pluvio.amount(rule=self.rule)/rho_r_pip
 
     def minimize(self, method='SLSQP', **kwargs):
@@ -228,7 +228,7 @@ class Method1(read.PrecipMeasurer):
         else:
             title = r'precipitation intensity, $\alpha=%s, \beta=%s$' % (self.ab[0], self.ab[1])
         axarr[0].set_title(title)
-        rho = self.density(fltr=False)
+        rho = self.density(fltr=True)
         rho.plot(label='mean density', ax=axarr[1])      
         axarr[1].set_ylabel(r'$\rho_{part}$')
         self.n_t().plot(ax=axarr[2])
