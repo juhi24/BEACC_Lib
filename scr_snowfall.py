@@ -14,7 +14,6 @@ def batch_import(dtstr, datadir='../DATA'):
     dsd_files = glob(path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
     pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
     pluvio400_files = glob(path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
-    
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
@@ -24,11 +23,9 @@ def batch_import(dtstr, datadir='../DATA'):
 
 def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
     instrdict = batch_import(dtstr, datadir)
-
     hdf_file = glob(path.join(datadir, outname))
-
-    for instr in [instrdict.values()]:
-        instr.to_hdf(hdf_file)
+    for key in instrdict:
+        instr[key].to_hdf(hdf_file)
 
 dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 dt_end = pd.datetime(2014, 3, 1, 23, 45, 0)
