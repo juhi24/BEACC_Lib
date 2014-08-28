@@ -18,6 +18,7 @@ def datenum2datetime(matlab_datenum):
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days = 366)
     
 class Fit:
+    """parent for different fit types"""
     def __init__(self, params=None, name='fit'):
         self.params = params
         self.name = name
@@ -562,7 +563,7 @@ class PipV(InstrumentData):
         timestamps = pd.DatetimeIndex(names, freq=rule)
         if self.fits.empty:
             self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
-        elif (self.fits.index==timestamps).all():
+        elif self.fits.index.equals(timestamps):
             self.fits[newfit.name] = fits
         else:
             self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])

@@ -77,10 +77,10 @@ class Method1(read.PrecipMeasurer):
         m.pluvio.bias = 0
         return m
         
-    def intensity(self, consts=None, simple=False):
+    def intensity(self, params=None, simple=False):
         """Calculate precipitation intensity using given or saved parameters."""
-        if consts is None and not self.liquid:
-            consts = self.ab
+        if params is None and not self.liquid:
+            params = self.ab
         if self.liquid:
             fits = self.series_nans()
             fits.loc[:] = read.gunn_kinzer
@@ -88,9 +88,9 @@ class Method1(read.PrecipMeasurer):
             self.pipv.fits = pd.DataFrame(fits)
             r = self.sum_over_d(self.r_rho, rho=RHO_W)
         elif simple:
-            r = self.sum_over_d(self.r_rho, rho=consts[0])
+            r = self.sum_over_d(self.r_rho, rho=params[0])
         else:
-            r = self.sum_over_d(self.r_ab, alpha=consts[0], beta=consts[1])
+            r = self.sum_over_d(self.r_ab, alpha=params[0], beta=params[1])
         return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)/self.scale
         
     def amount(self, **kwargs):
@@ -160,10 +160,10 @@ class Method1(read.PrecipMeasurer):
     def cost(self, c, use_accum=True):
         """Cost function for minimization"""
         if use_accum:
-            pip_precip = self.acc(consts=c)
+            pip_precip = self.acc(params=c)
             cost_method = self.pluvio.acc
         else:
-            pip_precip = self.intesity(consts=c)
+            pip_precip = self.intesity(params=c)
             cost_method = self.pluvio.intensity()
         return abs(pip_precip.add(-1*cost_method(self.rule)).sum())
         
@@ -173,7 +173,7 @@ class Method1(read.PrecipMeasurer):
         return self.cost([alpha, beta])
     
     def const_lsq(self, c, simple):
-        acc_arr = self.acc(consts=c, simple=simple).values
+        acc_arr = self.acc(params=c, simple=simple).values
         A = np.vstack([acc_arr, np.ones(len(acc_arr))]).T
         y = self.pluvio.acc(self.rule).values
         return np.linalg.lstsq(A, y)[0][0]
@@ -188,7 +188,7 @@ class Method1(read.PrecipMeasurer):
         
     def density(self, fltr=True):
         """Calculates mean density estimate for each timeframe."""
-        rho_r_pip = self.amount(consts=[1], simple=True)
+        rho_r_pip = self.amount(params=[1], simple=True)
         if fltr:
             rho_r_pip[self.intensity() < 0.1] = np.nan # filter
         return self.pluvio.amount(rule=self.rule)/rho_r_pip
