@@ -23,19 +23,19 @@ def batch_import(dtstr, datadir='../DATA'):
 
 def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
     instrdict = batch_import(dtstr, datadir)
-    hdf_file = glob(path.join(datadir, outname))
+    hdf_file = path.join(datadir, outname)
     for key in instrdict:
-        instr[key].to_hdf(hdf_file)
+        instr[key].to_hdf(filename=hdf_file)
 
 dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
-dt_end = pd.datetime(2014, 3, 1, 23, 45, 0)
+dt_end = pd.datetime(2014, 7, 31, 23, 40, 0)
 
-#m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
-instr = batch_import(dtstr='2014022[1-2]', datadir='../DATA')
-m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='5min',
-               liquid=False)
+m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
+#instr = batch_import(dtstr='2014022[1-2]', datadir='../DATA')
+#m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='5min',
+#               liquid=False)
 
-m200.dsd.data.drop([26.0], 1, inplace=True)
+#m200.dsd.data.drop([26.0], 1, inplace=True)
 
 case_start = pd.datetime(2014, 2, 2, 16, 0, 1)
 case_end = pd.datetime(2014, 2, 2, 18, 0, 0)
