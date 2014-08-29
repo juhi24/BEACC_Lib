@@ -88,15 +88,20 @@ case_start = pd.datetime(2014, 6, 12, 0, 0, 1)
 case_end = pd.datetime(2014, 6, 13, 00, 0, 0)
 june12 = [case_start, case_end]
 
-case = [] # initialize
+c200 = [] # initialize
+c400 = [] # initialize
 for case_span in [case21]:
-    m = m200.between_datetime(*case_span)
-    m.autoshift(inplace=True)
-    m.noprecip_bias(inplace=True)
-    #m.plot()
-    #plt.figure()
-    #m.plot_v_stuff()
-    case.append(m)
+    for m in [m200, m400]:
+        c = m.between_datetime(*case_span)
+        c.autoshift(inplace=True)
+        c.noprecip_bias(inplace=True)
+        #c.plot()
+        #plt.figure()
+        #c.plot_v_stuff()
+        if m == m200:
+            c200.append(c)
+        else:
+            c400.append(c)
 
 #plt.figure()
 #case[0].plot_v_stuff()
