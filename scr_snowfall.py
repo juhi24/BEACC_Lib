@@ -25,12 +25,21 @@ def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
     instrdict = batch_import(dtstr, datadir)
     hdf_file = path.join(datadir, outname)
     for key in instrdict:
-        instr[key].to_hdf(filename=hdf_file)
+        instrdict[key].to_hdf(filename=hdf_file)
+        
+def prepare_case(*casedates, longcase=None):
+    cases = [] # initialize
+    for case_span in casedates:
+        case = m.between_datetime(*case_span)
+        case.autoshift(inplace=True)
+        case.noprecip_bias(inplace=True)
+        cases.append(case)
+    return cases
 
 dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 dt_end = pd.datetime(2014, 7, 31, 23, 40, 0)
 
-m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
+#m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
 #instr = batch_import(dtstr='2014022[1-2]', datadir='../DATA')
 #m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='5min',
 #               liquid=False)
@@ -88,23 +97,6 @@ case_start = pd.datetime(2014, 6, 12, 0, 0, 1)
 case_end = pd.datetime(2014, 6, 13, 00, 0, 0)
 june12 = [case_start, case_end]
 
-c200 = [] # initialize
-c400 = [] # initialize
-for case_span in [case21]:
-    for m in [m200, m400]:
-        c = m.between_datetime(*case_span)
-        c.autoshift(inplace=True)
-        c.noprecip_bias(inplace=True)
-        #c.plot()
-        #plt.figure()
-        #c.plot_v_stuff()
-        if m == m200:
-            c200.append(c)
-        else:
-            c400.append(c)
-
-#plt.figure()
-#case[0].plot_v_stuff()
-
-#m400.plot()
-#plt.show()
+casetimes = (case21)
+#c200 = prepare_case(*casetimes, longcase=m200)
+#c400 = prepare_case(*casetimes, longcase=m400)
