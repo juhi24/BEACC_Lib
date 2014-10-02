@@ -5,6 +5,7 @@
 from snowfall import *
 import read
 from glob import glob
+from datetime import datetime
 from os import path
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -26,20 +27,11 @@ def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
     hdf_file = path.join(datadir, outname)
     for key in instrdict:
         instrdict[key].to_hdf(filename=hdf_file)
-        
-def prepare_case(*casedates, longcase=None):
-    cases = [] # initialize
-    for case_span in casedates:
-        case = m.between_datetime(*case_span)
-        case.autoshift(inplace=True)
-        case.noprecip_bias(inplace=True)
-        cases.append(case)
-    return cases
-
+    
 dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 dt_end = pd.datetime(2014, 7, 31, 23, 40, 0)
 
-#m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='5min')
+m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='10min')
 #instr = batch_import(dtstr='2014022[1-2]', datadir='../DATA')
 #m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='5min',
 #               liquid=False)
@@ -58,24 +50,24 @@ case_start = pd.datetime(2014, 5, 26, 17, 30, 1)
 case_end = pd.datetime(2014, 5, 26, 19, 30, 0)
 raincase26 = [case_start, case_end]
 
-case7_start = pd.datetime(2014, 2, 7, 22, 45, 1)
-case7_end = pd.datetime(2014, 2, 8, 0, 0, 0)
-case7 = [case7_start, case7_end]
+case_start = pd.datetime(2014, 2, 7, 22, 51, 1)
+case_end = pd.datetime(2014, 2, 7, 23, 30, 0)
+case7 = [case_start, case_end]
 
 case_start = pd.datetime(2014, 2, 8, 0, 30, 1)
 case_end = pd.datetime(2014, 2, 8, 10, 30, 0)
 
-case_start = pd.datetime(2014, 2, 12, 4, 0, 1)
-case_end = pd.datetime(2014, 2, 12, 9, 0, 0)
+case_start = pd.datetime(2014, 2, 12, 5, 10, 1)
+case_end = pd.datetime(2014, 2, 12, 6, 40, 0)
 case12 = [case_start, case_end]
 
-case16_start = pd.datetime(2014, 2, 16, 0, 0, 1)
-case16_end = pd.datetime(2014, 2, 16, 1, 0, 0)
-case16 = [case16_start, case16_end]
+case_start = pd.datetime(2014, 2, 16, 0, 0, 1)
+case_end = pd.datetime(2014, 2, 16, 1, 0, 0)
+case16 = [case_start, case_end]
 
-case21_start = pd.datetime(2014, 2, 21, 16, 0, 1)
-case21_end = pd.datetime(2014, 2, 22, 0, 0, 0)
-case21 = [case21_start, case21_end]
+case_start = pd.datetime(2014, 2, 21, 22, 30, 1)
+case_end = pd.datetime(2014, 2, 21, 23, 30, 0)
+case21 = [case_start, case_end]
 
 case_start = pd.datetime(2014, 2, 23, 0, 0, 1)
 case_end = pd.datetime(2014, 2, 23, 23, 0, 0)
@@ -97,6 +89,19 @@ case_start = pd.datetime(2014, 6, 12, 0, 0, 1)
 case_end = pd.datetime(2014, 6, 13, 00, 0, 0)
 june12 = [case_start, case_end]
 
-casetimes = (case21)
-#c200 = prepare_case(*casetimes, longcase=m200)
-#c400 = prepare_case(*casetimes, longcase=m400)
+case_start = pd.datetime(2014, 2, 21, 18, 0, 1)
+case_end = pd.datetime(2014, 2, 21, 20, 0, 0)
+f21_1 = [case_start, case_end]
+case_start = pd.datetime(2014, 2, 21, 20, 0, 1)
+case_end = pd.datetime(2014, 2, 21, 21, 30, 0)
+f21_2 = [case_start, case_end]
+case_start = pd.datetime(2014, 2, 21, 23, 10, 1)
+case_end = pd.datetime(2014, 2, 21, 23, 50, 0)
+f21_3 = [case_start, case_end]
+
+c200 = []
+c400 = []
+casetimes = [f21_1, f21_2, f21_3]
+for case in casetimes:
+    c200.append(prepare_case(*case, longcase=m200))
+    c400.append(prepare_case(*case, longcase=m400))

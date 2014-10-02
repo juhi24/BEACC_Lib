@@ -1,0 +1,64 @@
+start,end,snow,riming,melting,aggregation,rain,light,description
+31 January 22 UTC,1 February 04 UTC,TRUE,,,,,,snow
+1 February 10 UTC,1 February 16 UTC,TRUE,,,,,,snow (riming )
+2 February 14 UTC,2 February 15 UTC,TRUE,,,,TRUE,,snow/freezing rain
+2 February 16 UTC,2 February 22 UTC,TRUE,,,,,,snow
+7 February 22 UTC,8 February 05 UTC,TRUE,,TRUE,,,,snow/melting snow
+8 February 16 UTC,9 February 22 UTC,,,TRUE,,TRUE,,melting snow/rain
+10 February 21 UTC,11 February 05 UTC,TRUE,,TRUE,,,,snow/early state of melting
+12 February 04 UTC,12 February 10 UTC,TRUE,,,TRUE,,,snow (aggregates)
+13 February 00 UTC,13 February 06 UTC,TRUE,,TRUE,,,,snow/melting snow
+15 February 21 UTC,16 February 02 UTC,TRUE,TRUE,,,,,snow (riming)
+18 February 17 UTC,18 February 22 UTC,TRUE,,,,,,snow
+21 February 00 UTC,21 February 06 UTC,TRUE,,,,,,snow
+21 February 16 UTC,22 February 08 UTC,TRUE,TRUE,TRUE,,,,snow(riming)/melting snow
+22 February 10 UTC,22 February 11 UTC,,,TRUE,,TRUE,,melting snow/rain
+22 February 22 UTC,23 February 10 UTC,,,TRUE,,TRUE,,melting snow/rain
+26 February 12 UTC,27 February 11 UTC,TRUE,,,,,TRUE,"PIP very light snow, larger particles 07 but very few particles"
+28 February 22 UTC,1 March 06 UTC,TRUE,,,,,TRUE,"PIP very light snow, higher velocities 02 but very few particles"
+2 March 06 UTC,2 March 15 UTC,,TRUE,TRUE,,,,melting snow/rimed small particles
+3 March 02 UTC,3 March 16 UTC,,,TRUE,TRUE,,,"melting snow / aggregation (07, 11 UTC )"
+7 March 12 UTC,7 March 18 UTC,,,,,TRUE,TRUE,light rain
+7 March 22 UTC,8 March 08 UTC,,,TRUE,,TRUE,,rain/melting snow
+13 March 21 UTC,13 March 22 UTC,,,,,TRUE,,rain
+15 March 02 UTC,15 March 08 UTC,TRUE,,,TRUE,,,snow/ aggregation large particles
+15 March 14 UTC,16 March 11 UTC,TRUE,TRUE,TRUE,TRUE,,,"first melting, in the night snow aggregates, in the morning maybe riming"
+18 March 05 UTC,19 March 19 UTC,TRUE,TRUE,,TRUE,,,large aggregates/ riming (maybe 8 UTC and 21 UTC)
+20 March 13 UTC,21 March 00 UTC,TRUE,TRUE,,,,,snow/riming
+21 March 06 UTC,21 March 15 UTC,,,,,TRUE,,rain
+23 March 11 UTC,23 March 16 UTC,,,TRUE,,TRUE,,rain/melting snow
+1 April 02 UTC,1 April 12 UTC,,,,,TRUE,,rain?
+3 April 02 UTC,3 April 07 UTC,TRUE,,,TRUE,,,snow/aggregates
+3 April 15 UTC,3 April 17 UTC,TRUE,TRUE,TRUE,,,,snow/melting snow/riming
+6 April 08 UTC,6 April 13 UTC,,,,,TRUE,TRUE,"light rain, not much in PIP"
+11 April 05 UTC,11 April 20 UTC,,,,,TRUE,,rain
+12 April 20 UTC,13 April 20 UTC,,,,,TRUE,,rain
+14 April 00 UTC,14 April 14 UTC,,,,,TRUE,,rain
+14 April 16 UTC,14 April 22 UTC,,,,,TRUE,,rain
+18 April 02 UTC,18 April 16 UTC,,,,,TRUE,,rain
+20 April 04 UTC,20 April 07 UTC,,,,,TRUE,,rain
+28 April 07 UTC,28 April 15 UTC,,,,,TRUE,,rain
+29 April 03 UTC,29 April 07 UTC,,,,,TRUE,,rain
+30 April 18 UTC,30 April 21 UTC,,,,,,,overhanging rain?
+2 May 07 UTC,2 May 18 UTC,,,TRUE,,,,melting snow
+3 May 08 UTC,3 May 21 UTC,,,TRUE,,,,melting snow/rain
+3 May 23 UTC,4 May 13 UTC,,,TRUE,,,,melting snow/rain (data gap with KAZRGE)
+4 May 15 UTC,5 May 02 UTC,TRUE,,TRUE,,,,"Snow at 19 UTC onward, melting snow 01 UTC"
+6 May 08 UTC,6 May 13 UTC,TRUE,,,,,,snow according to PIP velocities. (data gap with KAZRGE)
+8 May 11 UTC,9 May 14 UTC,,,,,TRUE,,rain (data gap with KAZRGE)
+9 May 16 UTC,10 May 01 UTC,,,,,TRUE,,rain
+10 May 05 UTC,10 May 07 UTC,,,,,TRUE,,rain
+10 May 20 UTC,11 May 11 UTC,,,,,TRUE,,rain
+11 May 14 UTC,11 May 19 UTC,,,,,TRUE,,rain
+11 May 21 UTC,11 May 22 Utc,,,,,TRUE,,rain
+11 May 23 UTC,12 May 11 UTC,,,,,TRUE,,rain
+12 May 12 UTC,12 May 13 UTC,,,,,TRUE,,rain
+12 May 15 UTC,12 May 17 UTC,,,,,TRUE,,rain
+12 May 18 UTC,12 May 19 UTC,,,,,TRUE,,rain
+13 May 17 UTC,14 May 02 UTC,,,,,TRUE,,rain
+16 May 02 UTC,16 May 11 UTC,,,,,TRUE,,rain
+19 May 15 UTC,19 May 17 UTC,,,,,TRUE,,convective rain ( cloud top at 12 km)
+20 May 14 UTC,20 May 17 UTC,,,,,TRUE,,rain
+21 May 16 UTC,21 May 23 UTC,,,,,TRUE,,rain.Updrafts? Melting layer at 2.5 km
+25 May 08 UTC,25 May 09 UTC,,,,,TRUE,,rain
+25 May 19 UTC,25 May 20 UTC,,,,,TRUE,,rain

@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 import read
+from datetime import datetime
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import copy
@@ -9,6 +10,29 @@ import copy
 TAU = 2*np.pi
 RHO_W = 1000
 
+def prepare_case(dt_start, dt_end, longcase=None):
+    case = longcase.between_datetime(dt_start, dt_end)
+    case.autoshift(inplace=True)
+    case.noprecip_bias(inplace=True)
+    return case
+
+class EventsCollection:
+    def __init__(self, csv):
+        self.events = pd.read_csv(csv,parse_dates=['start','end'], 
+                                  date_parser=self.parse_datetime)
+    
+    def parse_datetime(self, dstr):
+        date = datetime.strptime(dstr, '%d %B %H UTC')
+        date = date.replace(year=2014)
+        return date
+        
+    def add_data(self, data):
+        cases = []
+        for (i,e) in self.events.iterrows():
+            cases.append(prepare_case(e.start, e.end, longcase=data))
+        self.events[data.pluvio.name] = cases
+        return
+        
 class Method1(read.PrecipMeasurer):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, unbias=False, autoshift=False,
