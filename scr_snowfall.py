@@ -31,7 +31,7 @@ def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
 dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 dt_end = pd.datetime(2014, 7, 31, 23, 40, 0)
 
-m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='10min')
+m200, m400 = Method1.from_hdf(dt_start, dt_end, autoshift=False, rule='6min')
 #instr = batch_import(dtstr='2014022[1-2]', datadir='../DATA')
 #m200 = Method1(instr['dsd'], instr['vel'], instr['pluvio200'], rule='5min',
 #               liquid=False)
@@ -51,7 +51,7 @@ case_end = pd.datetime(2014, 5, 26, 19, 30, 0)
 raincase26 = [case_start, case_end]
 
 case_start = pd.datetime(2014, 2, 7, 22, 51, 1)
-case_end = pd.datetime(2014, 2, 7, 23, 30, 0)
+case_end = pd.datetime(2014, 2, 8, 0, 0, 0)
 case7 = [case_start, case_end]
 
 case_start = pd.datetime(2014, 2, 8, 0, 30, 1)
@@ -101,7 +101,7 @@ f21_3 = [case_start, case_end]
 
 c200 = []
 c400 = []
-casetimes = [f21_1, f21_2, f21_3]
+casetimes = [case7, case16, case21]
 for case in casetimes:
     c200.append(prepare_case(*case, longcase=m200))
     c400.append(prepare_case(*case, longcase=m400))

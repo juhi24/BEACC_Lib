@@ -42,8 +42,8 @@ class Fit:
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
             label = str(self)
-        ax.plot(x, y, label=label, **kwargs)
-        ax.plot(self.x, self.y, marker)
+        ax.plot(x, y, label=label)
+        ax.plot(self.x, self.y, marker, **kwargs)
         return ax
         
     def cost(self, params, xarr, yarr, sigarr):
@@ -433,6 +433,7 @@ class PipV(InstrumentData):
         if self.fits.empty:
             self.find_fits(rule, fit=emptyfit)
         elif pd.datetools.to_offset(rule) != self.fits.index.freq:
+            # different sampling freq
             self.find_fits(rule, fit=emptyfit)
         v = []
         for fit in self.fits[emptyfit.name].values:
@@ -569,6 +570,12 @@ class PipV(InstrumentData):
             self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
         return self.fits
         
+    def fit_coefs(self):
+        paramslist = []
+        for fit in self.fits[self.default_fit.name].values:
+            paramslist.append(fit.params)
+        return pd.DataFrame(data=np.vstack(paramslist), index=self.fits.index)
+        
     def kde(self, data=None):
         """kernel-density estimate of d,v data using gaussian kernels"""
         if data is None:
@@ -662,7 +669,7 @@ class PipV(InstrumentData):
                 axarr.append(ax)
             if group.Part_ID.count() < 1:
                 continue
-            self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',')
+            self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',', alpha=0.3)
             self.plot(data=group, ax=axarr[i], 
                       ymax=self.good_data().vel_v.max(), **kwargs)
             if save and separate:
