@@ -10,30 +10,29 @@ import copy
 TAU = 2*np.pi
 RHO_W = 1000
 
-def prepare_case(dt_start, dt_end, longcase=None):
-    case = longcase.between_datetime(dt_start, dt_end)
-    case.autoshift(inplace=True)
-    case.noprecip_bias(inplace=True)
-    return case
-
 class EventsCollection:
-    def __init__(self, csv):
+    """Manage multiple events."""
+    def __init__(self, csv, dtformat='%d %B %H UTC'):
+        """Read event metadata from a csv file."""
+        self.dtformat = dtformat
         self.events = pd.read_csv(csv,parse_dates=['start','end'], 
                                   date_parser=self.parse_datetime)
     
-    def parse_datetime(self, dstr):
-        date = datetime.strptime(dstr, '%d %B %H UTC')
+    def parse_datetime(self, dtstr):
+        date = datetime.strptime(dtstr, self.dtformat)
         date = date.replace(year=2014)
         return date
         
     def add_data(self, data):
+        """Add data from a Case object."""
         cases = []
         for (i,e) in self.events.iterrows():
-            cases.append(prepare_case(e.start, e.end, longcase=data))
+            cases.append(data.between_datetime(e.start, e.end, 
+                                               autoshift=True, autobias=True))
         self.events[data.pluvio.name] = cases
         return
         
-class Method1(read.PrecipMeasurer):
+class Case(read.PrecipMeasurer):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, unbias=False, autoshift=False,
                  liquid=False, quess=(0.01, 2.1), bnd=((0, 0.1), (1, 3)),
@@ -60,7 +59,8 @@ class Method1(read.PrecipMeasurer):
         t = self.time_range()
         dt_start = t[0]
         dt_end = t[-1]
-        return '%s case from %s to %s, %s sampling' % (casetype, dt_start, dt_end, self.rule)
+        return '%s case from %s to %s, %s sampling' % (casetype, dt_start, 
+                                                       dt_end, self.rule)
                   
     @property
     def ab(self):
@@ -74,8 +74,9 @@ class Method1(read.PrecipMeasurer):
         self._ab = ab
         
     @classmethod
-    def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], **kwargs):
-        """Create Method1 object from a hdf file."""
+    def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], 
+                 **kwargs):
+        """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
         pluvio200 = read.Pluvio(filenames, hdf_table='pluvio200')
@@ -88,7 +89,8 @@ class Method1(read.PrecipMeasurer):
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
         
-    def between_datetime(self, dt_start, dt_end, inplace=False):
+    def between_datetime(self, dt_start, dt_end, inplace=False, 
+                         autoshift=False, autobias=False):
         """Select data only in chosen time frame."""
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
@@ -99,6 +101,10 @@ class Method1(read.PrecipMeasurer):
         for instr in [m.dsd, m.pipv, m.pluvio]:
             instr.between_datetime(dt_start, dt_end, inplace=True)
         m.pluvio.bias = 0
+        if autoshift:
+            m.autoshift(inplace=True)
+        if autobias:
+            m.noprecip_bias(inplace=True)
         return m
         
     def intensity(self, params=None, simple=False):
@@ -313,7 +319,8 @@ class Method1(read.PrecipMeasurer):
         """Plot a lot of velocity related stuff in a single figure."""
         if ax is None:
             ax=plt.gca()
-        self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3, **kwargs)
+        self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3, 
+                           **kwargs)
         self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4, **kwargs)
         self.pipv.plot(ax=ax, zorder=2, **kwargs)
         ax.legend(loc='lower right')
@@ -354,9 +361,11 @@ class Snow2:
     @staticmethod
     def best(re, mh=True):
         if mh: # MH05
-            cl = np.array([3.8233, -1.5211, 0.30065, -0.06104, 0.13074, -0.073429, 0.016006, -0.0012483])
+            cl = np.array([3.8233, -1.5211, 0.30065, -0.06104, 0.13074,
+                           -0.073429, 0.016006, -0.0012483])
         else: # KC05
-            cl = np.array([3.8816, -1.4579, 0.27749, -0.41521, 0.57683, -0.29220, 0.06467, -0.0053405])    
+            cl = np.array([3.8816, -1.4579, 0.27749, -0.41521, 0.57683,
+                           -0.29220, 0.06467, -0.0053405])    
         logx = 0    
         
         for l, c in enumerate(cl):

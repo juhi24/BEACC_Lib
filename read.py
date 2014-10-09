@@ -26,14 +26,17 @@ class Fit:
         self.y = None
         
     def func(self, x, a=None):
+        """Fit function. If no coefficients are given use stored ones."""
         if a is None:
             return self.func(x, *self.params)
         pass
     
     def penalty(self, params):
+        """penalty function used by the cost function"""
         return 0
     
     def plot(self, xmax=20, samples=300, ax=None, label=None, marker='ro', **kwargs):
+        """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
         if self.params is None:
@@ -47,6 +50,7 @@ class Fit:
         return ax
         
     def cost(self, params, xarr, yarr, sigarr):
+        """Cost function that can be used to find fit coefs by minimization."""
         cost = 0
         for i, x in enumerate(xarr):
             y = yarr[i]
@@ -55,6 +59,7 @@ class Fit:
         return cost
         
 class ExpFit(Fit):
+    """exponential fit of form a*(1-b*exp(-c*D))"""
     def __init__(self, params=None):
         super().__init__(params, name='expfit')
         self.quess = (1., 1., 1.)
@@ -77,6 +82,7 @@ class ExpFit(Fit):
         return 1000*(max(0, 0.1-params[1]) + max(0, 0.4-params[2]))
 
 class PolFit(Fit):
+    """polynomial fit of form a*D**b"""
     def __init__(self, params=None):
         super().__init__(params, name='polfit')
         self.quess = (1., 1.)
@@ -502,7 +508,8 @@ class PipV(InstrumentData):
             data = self.good_data()
         if fit is None:
             fit = self.default_fit
-        if data.count()[0]<3 and (use_curve_fit or kde):
+        print(data.count()[0])
+        if data.count()[0]<5 and (use_curve_fit or kde):
             print('Too few particles.')
             kde = False
             use_curve_fit = False
