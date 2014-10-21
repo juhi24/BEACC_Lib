@@ -38,9 +38,9 @@ m200, m400 = Case.from_hdf(dt_start, dt_end, autoshift=False, rule='6min')
 
 #m200.dsd.data.drop([26.0], 1, inplace=True)
 
-c200 = []
-c400 = []
-casetimes = [case7, case16, case21]
-for case in casetimes:
-    c200.append(m200.between_datetime(*case, autoshift=True, autobias=True))
-    c400.append(m400.between_datetime(*case, autoshift=True, autobias=True))
+#c200 = []
+#c400 = []
+#casetimes = [case7, case16, case21]
+#for case in casetimes:
+#    c200.append(m200.between_datetime(*case, autoshift=True, autobias=True))
+#    c400.append(m400.between_datetime(*case, autoshift=True, autobias=True))
