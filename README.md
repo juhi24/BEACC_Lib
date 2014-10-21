@@ -21,7 +21,7 @@ Activate your virtual environment.
 
     source py3env/bin/activate
     
-Then install the requirements inside the virtual environment using pip. Baecc requires `numpy`, `matplotlib` and `pandas`.
+Then install the requirements inside the virtual environment using pip. Baecc requires `scipy`, `numpy`, `matplotlib` and `pandas`.
 
     pip install PACKAGENAME
 
