@@ -23,13 +23,21 @@ class EventsCollection:
         date = date.replace(year=2014)
         return date
         
-    def add_data(self, data):
+    def add_data(self, data, autoshift=True, autobias=True):
         """Add data from a Case object."""
         cases = []
         for (i,e) in self.events.iterrows():
             cases.append(data.between_datetime(e.start, e.end, 
-                                               autoshift=True, autobias=True))
+                                               autoshift=autoshift, 
+                                               autobias=autobias))
         self.events[data.pluvio.name] = cases
+    
+    def autoimport_data(self, rule='10min', **kwargs):
+        dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
+        dt_end = pd.datetime(2014, 7, 31, 23, 40, 0)
+        data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule)
+        for d in data:
+            self.add_data(d, **kwargs)
         return
         
 class Case(read.PrecipMeasurer):
