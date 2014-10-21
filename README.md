@@ -9,20 +9,21 @@ Installation
 The baecc-library requires python3 and compatible versions of numpy, scipy, pandas and matplotlib. 
 The recommended way is to install these in a virtual enviroment.
 
-You can create a virtual environment called py3env with virtualenv.
+You can create a virtual environment called py3env with virtualenv (python<=3.2)
 
-    virtualenv --no-site-packages -p /usr/bin/python3 py3env
+    virtualenv -p /usr/bin/python3 py3env
+    
+OR pyvenv (python>=3.3)
+
+    pyvenv py3env
 
 Activate your virtual environment.
 
     source py3env/bin/activate
     
-Then install the requirements inside the virtual environment using pip.
+Then install the requirements inside the virtual environment using pip. Baecc requires `numpy`, `matplotlib` and `pandas`.
 
-    pip install numpy
-    pip install scipy
-    pip install pandas
-    pip install matplotlib
+    pip install PACKAGENAME
 
 Clone the baecc python library.
 
