@@ -4,11 +4,31 @@ import pandas as pd
 import read
 from datetime import datetime
 from scipy.optimize import minimize
+from glob import glob
+from os import path
 import matplotlib.pyplot as plt
 import copy
 
 TAU = 2*np.pi
 RHO_W = 1000
+
+def batch_import(dtstr, datadir='../DATA'):
+    pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
+    dsd_files = glob(path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
+    pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
+    pluvio400_files = glob(path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
+    pluvio200 = read.Pluvio(pluvio200_files)
+    pluvio400 = read.Pluvio(pluvio400_files)
+    pipv = read.PipV(pipv_files)
+    dsd = read.PipDSD(dsd_files)
+    return {'vel': pipv, 'dsd': dsd, 
+            'pluvio200': pluvio200, 'pluvio400': pluvio400}
+
+def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
+    instrdict = batch_import(dtstr, datadir)
+    hdf_file = path.join(datadir, outname)
+    for key in instrdict:
+        instrdict[key].to_hdf(filename=hdf_file)
 
 class EventsCollection:
     """Manage multiple events."""
@@ -33,11 +53,12 @@ class EventsCollection:
                                                autobias=autobias))
         self.events[data.pluvio.name] = cases
     
-    def autoimport_data(self, rule='10min', **kwargs):
+    def autoimport_data(self, datafile=None, rule='10min', **kwargs):
         timemargin = pd.datetools.timedelta(hours=1)
         dt_start = self.events.loc[0].start - timemargin
         dt_end = self.events.loc[-1].end + timemargin
-        data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule)
+        data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule, 
+                             filenames=[datafile])
         for d in data:
             self.add_data(d, **kwargs)
         return
