@@ -17,6 +17,7 @@ class EventsCollection:
         self.dtformat = dtformat
         self.events = pd.read_csv(csv,parse_dates=['start','end'], 
                                   date_parser=self.parse_datetime)
+        self.events.sort(columns=['start', 'end'], inplace=True)
     
     def parse_datetime(self, dtstr):
         date = datetime.strptime(dtstr, self.dtformat)
@@ -33,8 +34,9 @@ class EventsCollection:
         self.events[data.pluvio.name] = cases
     
     def autoimport_data(self, rule='10min', **kwargs):
-        dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
-        dt_end = pd.datetime(2014, 7, 31, 23, 40, 0)
+        timemargin = pd.datetools.timedelta(hours=1)
+        dt_start = self.events.loc[0].start - timemargin
+        dt_end = self.events.loc[-1].end + timemargin
         data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule)
         for d in data:
             self.add_data(d, **kwargs)
