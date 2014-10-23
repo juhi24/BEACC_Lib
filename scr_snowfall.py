@@ -3,9 +3,16 @@
 @author: Jussi Tiira
 """
 from snowfall import *
+import numpy as np
 
 e = EventsCollection('cases_of_interest.csv', '%d.%m. %H:%M')
-e.autoimport_data(autoshift=False)
+e.autoimport_data(autoshift=False, rule='3min')
+
+for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
+    c.pluvio.shift_periods = -6
+
+#for c in e.events.pluvio200:
+#    c.minimize_lsq()
     
 #dt_start = pd.datetime(2014, 2, 1, 0, 0, 1)
 #dt_end = pd.datetime(2014, 7, 31, 23, 40, 0)
