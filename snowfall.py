@@ -21,7 +21,7 @@ def batch_import(dtstr, datadir='../DATA'):
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
-    return {'vel': pipv, 'dsd': dsd, 
+    return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
 def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
@@ -38,12 +38,12 @@ class EventsCollection:
         self.events = pd.read_csv(csv,parse_dates=['start','end'], 
                                   date_parser=self.parse_datetime)
         self.events.sort(columns=['start', 'end'], inplace=True)
-    
+
     def parse_datetime(self, dtstr):
         date = datetime.strptime(dtstr, self.dtformat)
         date = date.replace(year=2014)
         return date
-        
+
     def add_data(self, data, autoshift=True, autobias=True):
         """Add data from a Case object."""
         cases = []
@@ -52,17 +52,17 @@ class EventsCollection:
                                                autoshift=autoshift, 
                                                autobias=autobias))
         self.events[data.pluvio.name] = cases
-    
-    def autoimport_data(self, datafile=None, rule='10min', **kwargs):
+
+    def autoimport_data(self, datafile=['../DATA/baecc.h5'], rule='10min', **kwargs):
         timemargin = pd.datetools.timedelta(hours=1)
-        dt_start = self.events.loc[0].start - timemargin
-        dt_end = self.events.loc[-1].end + timemargin
+        dt_start = self.events.iloc[0].start - timemargin
+        dt_end = self.events.iloc[-1].end + timemargin
         data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule, 
-                             filenames=[datafile])
+                             filenames=datafile)
         for d in data:
             self.add_data(d, **kwargs)
         return
-        
+
 class Case(read.PrecipMeasurer):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, unbias=False, autoshift=False,
@@ -81,7 +81,7 @@ class Case(read.PrecipMeasurer):
             self.autoshift()
         if unbias:
             self.noprecip_bias()
-            
+
     def __repr__(self):
         if self.liquid:
             casetype = 'rain'
@@ -92,18 +92,18 @@ class Case(read.PrecipMeasurer):
         dt_end = t[-1]
         return '%s case from %s to %s, %s sampling' % (casetype, dt_start, 
                                                        dt_end, self.rule)
-                  
+
     @property
     def ab(self):
         if self._ab is None:
             print('Parameters not defined. Will now find them via minimization.')
             self.minimize_lsq()
         return self._ab
-        
+
     @ab.setter
     def ab(self, ab):
         self._ab = ab
-        
+
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], 
                  **kwargs):
@@ -119,7 +119,7 @@ class Case(read.PrecipMeasurer):
         m200 = cls(dsd, pipv, pluvio200, **kwargs)
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
-        
+
     def between_datetime(self, dt_start, dt_end, inplace=False, 
                          autoshift=False, autobias=False):
         """Select data only in chosen time frame."""
@@ -137,7 +137,7 @@ class Case(read.PrecipMeasurer):
         if autobias:
             m.noprecip_bias(inplace=True)
         return m
-        
+
     def intensity(self, params=None, simple=False):
         """Calculate precipitation intensity using given or saved parameters."""
         if params is None and not self.liquid:
@@ -153,40 +153,40 @@ class Case(read.PrecipMeasurer):
         else:
             r = self.sum_over_d(self.r_ab, alpha=params[0], beta=params[1])
         return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)/self.scale
-        
+
     def amount(self, **kwargs):
         """Calculate precipitation in mm using given or saved parameters."""
         i = self.intensity(**kwargs)
         return i*i.index.freq.delta/pd.datetools.timedelta(hours=1)
-        
+
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
         return self.dsd.good_data()[d].resample(self.rule, how=np.mean,
                                                 closed='right', label='right')
-    
+
     def sum_over_d(self, func, **kwargs):
         dD = self.dsd.d_bin
         result = self.series_zeros()
         for d in self.dsd.data.columns:
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
-        
+
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * m**beta * m/s * 1/(mm*m**3)
         """
         return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
-        
+
     def r_rho(self, d, rho):
         """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
         return self.scale*3.6e-6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
-        
+
     def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
         vel = self.pipv.dbin(d, self.dsd.d_bin).vel_v
         if vel.empty:
             return self.series_nans()
         return vel.resample(self.rule, how=how, closed='right', label='right')
-        
+
     def v_fall_all(self):
         """v(D) in m/s for every timestep and diameter bin"""
         v_d = []
@@ -195,29 +195,29 @@ class Case(read.PrecipMeasurer):
             vel.name = d
             v_d.append(vel)
         return pd.concat(v_d, axis=1)
-        
+
     def n_t(self):
         """total concentration"""
         return self.sum_over_d(self.n)
-        
+
     def d_m(self):
         """mass weighted mean diameter"""
         d4n = lambda d: d**4*self.n(d)
         d3n = lambda d: d**3*self.n(d)
         return self.sum_over_d(d4n)/self.sum_over_d(d3n)
-            
+
     def series_zeros(self):
         """Return series of zeros of the shape of timestep averaged data."""
         return self.pluvio.acc(self.rule)*0
-        
+
     def series_nans(self):
         """Return series of nans of the shape of timestep averaged data."""
         return self.series_zeros()*np.nan
-    
+
     def noprecip_bias(self, inplace=True):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
         return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
-        
+
     def cost(self, c, use_accum=True):
         """Cost function for minimization"""
         if use_accum:
@@ -227,26 +227,26 @@ class Case(read.PrecipMeasurer):
             pip_precip = self.intesity(params=c)
             cost_method = self.pluvio.intensity()
         return abs(pip_precip.add(-1*cost_method(self.rule)).sum())
-        
+
     def cost_lsq(self, beta):
         """Single variable cost function using lstsq to find linear coef."""
         alpha = self.alpha_lsq(beta)
         return self.cost([alpha, beta])
-    
+
     def const_lsq(self, c, simple):
         acc_arr = self.acc(params=c, simple=simple).values
         A = np.vstack([acc_arr, np.ones(len(acc_arr))]).T
         y = self.pluvio.acc(self.rule).values
         return np.linalg.lstsq(A, y)[0][0]
-        
+
     def alpha_lsq(self, beta):
         """Wrapper for const_lsq to calculate alpha"""
         return self.const_lsq(c=[1, beta], simple=False)
-        
+
     def density_lsq(self):
         """Wrapper for const_lsq to calculate mean particle density"""
         return self.const_lsq(c=[1], simple=True)
-        
+
     def density(self, fltr=True):
         """Calculates mean density estimate for each timeframe."""
         rho_r_pip = self.amount(params=[1], simple=True)
@@ -260,7 +260,7 @@ class Case(read.PrecipMeasurer):
         result = minimize(self.cost, self.quess, method=method, **kwargs)
         self.ab = result.x
         return result
-        
+
     def minimize_lsq(self):
         """Find beta by minimization and alpha by linear least square."""
         print('Optimizing parameters...')
@@ -271,12 +271,12 @@ class Case(read.PrecipMeasurer):
         alpha = self.alpha_lsq(beta)
         self.ab = [alpha, beta]
         return result
-        
+
     def time_range(self):
         """data time ticks on minute interval"""
         return pd.date_range(self.pluvio.acc().index[0], 
                              self.pluvio.acc().index[-1], freq='1min')
-        
+
     def plot(self, kind='line', **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
         f, axarr = plt.subplots(4, sharex=True)
@@ -299,7 +299,7 @@ class Case(read.PrecipMeasurer):
         axarr[0].legend(loc='upper right')
         axarr[-1].set_xlabel('time (UTC)')
         plt.show()
-    
+
     def plot_cost(self, resolution=20, ax=None, cmap='binary', **kwargs):
         """The slowest plot you've drawn"""
         if ax is None:
@@ -319,7 +319,7 @@ class Case(read.PrecipMeasurer):
         ax.axis('tight')
         ax.set_title('cost function value')
         return z, heat, ax.plot(self.ab[1], self.ab[0], 'ro')
-        
+
     def plot_cost_lsq(self, resolution, ax=None, *args, **kwargs):
         """Plot cost function value vs. beta."""
         if ax is None:
@@ -331,7 +331,7 @@ class Case(read.PrecipMeasurer):
         ax.set_ylabel('cost')
         ax.set_title('cost function value')
         return ax.plot(beta, cost, *args, **kwargs)
-        
+
     def plot_v_binned(self, ax=None, **kwargs):
         """Plot velocity in diameter bins."""
         if ax is None:
@@ -345,7 +345,7 @@ class Case(read.PrecipMeasurer):
             diam.extend(d_new)
         ax.plot(diam, vel, 'h', **kwargs)
         return ax
-        
+
     def plot_v_stuff(self, ax=None, **kwargs):
         """Plot a lot of velocity related stuff in a single figure."""
         if ax is None:
@@ -356,7 +356,7 @@ class Case(read.PrecipMeasurer):
         self.pipv.plot(ax=ax, zorder=2, **kwargs)
         ax.legend(loc='lower right')
         return ax
-        
+
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio intensity. 
         Extra arguments are passed to pyplot.xcorr.
@@ -366,7 +366,7 @@ class Case(read.PrecipMeasurer):
         r = self.pluvio.intensity(rule=rule, unbias=False)
         lwc = self.pipv.lwc(rule).reindex(r.index).fillna(0)
         return ax.xcorr(lwc, r, **kwargs)
-        
+
     def autoshift(self, rule='1min', inplace=False):
         """Find and correct pluvio time shift using cross correlation."""
         if self.pluvio.shift_periods != 0:
@@ -397,13 +397,12 @@ class Snow2:
         else: # KC05
             cl = np.array([3.8816, -1.4579, 0.27749, -0.41521, 0.57683,
                            -0.29220, 0.06467, -0.0053405])    
-        logx = 0    
-        
+        logx = 0
         for l, c in enumerate(cl):
             logx += c*np.log(re)**l
         
         return np.exp(logx)
-        
+
     @staticmethod
     def mass(u, ar, d):
         g = 9.81

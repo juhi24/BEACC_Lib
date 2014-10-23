@@ -13,10 +13,10 @@ from scipy import stats
 from scipy.optimize import curve_fit, fmin, minimize
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
-    
+
 def datenum2datetime(matlab_datenum):
-    return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days = 366)
-    
+    return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days=366)
+
 class Fit:
     """parent for different fit types"""
     def __init__(self, params=None, name='fit'):
@@ -24,31 +24,31 @@ class Fit:
         self.name = name
         self.x = None
         self.y = None
-        
+
     def func(self, x, a=None):
         """Fit function. If no coefficients are given use stored ones."""
         if a is None:
             return self.func(x, *self.params)
         pass
-    
+
     def penalty(self, params):
         """penalty function used by the cost function"""
         return 0
-    
+
     def plot(self, xmax=20, samples=300, ax=None, label=None, marker='ro', **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
         if self.params is None:
             return ax
-        x = np.linspace(0,xmax,samples)
+        x = np.linspace(0, xmax, samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
             label = str(self)
         ax.plot(x, y, label=label)
         ax.plot(self.x, self.y, marker, **kwargs)
         return ax
-        
+
     def cost(self, params, xarr, yarr, sigarr):
         """Cost function that can be used to find fit coefs by minimization."""
         cost = 0
@@ -57,26 +57,26 @@ class Fit:
             sig = sigarr[i]
             cost += 1/sig**2*(y - self.func(x, *params))**2 + self.penalty(params)
         return cost
-        
+
 class ExpFit(Fit):
     """exponential fit of form a*(1-b*exp(-c*D))"""
     def __init__(self, params=None):
         super().__init__(params, name='expfit')
         self.quess = (1., 1., 1.)
-        
+
     def __repr__(self):
         if self.params is None:
             paramstr = 'abc'
         else:
-            paramstr = ['{0:.3f}'.format(p) for p in self.params]           
+            paramstr = ['{0:.3f}'.format(p) for p in self.params]
         s = '%s*(1-%s*exp(-%s*D))' % (paramstr[0], paramstr[1], paramstr[2])
         return s.replace('--', '+')
-    
+
     def func(self, x, a=None, b=None, c=None):
         if a is None:
             return self.func(x, *self.params)
         return a*(1-b*np.exp(-c*x))
-        
+
     def penalty(self, params):
         return 0
         return 1000*(max(0, 0.1-params[1]) + max(0, 0.4-params[2]))
@@ -86,19 +86,19 @@ class PolFit(Fit):
     def __init__(self, params=None):
         super().__init__(params, name='polfit')
         self.quess = (1., 1.)
-        
+
     def __repr__(self):
         if self.params is None:
             paramstr = 'ab'
         else:
-            paramstr = ['{0:.3f}'.format(p) for p in self.params]          
+            paramstr = ['{0:.3f}'.format(p) for p in self.params]
         return '%s*D^%s' % (paramstr[0], paramstr[1])
-        
+
     def func(self, x, a=None, b=None):
         if a is None:
             return self.func(x, *self.params)
         return a*x**b
-        
+
     def penalty(self, params):
         #return 0
         return 1000*max(0, 0.2-params[1])
@@ -110,15 +110,15 @@ class PrecipMeasurer:
     Either amount or acc (or both) methods should be overridden."""
     def __init__(self):
         pass
-    
+
     def amount(self, **kwargs):
         """timestep precipitation in mm"""
         return self.acc(**kwargs).diff()
-    
+
     def acc(self, **kwargs):
         """precipitation accumulation in mm"""
         return self.amount(**kwargs).cumsum()
-        
+
     def intensity(self, **kwargs):
         """precipitation intensity in mm/h"""
         r = self.amount(**kwargs)
@@ -134,25 +134,25 @@ class InstrumentData:
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
-            
+
     def finish_init(self, dt_start, dt_end):
         """Sort and name index, cut time span."""
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
         self.set_span(dt_start, dt_end)
-        
+
     def parse_datetime(self):
         """Parse timestamps in data files. Used by class constructor."""
         pass
-    
+
     def good_data(self):
         """Return useful data with filters and corrections applied."""
         return self.data
-        
+
     def to_hdf(self, filename='../DATA/baecc.h5'):
         """Save object in hdf5 format."""
         self.data.to_hdf(filename, self.name, format='table', append=True)
-        
+
     def between_datetime(self, date_start, date_end, inplace=False):
         """Limit the time span of data."""
         if inplace:
@@ -161,12 +161,12 @@ class InstrumentData:
             instr = copy.deepcopy(self)
         instr.set_span(date_start, date_end)
         return instr
-        
+
     def set_span(self, dt_start, dt_end):
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
         self.data = self.data[dt_start:dt_end]
-        
+
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -180,44 +180,44 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         if self.data.empty:
             self.name = path.basename(path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
-                    'intensity RT [mm h]',
-                    'accumulated RT NRT [mm]',
-                    'accumulated NRT [mm]',
-                    'accumulated total NRT [mm]',
-                    'bucket RT [mm]',
-                    'bucket NRT [mm]',
-                    'temperature load cell [degC]',
-                    'heating status',
-                    'status',
-                    'temperature electronics unit',
-                    'supply voltage',
-                    'ice rim temperature']
+                                    'intensity RT [mm h]',
+                                    'accumulated RT NRT [mm]',
+                                    'accumulated NRT [mm]',
+                                    'accumulated total NRT [mm]',
+                                    'bucket RT [mm]',
+                                    'bucket NRT [mm]',
+                                    'temperature load cell [degC]',
+                                    'heating status',
+                                    'status',
+                                    'temperature electronics unit',
+                                    'supply voltage',
+                                    'ice rim temperature']
             col_abbr = ['datestr',
-                    'i_rt',
-                    'acc_rt',
-                    'acc_nrt',
-                    'acc_tot_nrt',
-                    'bucket_rt',
-                    'bucket_nrt',
-                    't_load',
-                    'heating',
-                    'status',
-                    't_elec',
-                    'volt',
-                    't_rim']
+                        'i_rt',
+                        'acc_rt',
+                        'acc_nrt',
+                        'acc_tot_nrt',
+                        'bucket_rt',
+                        'bucket_nrt',
+                        't_load',
+                        'heating',
+                        'status',
+                        't_elec',
+                        'volt',
+                        't_rim']
             for filename in filenames:
                 num_lines = sum(1 for line in open(filename))
                 self.current_file = filename
                 self.data = self.data.append(pd.read_csv(filename, sep=';',
                             names=col_abbr,
-                            skiprows=list(range(1,num_lines,2)),
+                            skiprows=list(range(1, num_lines, 2)),
                             parse_dates={'datetime':['datestr']},
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
             self.data.drop(['i_rt'], 1, inplace=True) # crap format
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
-        
+
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
         t = time.strptime(datestr, '%Y%m%d%H%M%S')
@@ -226,7 +226,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         else:
             t_end = 5
         return datetime.datetime(*t[:t_end])
-        
+
     def good_data(self):
         data = copy.deepcopy(self.data)
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
@@ -237,7 +237,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                 correction = 0.5
             data[self.bucket_col] = self.data[self.bucket_col]*correction
         return data
-    
+
     def set_span(self, dt_start, dt_end):
         """Set time span with a buffer for timeshift."""
         if dt_start is None or dt_end is None:
@@ -251,24 +251,24 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         elif dt_start-self.buffer < self.data.index[0] or dt_end+self.buffer > self.data.index[-1]:
             self.buffer = pd.datetools.timedelta(0)
         self.data = self.data[dt_start-self.buffer:dt_end+self.buffer]
-        
+
     def timeshift(self):
         """Return timeshift as timedelta."""
         if self.shift_periods == 0:
             return pd.datetools.timedelta(0)
         return self.shift_periods*pd.datetools.to_offset(self.shift_freq)
-        
+
     def dt_start(self):
         return self.data.index[0] + self.buffer
-        
+
     def dt_end(self):
         return self.data.index[-1] - self.buffer
-        
+
     def shift_reset(self):
         """Reset time shift."""
         self.shift_periods = 0
         self.shift_freq = None
-        
+
     def amount(self, rule='1H', upsample=True, **kwargs):
         """Calculate precipitation amount"""
         if upsample:
@@ -281,7 +281,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         t_r0 = r.index[0]
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
-        
+
     def acc(self, rule='1H', interpolate=True, unbias=True, shift=True):
         """Resample unbiased accumulated precipitation in mm."""
         accum = self.acc_raw().asfreq('1min')
@@ -295,16 +295,16 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             accum -= self.bias
         accum = accum[self.dt_start():self.dt_end()]
         return accum.resample(rule, how='last', closed='right', label='right')
-                
+
     def acc_raw(self):
         """accumulation from raw data"""
         return self.good_data()[self.bucket_col]-self.good_data()[self.bucket_col][0]
-        
+
     def noprecip_bias(self, lwc, inplace=False):
         """Calculate accumulated bias using LWC."""
         accum = self.acc(rule='1min', unbias=False)
         lwc_filled = lwc.reindex(accum.index).fillna(0)
-        bias_acc = accum.diff()[lwc_filled==0].cumsum()
+        bias_acc = accum.diff()[lwc_filled == 0].cumsum()
         if bias_acc.empty:
             if inplace:
                 self.bias = 0
@@ -322,10 +322,10 @@ class PipDSD(InstrumentData):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.d_bin = 0.25
         self.name = 'pip_dsd'
-        if self.data.empty: 
+        if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                self.data = self.data.append(pd.read_csv(filename, 
+                self.data = self.data.append(pd.read_csv(filename,
                                 delim_whitespace=True, skiprows=8, header=3,
                                 parse_dates={'datetime':['hr_d','min_d']},
                                 date_parser=self.parse_datetime,
@@ -343,7 +343,7 @@ class PipDSD(InstrumentData):
         d = datetime.date(*datearr)
         t = datetime.time(int(hh), int(mm))
         return datetime.datetime.combine(d, t)
-        
+
     def plot(self, img=True):
         """Plot particle size distribution over time."""
         if img:
@@ -354,22 +354,22 @@ class PipDSD(InstrumentData):
         plt.title('PIP DSD')
         plt.xlabel('time (UTC) BROKEN')
         plt.ylabel('D (mm) BROKEN')
-        
+
     def filter_cat_and_dog(self, window=5):
         """a rolling window filter for isolated data points"""
-        is_dog = pd.rolling_count(self.data.mask(self.data==0).T, window).T == 1
-        is_dog.ix[:,:window] = False # ignore first columns
-        is_dog[is_dog==False] = np.nan
+        is_dog = pd.rolling_count(self.data.mask(self.data == 0).T, window).T == 1
+        is_dog.ix[:, :window] = False # ignore first columns
+        is_dog[is_dog == False] = np.nan
         is_dog = is_dog.ffill(axis=1).fillna(False)
         is_dog = is_dog.astype(np.bool)
         filtered = copy.deepcopy(self.data)
         filtered[is_dog] = 0
         return filtered
-        
+
     def good_data(self, **kwargs):
         gain_correction = 2
         return gain_correction*self.filter_cat_and_dog(**kwargs)
-        
+
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -385,52 +385,52 @@ class PipV(InstrumentData):
             for filename in filenames:
                 self.current_file = filename
                 newdata = pd.read_csv(filename,
-                                        delim_whitespace=True, skiprows=8,
-                                        parse_dates={'datetime':['minute_p']},
-                                        date_parser=self.parse_datetime)
+                                      delim_whitespace=True, skiprows=8,
+                                      parse_dates={'datetime':['minute_p']},
+                                      date_parser=self.parse_datetime)
                 newdata.rename_axis(
-                    {'vel_v_1':'vel_v', 'vel_h_1':'vel_h', 
+                    {'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
                      'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
                 self.data = self.data.append(newdata)
             self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
-            self.data = self.data.groupby(level=['datetime','Part_ID']).mean()
+            self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)
-    
+
     @property
     def rule(self):
         if self.fits.empty:
             return None
         return self.fits.index.freq.freqstr
-    
+
     @property
     def binwidth(self):
         d = self.dbins
         return (d[-1]-d[0])/(len(d)-1)
-        
+
     @property
     def default_fit(self):
         return copy.deepcopy(self._default_fit)
-        
+
     @default_fit.setter
     def default_fit(self, emptyfit):
         self._default_fit = emptyfit
-        
+
     def grids(self, data=None):
         if data is None:
             data = self.good_data()
         d = data.Wad_Dia.values
         v = data.vel_v.values
         dmax = d.max()+20*self.binwidth
-        dbins = self.dbins[self.dbins<dmax]
+        dbins = self.dbins[self.dbins < dmax]
         num_vbins = round(len(self.dbins)/5)
         return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
-        
+
     def grouped(self, rule=None):
         if rule is None:
             rule = self.rule
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
-        
+
     def v(self, d, emptyfit=None, rule=None):
         if emptyfit is None:
             emptyfit = self.default_fit
@@ -445,12 +445,12 @@ class PipV(InstrumentData):
         for fit in self.fits[emptyfit.name].values:
             v.append(fit.func(d))
         return pd.Series(v, index=self.fits.index, name='v')
-        
+
     def lwc(self, rule='1min'):
         """liquid water content"""
         d3 = self.good_data().Wad_Dia**3
         return d3.resample(rule, how=np.sum, closed='right', label='right')
-    
+
     def parse_datetime(self, mm):
         datestr = self.current_file.split('/')[-1].split('_')[0]
         yr = int(datestr[3:7])
@@ -458,10 +458,10 @@ class PipV(InstrumentData):
         dd = int(datestr[9:11])
         hh = int(datestr[11:13])
         return datetime.datetime(yr, mo, dd, hh, int(mm))
-        
+
     def good_data(self):
-        return self.data[self.data.Wad_Dia>self.dmin]
-        
+        return self.data[self.data.Wad_Dia > self.dmin]
+
     def dbin(self, d, binwidth=None, data=None, vmin=None, vmax=None):
         """Return data that falls into given size bin."""
         if binwidth is None:
@@ -474,7 +474,7 @@ class PipV(InstrumentData):
         if vmin is not None and vmax is not None:
             vcond += ' and vel_v > %s and vel_v < %s' % (vmin, vmax)
         return data.query(vcond)
-    
+
     def filter_outlier(self, data=None, frac=0.5):
         filtered = pd.DataFrame()
         X, Y, Z = self.kde_grid(data)
@@ -482,25 +482,25 @@ class PipV(InstrumentData):
         for i in range(0, Z.shape[1]):
             z = Z[:, i]
             z_lim = z.max()*frac
-            y_fltr = y[z>z_lim]
-            if y_fltr.size==0:
+            y_fltr = y[z > z_lim]
+            if y_fltr.size == 0:
                 continue
             vmin = y_fltr[0]
             vmax = y_fltr[-1]
-            d = X[:,i][0]
+            d = X[:, i][0]
             filtered = filtered.append(self.dbin(d=d, data=data, vmin=vmin, vmax=vmax))
         return filtered
-        
+
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
         vdata = self.good_data()
-        return vdata[vdata.Wad_Dia>d].vel_v.count()/vdata[vdata.Wad_Dia<d].vel_v.count()
-        
+        return vdata[vdata.Wad_Dia > d].vel_v.count()/vdata[vdata.Wad_Dia < d].vel_v.count()
+
     def d_cut(self, frac=0.05, d0=2):
         """Return d for which given fraction of particles are larger."""
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
-        
+
     def find_fit(self, fit=None, data=None, kde=False, cut_d=False, use_curve_fit=True, bin_num_min=5, filter_outliers=True, **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
@@ -509,7 +509,7 @@ class PipV(InstrumentData):
         if fit is None:
             fit = self.default_fit
         print(data.count()[0])
-        if data.count()[0]<5 and (use_curve_fit or kde):
+        if data.count()[0] < 5 and (use_curve_fit or kde):
             print('Too few particles.')
             kde = False
             use_curve_fit = False
@@ -524,12 +524,12 @@ class PipV(InstrumentData):
             v = data.vel_v.values
         if cut_d:
             dcut = self.d_cut(**kwargs)
-            d = d[d<dcut]
-            v = v[d<dcut]
+            d = d[d < dcut]
+            v = v[d < dcut]
         if kde:
             num = np.array([self.dbin(diam, self.binwidth, data=data).vel_v.count() for diam in d])
-            d = d[num>bin_num_min]
-            v = v[num>bin_num_min]
+            d = d[num > bin_num_min]
+            v = v[num > bin_num_min]
             sig = [self.dbin(diam, self.binwidth, data=data).vel_v.sem() for diam in d]
             sigargs = {'sigma': sig, 'absolute_sigma': True}
         else:
@@ -544,7 +544,7 @@ class PipV(InstrumentData):
         fit.x = d
         fit.y = v
         return fit
-        
+
     def find_fits(self, rule, draw_plots=False, empty_on_fail=True, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         names = []
@@ -576,13 +576,13 @@ class PipV(InstrumentData):
         else:
             self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
         return self.fits
-        
+
     def fit_coefs(self):
         paramslist = []
         for fit in self.fits[self.default_fit.name].values:
             paramslist.append(fit.params)
         return pd.DataFrame(data=np.vstack(paramslist), index=self.fits.index)
-        
+
     def kde(self, data=None):
         """kernel-density estimate of d,v data using gaussian kernels"""
         if data is None:
@@ -591,7 +591,7 @@ class PipV(InstrumentData):
         v = data.vel_v.values
         values = np.vstack([d, v])
         return stats.gaussian_kde(values)
-        
+
     def kde_grid(self, data=None):
         """Calculate kernel-density estimate with given resolution."""
         X, Y = self.grids(data)
@@ -599,14 +599,14 @@ class PipV(InstrumentData):
         kernel = self.kde(data)       
         Z = np.reshape(kernel(points).T, X.shape)
         return X, Y, Z
-        
+
     def kde_peak(self, **kwargs):
         """the most propable velocities for each diameter in grid"""
         D, V, Z = self.kde_grid(**kwargs)
-        x = D[0,:]
-        y = V[:,0][Z.argmax(axis=0)]
+        x = D[0, :]
+        y = V[:, 0][Z.argmax(axis=0)]
         return x, y
-        
+
     def plot_kde(self, ax=None, **kwargs):
         """Plot kde grid."""
         if ax is None:
@@ -614,7 +614,7 @@ class PipV(InstrumentData):
         D, V, Z = self.kde_grid(**kwargs)
         pc = ax.pcolor(D, V, Z, cmap=plt.cm.gist_earth_r)
         return pc
-        
+
     def plot_fit(self, tstep=None, **kwargs):
         if tstep is None:
             fits = [self.find_fit()]
@@ -622,37 +622,37 @@ class PipV(InstrumentData):
             fits = self.fits.loc[tstep].values
         for fit in fits:
             fit.plot(**kwargs)
-        
+
     def plot(self, data=None, hexbin=True, ax=None, ymax=None, **kwargs):
         if ax is None:
-            ax=plt.gca()
+            ax = plt.gca()
         if data is None:
             data = self.good_data()
         margin = 0.1
         xmax = np.ceil(self.d_cut(frac=0.05))
         right = xmax-2+margin
         partcount = data.Part_ID.count()
-        if partcount<1:
+        if partcount < 1:
             return ax
         if hexbin:
             data.plot(x='Wad_Dia', y='vel_v', kind='hexbin', label='hexbinned',
                       ax=ax, gridsize=int(12*data.Wad_Dia.max()**0.5), **kwargs)
         else:
-            data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax, 
+            data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax,
                       alpha=0.2, color='black', label='pip raw', **kwargs)
         #gunn_kinzer.plot(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
         if ymax is None:
             ymax = data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
-        ax.set_title('%s - %s' % (data.index[0]-datetime.timedelta(minutes=1), 
+        ax.set_title('%s - %s' % (data.index[0]-datetime.timedelta(minutes=1),
                                   data.index[-1]))
         ax.text(right, margin, 'particle count: %s' % str(partcount))
         ax.set_ylabel('Vertical velocity (m/s)')
         ax.set_xlabel('D (mm)')
         ax.legend(loc='upper right')
         return ax
-        
-    def plots(self, separate=True, peak=False, save=False, ncols=1, 
+
+    def plots(self, separate=True, peak=False, save=False, ncols=1,
               prefix='', **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
@@ -677,7 +677,7 @@ class PipV(InstrumentData):
             if group.Part_ID.count() < 1:
                 continue
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',', alpha=0.3)
-            self.plot(data=group, ax=axarr[i], 
+            self.plot(data=group, ax=axarr[i],
                       ymax=self.good_data().vel_v.max(), **kwargs)
             if save and separate:
                 t = group.index[-1]
@@ -689,3 +689,4 @@ class PipV(InstrumentData):
             fname = t.strftime('%Y%m%d.png')
             f.savefig(path.join(savedir, fname))
         return axarr
+        
