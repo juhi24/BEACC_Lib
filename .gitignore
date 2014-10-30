@@ -55,4 +55,4 @@ docs/_build/
 *~
 
 #CUSTOM
-cases_of_interest.csv
+cases/*

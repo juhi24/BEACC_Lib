@@ -5,11 +5,20 @@
 from snowfall import *
 import numpy as np
 
-e = EventsCollection('cases_of_interest.csv', '%d.%m. %H:%M')
-e.autoimport_data(autoshift=False, rule='3min')
+e = EventsCollection('cases/evap.csv', '%d.%m. %H:%M')
+e.autoimport_data(autoshift=False, rule='5min')
 
-for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
-    c.pluvio.shift_periods = -6
+p4 = e.events.pluvio400[0].pluvio
+p4.shift_periods = -6
+p4.acc('1min').tshift(periods=6).plot()
+raw = p4.data.bucket_nrt - p4.data.bucket_nrt[0]
+raw.plot()
+
+#for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
+    #c.pluvio.acc('1min').plot()    
+    #c.pluvio.shift_periods = -6
+    #c.plot(pip=False)
+    #c.pipv.plots(save=True)
 
 #for c in e.events.pluvio200:
 #    c.minimize_lsq()

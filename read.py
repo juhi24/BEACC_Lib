@@ -15,6 +15,7 @@ from scipy.optimize import curve_fit, fmin, minimize
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
 def datenum2datetime(matlab_datenum):
+    """Convert MATLAB datenum to datetime."""
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days=366)
 
 class Fit:
@@ -35,7 +36,8 @@ class Fit:
         """penalty function used by the cost function"""
         return 0
 
-    def plot(self, xmax=20, samples=300, ax=None, label=None, marker='ro', **kwargs):
+    def plot(self, xmax=20, samples=300, ax=None, label=None, 
+             source_data=False, marker='ro', **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
@@ -46,7 +48,8 @@ class Fit:
         if label is None:
             label = str(self)
         ax.plot(x, y, label=label)
-        ax.plot(self.x, self.y, marker, **kwargs)
+        if source_data:
+            ax.plot(self.x, self.y, marker, **kwargs)
         return ax
 
     def cost(self, params, xarr, yarr, sigarr):
@@ -174,14 +177,15 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         print('Reading pluviometer data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.bias = 0
-        self.shift_periods = 0
-        self.shift_freq = None
+        self._shift_periods = 0
+        self._shift_freq = None
+        self.lwc = None
         self.bucket_col = 'bucket_nrt'
         if self.data.empty:
             self.name = path.basename(path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
                                     'intensity RT [mm h]',
-                                    'accumulated RT NRT [mm]',
+                                    'accumulated RT/NRT [mm]',
                                     'accumulated NRT [mm]',
                                     'accumulated total NRT [mm]',
                                     'bucket RT [mm]',
@@ -217,6 +221,24 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             self.data.drop(['i_rt'], 1, inplace=True) # crap format
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
+        
+    @property
+    def shift_periods(self):
+        return self._shift_periods
+        
+    @shift_periods.setter
+    def shift_periods(self, shift_periods):
+        self._shift_periods = shift_periods
+        self.noprecip_bias(self.lwc, inplace=True)
+        
+    @property
+    def shift_freq(self):
+        return self._shift_freq
+        
+    @shift_freq.setter
+    def shift_freq(self, shift_freq):
+        self._shift_freq = shift_freq
+        self.noprecip_bias(self.lwc, inplace=True)
 
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
@@ -282,7 +304,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
 
-    def acc(self, rule='1H', interpolate=True, unbias=True, shift=True):
+    def acc(self, rule='1H', interpolate=True, unbias=True, shift=True,
+            filter_evap=True):
         """Resample unbiased accumulated precipitation in mm."""
         accum = self.acc_raw().asfreq('1min')
         if interpolate:
@@ -294,6 +317,13 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         if unbias:
             accum -= self.bias
         accum = accum[self.dt_start():self.dt_end()]
+        if filter_evap:
+            amount = accum.diff()
+            evap = amount[amount < 0]
+            evap_accum = evap.reindex(accum.index).fillna(0).cumsum()
+            #evap_accum.plot()
+            #accum.plot()
+            accum -= evap_accum # accumulation should never drop
         return accum.resample(rule, how='last', closed='right', label='right')
 
     def acc_raw(self):
@@ -302,9 +332,12 @@ class Pluvio(InstrumentData, PrecipMeasurer):
 
     def noprecip_bias(self, lwc, inplace=False):
         """Calculate accumulated bias using LWC."""
-        accum = self.acc(rule='1min', unbias=False)
+        self.lwc = lwc
+        accum = self.acc(rule='1min', shift=True, unbias=False, filter_evap=False)
         lwc_filled = lwc.reindex(accum.index).fillna(0)
-        bias_acc = accum.diff()[lwc_filled == 0].cumsum()
+        bias_amount = accum.diff()[lwc_filled == 0]
+        #bias_amount[bias_amount > 0] = 0
+        bias_acc = bias_amount.cumsum()
         if bias_acc.empty:
             if inplace:
                 self.bias = 0
@@ -327,12 +360,13 @@ class PipDSD(InstrumentData):
                 self.current_file = filename
                 self.data = self.data.append(pd.read_csv(filename,
                                 delim_whitespace=True, skiprows=8, header=3,
-                                parse_dates={'datetime':['hr_d','min_d']},
+                                parse_dates={'datetime':['hr_d', 'min_d']},
                                 date_parser=self.parse_datetime,
                                 index_col='datetime'))
             #self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data, last sometimes nans
-            self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1, inplace=True)
+            self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1,
+                           inplace=True)
             self.data.columns = pd.Index([float(i) for i in self.data.columns])
             self.data.sort_index(axis=1)
         self.finish_init(dt_start, dt_end)
@@ -347,7 +381,8 @@ class PipDSD(InstrumentData):
     def plot(self, img=True):
         """Plot particle size distribution over time."""
         if img:
-            plt.matshow(self.good_data().transpose(), norm=LogNorm(), origin='lower')
+            plt.matshow(self.good_data().transpose(), norm=LogNorm(),
+                        origin='lower')
         else:
             plt.pcolor(self.good_data().transpose(), norm=LogNorm())
         plt.colorbar()
@@ -596,7 +631,7 @@ class PipV(InstrumentData):
         """Calculate kernel-density estimate with given resolution."""
         X, Y = self.grids(data)
         points = np.vstack([X.ravel(), Y.ravel()])
-        kernel = self.kde(data)       
+        kernel = self.kde(data)
         Z = np.reshape(kernel(points).T, X.shape)
         return X, Y, Z
 
@@ -623,7 +658,8 @@ class PipV(InstrumentData):
         for fit in fits:
             fit.plot(**kwargs)
 
-    def plot(self, data=None, hexbin=True, ax=None, ymax=None, **kwargs):
+    def plot(self, data=None, hexbin=True, ax=None, ymax=None, 
+             show_particle_count=False, **kwargs):
         if ax is None:
             ax = plt.gca()
         if data is None:
@@ -646,7 +682,8 @@ class PipV(InstrumentData):
         ax.axis([0, xmax, 0, ymax])
         ax.set_title('%s - %s' % (data.index[0]-datetime.timedelta(minutes=1),
                                   data.index[-1]))
-        ax.text(right, margin, 'particle count: %s' % str(partcount))
+        if show_particle_count:
+            ax.text(right, margin, 'particle count: %s' % str(partcount))
         ax.set_ylabel('Vertical velocity (m/s)')
         ax.set_xlabel('D (mm)')
         ax.legend(loc='upper right')

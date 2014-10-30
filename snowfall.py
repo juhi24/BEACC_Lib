@@ -13,6 +13,7 @@ TAU = 2*np.pi
 RHO_W = 1000
 
 def batch_import(dtstr, datadir='../DATA'):
+    """Read data from files according to a datestring pattern."""
     pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
     dsd_files = glob(path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
     pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
@@ -24,7 +25,9 @@ def batch_import(dtstr, datadir='../DATA'):
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
-def batch_hdf(datadir='../DATA', outname='baecc.h5', dtstr='20140[2-3]??'):
+def batch_create_hdf(datadir='../DATA', outname='baecc.h5', 
+                     dtstr='20140[2-3]??'):
+    """Read data from files and export to hdf."""
     instrdict = batch_import(dtstr, datadir)
     hdf_file = path.join(datadir, outname)
     for key in instrdict:
@@ -35,7 +38,7 @@ class EventsCollection:
     def __init__(self, csv, dtformat='%d %B %H UTC'):
         """Read event metadata from a csv file."""
         self.dtformat = dtformat
-        self.events = pd.read_csv(csv,parse_dates=['start','end'], 
+        self.events = pd.read_csv(csv, parse_dates=['start', 'end'],
                                   date_parser=self.parse_datetime)
         self.events.sort(columns=['start', 'end'], inplace=True)
 
@@ -47,17 +50,19 @@ class EventsCollection:
     def add_data(self, data, autoshift=True, autobias=True):
         """Add data from a Case object."""
         cases = []
-        for (i,e) in self.events.iterrows():
-            cases.append(data.between_datetime(e.start, e.end, 
-                                               autoshift=autoshift, 
+        for (i, e) in self.events.iterrows():
+            cases.append(data.between_datetime(e.start, e.end,
+                                               autoshift=autoshift,
                                                autobias=autobias))
         self.events[data.pluvio.name] = cases
 
-    def autoimport_data(self, datafile=['../DATA/baecc.h5'], rule='10min', **kwargs):
+    def autoimport_data(self, datafile=['../DATA/baecc.h5'], rule='10min', 
+                        **kwargs):
+        """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=1)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
-        data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule, 
+        data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule,
                              filenames=datafile)
         for d in data:
             self.add_data(d, **kwargs)
@@ -90,7 +95,7 @@ class Case(read.PrecipMeasurer):
         t = self.time_range()
         dt_start = t[0]
         dt_end = t[-1]
-        return '%s case from %s to %s, %s sampling' % (casetype, dt_start, 
+        return '%s case from %s to %s, %s sampling' % (casetype, dt_start,
                                                        dt_end, self.rule)
 
     @property
@@ -105,7 +110,7 @@ class Case(read.PrecipMeasurer):
         self._ab = ab
 
     @classmethod
-    def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'], 
+    def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'],
                  **kwargs):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
@@ -120,7 +125,7 @@ class Case(read.PrecipMeasurer):
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
 
-    def between_datetime(self, dt_start, dt_end, inplace=False, 
+    def between_datetime(self, dt_start, dt_end, inplace=False,
                          autoshift=False, autobias=False):
         """Select data only in chosen time frame."""
         for dt in [dt_start, dt_end]:
@@ -274,15 +279,17 @@ class Case(read.PrecipMeasurer):
 
     def time_range(self):
         """data time ticks on minute interval"""
-        return pd.date_range(self.pluvio.acc().index[0], 
+        return pd.date_range(self.pluvio.acc().index[0],
                              self.pluvio.acc().index[-1], freq='1min')
 
-    def plot(self, kind='line', **kwargs):
+    def plot(self, kind='line', pip=True, **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
         f, axarr = plt.subplots(4, sharex=True)
-        self.intensity().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
+        if pip:
+            self.intensity().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
         self.pluvio.intensity(rule=self.rule).plot(label=self.pluvio.name,
-                                    kind=kind, ax=axarr[0], **kwargs)
+                                                   kind=kind, ax=axarr[0],
+                                                   **kwargs)
         axarr[0].set_ylabel('mm/h')
         if self.liquid:
             title = 'rain intensity'
@@ -290,7 +297,7 @@ class Case(read.PrecipMeasurer):
             title = r'precipitation intensity, $\alpha=%s, \beta=%s$' % (self.ab[0], self.ab[1])
         axarr[0].set_title(title)
         rho = self.density(fltr=True)
-        rho.plot(label='mean density', ax=axarr[1])      
+        rho.plot(label='mean density', ax=axarr[1])
         axarr[1].set_ylabel(r'$\rho_{part}$')
         self.n_t().plot(ax=axarr[2])
         axarr[2].set_ylabel(r'$N_{tot} (m^{-3})$')
@@ -324,9 +331,9 @@ class Case(read.PrecipMeasurer):
         """Plot cost function value vs. beta."""
         if ax is None:
             ax = plt.gca()
-        beta = np.linspace(self.bnd[1][0],self.bnd[1][1],num=resolution)
+        beta = np.linspace(self.bnd[1][0], self.bnd[1][1], num=resolution)
         cost = np.array([self.cost_lsq(b) for b in beta])
-        ax =  plt.gca()
+        ax = plt.gca()
         ax.set_xlabel(r'$\beta$')
         ax.set_ylabel('cost')
         ax.set_title('cost function value')
@@ -335,7 +342,7 @@ class Case(read.PrecipMeasurer):
     def plot_v_binned(self, ax=None, **kwargs):
         """Plot velocity in diameter bins."""
         if ax is None:
-            ax=plt.gca()
+            ax = plt.gca()
         diam = []
         vel = []
         for d in self.dsd.data.columns:
@@ -349,16 +356,17 @@ class Case(read.PrecipMeasurer):
     def plot_v_stuff(self, ax=None, **kwargs):
         """Plot a lot of velocity related stuff in a single figure."""
         if ax is None:
-            ax=plt.gca()
-        self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3, 
+            ax = plt.gca()
+        self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3,
                            **kwargs)
-        self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4, **kwargs)
+        self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4,
+                                      **kwargs)
         self.pipv.plot(ax=ax, zorder=2, **kwargs)
         ax.legend(loc='lower right')
         return ax
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
-        """Plot cross-correlation between lwc estimate and pluvio intensity. 
+        """Plot cross-correlation between lwc estimate and pluvio intensity.
         Extra arguments are passed to pyplot.xcorr.
         """
         if ax is None:
@@ -378,12 +386,12 @@ class Case(read.PrecipMeasurer):
         if inplace:
             self.pluvio.shift_periods = periods
             self.pluvio.shift_freq = rule
-            print('Pluvio timeshift set to %s*%s.' 
-                % (str(self.pluvio.shift_periods), self.pluvio.shift_freq))
+            print('Pluvio timeshift set to %s*%s.'
+                  % (str(self.pluvio.shift_periods), self.pluvio.shift_freq))
         return periods
 
 class Snow2:
-    """UNTESTED. 
+    """UNTESTED.
     Calculate snowfall rate using Szyrmer Zawadski's method from Snow Study II.
     """
     def __init__(self):
@@ -396,11 +404,10 @@ class Snow2:
                            -0.073429, 0.016006, -0.0012483])
         else: # KC05
             cl = np.array([3.8816, -1.4579, 0.27749, -0.41521, 0.57683,
-                           -0.29220, 0.06467, -0.0053405])    
+                           -0.29220, 0.06467, -0.0053405])
         logx = 0
         for l, c in enumerate(cl):
             logx += c*np.log(re)**l
-        
         return np.exp(logx)
 
     @staticmethod
@@ -409,7 +416,6 @@ class Snow2:
         fa = 1
         rho_a = 1.275
         nu_a = 1.544e-5
-        
         re = u*d/nu_a
         return np.pi*rho_a*nu_a**2/(8*g)*Snow2.best(re)*ar*fa
 
