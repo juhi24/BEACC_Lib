@@ -335,7 +335,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.lwc = lwc
         accum = self.acc(rule='1min', shift=True, unbias=False, filter_evap=False)
         lwc_filled = lwc.reindex(accum.index).fillna(0)
-        bias_amount = accum.diff()[lwc_filled == 0]
+        bias_amount = accum.diff().fillna(0)[lwc_filled == 0]
         #bias_amount[bias_amount > 0] = 0
         bias_acc = bias_amount.cumsum()
         if bias_acc.empty:
