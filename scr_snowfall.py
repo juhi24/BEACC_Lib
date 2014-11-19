@@ -10,6 +10,9 @@ e = EventsCollection('cases/cases_of_interest.csv', '%d.%m. %H:%M')
 e.autoimport_data(autoshift=False, rule='6min')
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
-    c.pluvio.shift_periods = -4
+    c.pluvio.shift_periods = -6
+    c.minimize_lsq()
     #c.plot(pip=False)
     #c.pipv.plots(save=True)
+
+

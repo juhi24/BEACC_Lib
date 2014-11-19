@@ -36,7 +36,7 @@ class Fit:
         """penalty function used by the cost function"""
         return 0
 
-    def plot(self, xmax=20, samples=300, ax=None, label=None, 
+    def plot(self, xmax=20, samples=1000, ax=None, label=None, 
              source_data=False, marker='ro', **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
@@ -46,8 +46,8 @@ class Fit:
         x = np.linspace(0, xmax, samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
-            label = str(self)
-        ax.plot(x, y, label=label)
+            label = r'$' + str(self) + r'$'
+        ax.plot(x, y, label=label, linewidth=2)
         if source_data:
             ax.plot(self.x, self.y, marker, **kwargs)
         return ax
@@ -72,7 +72,7 @@ class ExpFit(Fit):
             paramstr = 'abc'
         else:
             paramstr = ['{0:.3f}'.format(p) for p in self.params]
-        s = '%s*(1-%s*exp(-%s*D))' % (paramstr[0], paramstr[1], paramstr[2])
+        s = '%s(1-%s\exp(-%sD))' % (paramstr[0], paramstr[1], paramstr[2])
         return s.replace('--', '+')
 
     def func(self, x, a=None, b=None, c=None):
@@ -95,7 +95,7 @@ class PolFit(Fit):
             paramstr = 'ab'
         else:
             paramstr = ['{0:.3f}'.format(p) for p in self.params]
-        return '%s*D^%s' % (paramstr[0], paramstr[1])
+        return '%sD^{%s}' % (paramstr[0], paramstr[1])
 
     def func(self, x, a=None, b=None):
         if a is None:
@@ -658,21 +658,24 @@ class PipV(InstrumentData):
         for fit in fits:
             fit.plot(**kwargs)
 
-    def plot(self, data=None, hexbin=True, ax=None, ymax=None, 
-             show_particle_count=False, **kwargs):
+    def plot(self, data=None, hexbin=True, ax=None, xmax=None, ymax=None,
+             show_particle_count=False, colormap='gray_r', ygrid=True,
+             hexsize=12, **kwargs):
         if ax is None:
             ax = plt.gca()
         if data is None:
             data = self.good_data()
         margin = 0.1
-        xmax = np.ceil(self.d_cut(frac=0.05))
+        if xmax is None:
+            xmax = np.ceil(self.d_cut(frac=0.05))
         right = xmax-2+margin
         partcount = data.Part_ID.count()
         if partcount < 1:
             return ax
         if hexbin:
             data.plot(x='Wad_Dia', y='vel_v', kind='hexbin', label='hexbinned',
-                      ax=ax, gridsize=int(12*data.Wad_Dia.max()**0.5), **kwargs)
+                      ax=ax, gridsize=int(hexsize*data.Wad_Dia.max()**0.5),
+                      colormap=colormap, **kwargs)
         else:
             data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax,
                       alpha=0.2, color='black', label='pip raw', **kwargs)
@@ -680,17 +683,21 @@ class PipV(InstrumentData):
         if ymax is None:
             ymax = data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
-        ax.set_title('%s - %s' % (data.index[0]-datetime.timedelta(minutes=1),
-                                  data.index[-1]))
+        ax.yaxis.grid(ygrid)
+        t_start = data.index[0]-datetime.timedelta(minutes=1)
+        t_end = data.index[-1]
+        label_format = '%H:%M'
+        ax.set_title('%s-%s UTC' % (t_start.strftime(label_format),
+                                  t_end.strftime(label_format)))
         if show_particle_count:
             ax.text(right, margin, 'particle count: %s' % str(partcount))
-        ax.set_ylabel('Vertical velocity (m/s)')
+        ax.set_ylabel('Fall velocity (m/s)')
         ax.set_xlabel('D (mm)')
         ax.legend(loc='upper right')
         return ax
 
     def plots(self, separate=True, peak=False, save=False, ncols=1,
-              prefix='', **kwargs):
+              prefix='', ymax=None, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
         #nrows = int(np.ceil(ngroups/ncols))
@@ -706,16 +713,20 @@ class PipV(InstrumentData):
         else:
             axarr = []
             farr = []
+        if ymax is None:
+            self.good_data().vel_v.max()
         for i, (name, group) in enumerate(self.grouped()):
             if separate:
-                f, ax = plt.subplots(1)
+                f = plt.figure(dpi=175, figsize=(3.5,3))
+                ax = plt.gca()
                 farr.append(f)
                 axarr.append(ax)
             if group.Part_ID.count() < 1:
                 continue
             self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',', alpha=0.3)
             self.plot(data=group, ax=axarr[i],
-                      ymax=self.good_data().vel_v.max(), **kwargs)
+                      ymax=ymax, **kwargs)
+            f.tight_layout()
             if save and separate:
                 t = group.index[-1]
                 fname = t.strftime(prefix + '%Y%m%d%H%M.png')
