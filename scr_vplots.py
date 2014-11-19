@@ -17,12 +17,12 @@ plt.rc('axes', titlesize='medium')
 plt.close('all')
 
 e = EventsCollection('cases/cases_of_interest.csv', '%d.%m. %H:%M')
-e.autoimport_data(autoshift=False, rule='15min')
+e.autoimport_data(autoshift=False, rule='6min')
 
-vel=e.events.pluvio200[2].pipv
-vel.find_fits(rule='30min')
-vel.plots(grid=False, xmax=4, ymax=3, xticks=[0,1,2,3,4], yticks=[0,1,2,3],
-          colorbar=False, hexsize=8)
+for c in e.events.pluvio200.values:
+    c.pipv.find_fits(rule='6min')
+    c.pipv.plots(save=True, suffix='.eps', grid=False, xmax=4, ymax=3, xticks=[0,1,2,3,4], yticks=[0,1,2,3],
+              colorbar=False, hexsize=8)
           
 f = plt.figure(dpi=175, figsize=(1,3))
 ax = f.add_axes([0.05,0.05,0.3,0.9])

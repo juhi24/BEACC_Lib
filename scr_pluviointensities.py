@@ -16,7 +16,8 @@ if 'HOME' in os.environ:
     home = os.environ['HOME']
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
-    c.pluvio.shift_periods = -4
+    c.pluvio.shift_periods = -6
+    c.plot()
 
 for index, event in e.events.iterrows():
     iarr = []
@@ -36,4 +37,4 @@ for index, event in e.events.iterrows():
         dfarr.append(df)
     dtstr = event.end.date().strftime('%y%m%d')
     for i, label in enumerate(['pluvio_intensity', 'density']):
-        dfarr[i].to_csv(os.path.join(home, dtstr + label + '.csv'))
+        dfarr[i].to_csv(os.path.join(home, dtstr + label + '-6min.csv'))

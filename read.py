@@ -697,7 +697,7 @@ class PipV(InstrumentData):
         return ax
 
     def plots(self, separate=True, peak=False, save=False, ncols=1,
-              prefix='', ymax=None, **kwargs):
+              prefix='', suffix='.png', ymax=None, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped().ngroups
         #nrows = int(np.ceil(ngroups/ncols))
@@ -729,12 +729,12 @@ class PipV(InstrumentData):
             f.tight_layout()
             if save and separate:
                 t = group.index[-1]
-                fname = t.strftime(prefix + '%Y%m%d%H%M.png')
+                fname = t.strftime(prefix + '%Y%m%d%H%M' + suffix)
                 f.savefig(path.join(savedir, fname))
             if peak:
                 axarr[i].scatter(*self.kde_peak(data=group), label='kde peak')
         if save and not separate:
-            fname = t.strftime('%Y%m%d.png')
+            fname = t.strftime('%Y%m%d' + suffix)
             f.savefig(path.join(savedir, fname))
         return axarr
         
