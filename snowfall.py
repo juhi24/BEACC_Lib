@@ -41,6 +41,7 @@ class EventsCollection:
         self.events = pd.read_csv(csv, parse_dates=['start', 'end'],
                                   date_parser=self.parse_datetime)
         self.events.sort(columns=['start', 'end'], inplace=True)
+        self.events.start += pd.datetools.timedelta(seconds=1)
 
     def parse_datetime(self, dtstr):
         date = datetime.strptime(dtstr, self.dtformat)
