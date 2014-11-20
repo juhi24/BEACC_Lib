@@ -180,7 +180,10 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self._shift_periods = 0
         self._shift_freq = None
         self.lwc = None
-        self.bucket_col = 'bucket_nrt'
+        self.col_suffix = 'nrt'
+        self.use_bucket = False
+        self.amount_col = 'acc_' + self.col_suffix
+        self.bucket_col = 'bucket_' + self.col_suffix
         if self.data.empty:
             self.name = path.basename(path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
@@ -221,6 +224,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             self.data.drop(['i_rt'], 1, inplace=True) # crap format
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
+        self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
         
     @property
     def shift_periods(self):
@@ -253,11 +257,14 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         data = copy.deepcopy(self.data)
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
         if self.data.index[-1] > swap_date:
+            precip_cols = ['acc_rt', 'acc_nrt', 'acc_tot_nrt', 'bucket_rt',
+                           'bucket_nrt']
             if self.name == 'pluvio200':
                 correction = 2
             elif self.name == 'pluvio400':
                 correction = 0.5
-            data[self.bucket_col] = self.data[self.bucket_col]*correction
+            for col in precip_cols:
+                data[col] = self.data[col]*correction
         return data
 
     def set_span(self, dt_start, dt_end):
@@ -291,20 +298,27 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.shift_periods = 0
         self.shift_freq = None
 
-    def amount(self, rule='1H', upsample=True, **kwargs):
+    def bucket_amount(self, rule='1H', upsample=True, **kwargs):
         """Calculate precipitation amount"""
         if upsample:
             acc_1min = self.acc('1min', **kwargs)
         else:
             acc_1min = self.acc_raw()
-        r = acc_1min.diff().resample(rule, how=np.sum, closed='right', label='right')
+        r = acc_1min.diff().resample(rule, how=np.sum, closed='right',
+                                     label='right')
         if not upsample:
             return r.fillna(0)
         t_r0 = r.index[0]
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
+        
+    def amount(self, **kwargs):
+        if self.use_bucket:
+            return bucket_amount(**kwargs)
+        am = self.good_data()[self.amount_col]
+        return am[am>0]
 
-    def acc(self, rule='1H', interpolate=True, unbias=True, shift=True,
+    def bucket_acc(self, rule='1H', interpolate=True, unbias=True, shift=True,
             filter_evap=True):
         """Resample unbiased accumulated precipitation in mm."""
         accum = self.acc_raw().asfreq('1min')
@@ -523,7 +537,8 @@ class PipV(InstrumentData):
             vmin = y_fltr[0]
             vmax = y_fltr[-1]
             d = X[:, i][0]
-            filtered = filtered.append(self.dbin(d=d, data=data, vmin=vmin, vmax=vmax))
+            filtered = filtered.append(self.dbin(d=d, data=data, vmin=vmin,
+                                                 vmax=vmax))
         return filtered
 
     def frac_larger(self, d):
@@ -536,7 +551,9 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
 
-    def find_fit(self, fit=None, data=None, kde=False, cut_d=False, use_curve_fit=True, bin_num_min=5, filter_outliers=True, **kwargs):
+    def find_fit(self, fit=None, data=None, kde=False, cut_d=False, 
+                 use_curve_fit=True, bin_num_min=5, filter_outliers=True, 
+                 **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
         if data is None:
@@ -562,7 +579,8 @@ class PipV(InstrumentData):
             d = d[d < dcut]
             v = v[d < dcut]
         if kde:
-            num = np.array([self.dbin(diam, self.binwidth, data=data).vel_v.count() for diam in d])
+            num = np.array([self.dbin(diam, self.binwidth, 
+                                      data=data).vel_v.count() for diam in d])
             d = d[num > bin_num_min]
             v = v[num > bin_num_min]
             sig = [self.dbin(diam, self.binwidth, data=data).vel_v.sem() for diam in d]
@@ -605,11 +623,13 @@ class PipV(InstrumentData):
                 plt.show()
         timestamps = pd.DatetimeIndex(names, freq=rule)
         if self.fits.empty:
-            self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
+            self.fits = pd.DataFrame(fits, index=timestamps, 
+                                     columns=[newfit.name])
         elif self.fits.index.equals(timestamps):
             self.fits[newfit.name] = fits
         else:
-            self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
+            self.fits = pd.DataFrame(fits, index=timestamps, 
+                                     columns=[newfit.name])
         return self.fits
 
     def fit_coefs(self):
