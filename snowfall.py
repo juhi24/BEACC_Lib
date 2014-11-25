@@ -178,13 +178,13 @@ class Case(read.PrecipMeasurer):
         return result
 
     def r_ab(self, d, alpha, beta):
-        """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * m**beta * m/s * 1/(mm*m**3)
+        """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
         return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
 
     def r_rho(self, d, rho):
-        """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
-        return self.scale*3.6e-6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
+        """(mm/h)/(m/s) * kg/m**3 / (kg/m**3) * mm**3 * m/s * 1/(mm*m**3)"""
+        return self.scale*3.6e-6*TAU/12*rho/RHO_W*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
 
     def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
@@ -250,7 +250,7 @@ class Case(read.PrecipMeasurer):
         return self.const_lsq(c=[1, beta], simple=False)
 
     def density_lsq(self):
-        """Wrapper for const_lsq to calculate mean particle density"""
+        """Wrapper for const_lsq to calculate least square particle density"""
         return self.const_lsq(c=[1], simple=True)
 
     def density(self, fltr=True):
@@ -258,10 +258,10 @@ class Case(read.PrecipMeasurer):
         rho_r_pip = self.amount(params=[1], simple=True)
         if fltr:
             rho_r_pip[self.intensity() < 0.1] = np.nan # filter
-        return self.pluvio.amount(rule=self.rule)/rho_r_pip
+        return self.pluvio.amount(rule=self.rule)/rho_r_pip/self.scale
 
     def minimize(self, method='SLSQP', **kwargs):
-        """Find constants for calculating particle masses. Save and return results."""
+        """Legacy method for determining alpha and beta."""
         print('Optimizing parameters...')
         result = minimize(self.cost, self.quess, method=method, **kwargs)
         self.ab = result.x
