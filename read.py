@@ -360,6 +360,11 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         if inplace:
             self.bias = bias_acc_filled
         return bias_acc_filled
+        
+    def tdelta(self):
+        a = self.amount()
+        delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
+        return delta
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
