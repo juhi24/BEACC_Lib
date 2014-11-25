@@ -82,7 +82,6 @@ class Case(read.PrecipMeasurer):
         self.rule = rule
         self.liquid = liquid
         self._ab = None # alpha, beta
-        self.scale = 1e6 # mg --> kg
         if autoshift:
             self.autoshift()
         if unbias:
@@ -158,12 +157,12 @@ class Case(read.PrecipMeasurer):
             r = self.sum_over_d(self.r_rho, rho=params[0])
         else:
             r = self.sum_over_d(self.r_ab, alpha=params[0], beta=params[1])
-        return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)/self.scale
+        return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)
 
     def amount(self, **kwargs):
         """Calculate precipitation in mm using given or saved parameters."""
         i = self.intensity(**kwargs)
-        return i*i.index.freq.delta/pd.datetools.timedelta(hours=1)
+        return i*(i.index.freq.delta/pd.datetools.timedelta(hours=1))
 
     def n(self, d):
         """Number concentration N(D) 1/(mm*m**3)"""
@@ -180,11 +179,11 @@ class Case(read.PrecipMeasurer):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
-        return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
+        return 3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
 
     def r_rho(self, d, rho):
         """(mm/h)/(m/s) * kg/m**3 / (kg/m**3) * mm**3 * m/s * 1/(mm*m**3)"""
-        return self.scale*3.6e-6*TAU/12*rho/RHO_W*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
+        return 1e-9*3.6e-6*TAU/12*rho/RHO_W*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
 
     def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
@@ -258,7 +257,7 @@ class Case(read.PrecipMeasurer):
         rho_r_pip = self.amount(params=[1], simple=True)
         if fltr:
             rho_r_pip[self.intensity() < 0.1] = np.nan # filter
-        return self.pluvio.amount(rule=self.rule)/rho_r_pip/self.scale
+        return self.pluvio.amount(rule=self.rule)/rho_r_pip
 
     def minimize(self, method='SLSQP', **kwargs):
         """Legacy method for determining alpha and beta."""
