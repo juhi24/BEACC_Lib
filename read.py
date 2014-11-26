@@ -122,10 +122,12 @@ class PrecipMeasurer:
         """precipitation accumulation in mm"""
         return self.amount(**kwargs).cumsum()
 
-    def intensity(self, **kwargs):
+    def intensity(self, tdelta=None, **kwargs):
         """precipitation intensity in mm/h"""
         r = self.amount(**kwargs)
-        frac = pd.datetools.timedelta(hours=1)/r.index.freq.delta
+        if tdelta is None:
+            tdelta = r.index.freq.delta
+        frac = pd.datetools.timedelta(hours=1)/tdelta
         return frac * r
 
 class InstrumentData:
@@ -233,7 +235,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     @shift_periods.setter
     def shift_periods(self, shift_periods):
         self._shift_periods = shift_periods
-        self.noprecip_bias(self.lwc, inplace=True)
+        if self.use_bucket:
+            self.noprecip_bias(self.lwc, inplace=True)
         
     @property
     def shift_freq(self):
@@ -242,7 +245,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     @shift_freq.setter
     def shift_freq(self, shift_freq):
         self._shift_freq = shift_freq
-        self.noprecip_bias(self.lwc, inplace=True)
+        if self.use_bucket:
+            self.noprecip_bias(self.lwc, inplace=True)
 
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
@@ -312,11 +316,17 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
         
-    def amount(self, **kwargs):
+    def amount(self, crop=True, **kwargs):
         if self.use_bucket:
             return bucket_amount(**kwargs)
         am = self.good_data()[self.amount_col]
-        return am[am>0]
+        am = am[am>0]
+        if crop:
+            am = am[self.dt_start():self.dt_end()]
+        return am
+        
+    def intensity(self, **kwargs):
+        return super().intensity(tdelta=self.tdelta(), **kwargs)
 
     def bucket_acc(self, rule='1H', interpolate=True, unbias=True, shift=True,
             filter_evap=True):
@@ -362,9 +372,9 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return bias_acc_filled
         
     def tdelta(self):
-        a = self.amount()
+        a = self.amount(crop=False)
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
-        return delta
+        return delta[self.dt_start():self.dt_end()]
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""

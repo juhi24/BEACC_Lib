@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 e = EventsCollection('cases/cases_of_interest.csv', '%d.%m. %H:%M')
-e.autoimport_data(autoshift=False, rule='6min')
+e.autoimport_data(autoshift=False, autobias=False, rule='6min')
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.pluvio.shift_periods = -6
