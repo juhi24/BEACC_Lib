@@ -177,13 +177,14 @@ class Case(read.PrecipMeasurer):
         return result
 
     def r_ab(self, d, alpha, beta):
-        """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
+        """(mm/h)/(m/s)*kg/mg / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
-        return 3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
+        return 3.6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
 
     def r_rho(self, d, rho):
-        """(mm/h)/(m/s) * kg/m**3 / (kg/m**3) * mm**3 * m/s * 1/(mm*m**3)"""
-        return 1e-9*3.6e-6*TAU/12*rho/RHO_W*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
+        """(mm/h)/(m/s)*m**3/mm**3 * kg/m**3 / (kg/m**3) * mm**3 * m/s * 1/(mm*m**3)
+        """
+        return 3.6e-3*TAU/12*rho/RHO_W*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
 
     def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
