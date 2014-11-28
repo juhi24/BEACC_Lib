@@ -376,6 +376,11 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
         return delta[self.dt_start():self.dt_end()]
 
+    def grouper(self):
+        grpd = self.good_data()[self.amount_col].astype(bool).astype(int).cumsum().shift(1).fillna(0)[self.dt_start():self.dt_end()]
+        grpd.name = 'group'
+        return pd.DataFrame(grpd)
+
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -490,14 +495,19 @@ class PipV(InstrumentData):
         num_vbins = round(len(self.dbins)/5)
         return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
 
-    def grouped(self, rule=None):
+    def grouped(self, varinterval=True, rule=None):
         if rule is None:
             rule = self.rule
+        if varinterval:
+            grpd_data = pd.merge(self.good_data(), rule, left_index=True, right_index=True)
+            return grpd_data.groupby('group')
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
 
-    def v(self, d, emptyfit=None, rule=None):
+    def v(self, d, emptyfit=None, varinterval=True, rule=None):
         if emptyfit is None:
             emptyfit = self.default_fit
+        if varinterval:
+            return
         if rule is None:
             rule = self.rule
         if self.fits.empty:
@@ -613,11 +623,11 @@ class PipV(InstrumentData):
         fit.y = v
         return fit
 
-    def find_fits(self, rule, draw_plots=False, empty_on_fail=True, **kwargs):
+    def find_fits(self, rule, varinterval=True, draw_plots=False, empty_on_fail=True, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         names = []
         fits = []
-        for name, group in self.grouped(rule):
+        for name, group in self.grouped(rule=rule, varinterval=varinterval):
             try:
                 newfit = copy.deepcopy(self.find_fit(data=group, **kwargs))
             except RuntimeError as err:

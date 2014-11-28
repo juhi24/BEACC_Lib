@@ -71,12 +71,13 @@ class EventsCollection:
 
 class Case(read.PrecipMeasurer):
     """Calculate snowfall rate from particle size and velocity data."""
-    def __init__(self, dsd, pipv, pluvio, unbias=False, autoshift=False,
-                 liquid=False, quess=(0.01, 2.1), bnd=((0, 0.1), (1, 3)),
-                 rule='15min'):
+    def __init__(self, dsd, pipv, pluvio, varinterval=True, unbias=False,
+                 autoshift=False, liquid=False, quess=(0.01, 2.1),
+                 bnd=((0, 0.1), (1, 3)), rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
+        self.varinterval = varinterval
         self.quess = quess
         self.bnd = bnd
         self.rule = rule
@@ -158,6 +159,8 @@ class Case(read.PrecipMeasurer):
             r = self.sum_over_d(self.r_rho, rho=params[0])
         else:
             r = self.sum_over_d(self.r_ab, alpha=params[0], beta=params[1])
+        if self.varinterval:
+            return r
         return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)/self.scale
 
     def amount(self, **kwargs):
@@ -180,12 +183,17 @@ class Case(read.PrecipMeasurer):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
-        return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule)*self.n(d)
+        return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule_chooser())*self.n(d)
 
     def r_rho(self, d, rho):
         """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
-        return self.scale*3.6e-6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule)*self.n(d)
+        return self.scale*3.6e-6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule_chooser())*self.n(d)
 
+    def rule_chooser(self):
+        if self.varinterval:
+            return self.pluvio.grouper()
+        return self.rule
+    
     def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
         vel = self.pipv.dbin(d, self.dsd.d_bin).vel_v
@@ -214,7 +222,7 @@ class Case(read.PrecipMeasurer):
 
     def series_zeros(self):
         """Return series of zeros of the shape of timestep averaged data."""
-        return self.pluvio.acc(self.rule)*0
+        return self.pluvio.acc(rule=self.rule)*0
 
     def series_nans(self):
         """Return series of nans of the shape of timestep averaged data."""
