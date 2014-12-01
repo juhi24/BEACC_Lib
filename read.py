@@ -289,7 +289,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             return
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
-        self.buffer = pd.datetools.timedelta(minutes=15)
+        self.buffer = pd.datetools.timedelta(hours=1)
         if dt_start is None or dt_end is None:
             self.buffer = pd.datetools.timedelta(0)
         elif dt_start-self.buffer < self.data.index[0] or dt_end+self.buffer > self.data.index[-1]:
@@ -784,7 +784,7 @@ class PipV(InstrumentData):
             self.good_data().vel_v.max()
         for i, (name, group) in enumerate(self.grouped(rule=rule)):
             if separate:
-                f = plt.figure(dpi=175, figsize=(3.5,3))
+                f = plt.figure(dpi=175, figsize=(3.5, 3))
                 ax = plt.gca()
                 farr.append(f)
                 axarr.append(ax)

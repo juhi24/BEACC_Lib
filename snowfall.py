@@ -60,7 +60,7 @@ class EventsCollection:
     def autoimport_data(self, datafile=['../DATA/baecc.h5'], rule='10min',
                         **kwargs):
         """Import data from a hdf file."""
-        timemargin = pd.datetools.timedelta(hours=1)
+        timemargin = pd.datetools.timedelta(hours=2)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
         data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule,
