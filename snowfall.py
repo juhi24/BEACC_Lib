@@ -176,7 +176,11 @@ class Case(read.PrecipMeasurer):
     def amount(self, **kwargs):
         """Calculate precipitation in mm using given or saved parameters."""
         i = self.intensity(**kwargs)
-        return i*i.index.freq.delta/pd.datetools.timedelta(hours=1)
+        if self.varinterval:
+            delta = self.pluvio.tdelta()
+        else:
+            delta = i.index.freq.delta
+        return i*(delta/pd.datetools.timedelta(hours=1))
 
     def sum_over_d(self, func, **kwargs):
         """numerical integration over particle diameter"""
@@ -241,6 +245,12 @@ class Case(read.PrecipMeasurer):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
         return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
 
+    def pluvargs(self):
+        args = {}
+        if not self.varinterval:
+            args['rule'] = self.rule
+        return args
+
     def cost(self, c, use_accum=True):
         """Cost function for minimization"""
         if use_accum:
@@ -249,7 +259,7 @@ class Case(read.PrecipMeasurer):
         else:
             pip_precip = self.intesity(params=c)
             cost_method = self.pluvio.intensity()
-        return abs(pip_precip.add(-1*cost_method(self.rule)).sum())
+        return abs(pip_precip.add(-1*cost_method(**self.pluvargs())).sum())
 
     def cost_lsq(self, beta):
         """Single variable cost function using lstsq to find linear coef."""
@@ -259,7 +269,7 @@ class Case(read.PrecipMeasurer):
     def const_lsq(self, c, simple):
         acc_arr = self.acc(params=c, simple=simple).values
         A = np.vstack([acc_arr, np.ones(len(acc_arr))]).T
-        y = self.pluvio.acc(self.rule).values
+        y = self.pluvio.acc(**self.pluvargs()).values
         return np.linalg.lstsq(A, y)[0][0]
 
     def alpha_lsq(self, beta):

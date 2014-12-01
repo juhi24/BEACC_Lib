@@ -191,7 +191,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.bias = 0
         self._shift_periods = 0
-        self._shift_freq = None
+        self._shift_freq = '1min'
         self.lwc = None
         self.col_suffix = 'nrt'
         self.use_bucket = False
@@ -311,7 +311,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     def shift_reset(self):
         """Reset time shift."""
         self.shift_periods = 0
-        self.shift_freq = None
+        self.shift_freq = '1min'
 
     def bucket_amount(self, rule='1H', upsample=True, **kwargs):
         """Calculate precipitation amount"""
@@ -327,11 +327,13 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
 
-    def amount(self, crop=True, **kwargs):
+    def amount(self, crop=True, shift=True, **kwargs):
         if self.use_bucket:
-            return bucket_amount(**kwargs)
+            return bucket_amount(shift=shift, **kwargs)
         am = self.good_data()[self.amount_col]
         am = am[am > 0]
+        if shift:
+            am = am.tshift(periods=self.shift_periods, freq=self.shift_freq)
         if crop:
             am = am[self.dt_start():self.dt_end()]
         return am
@@ -387,12 +389,14 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
         return delta[self.dt_start():self.dt_end()]
 
-    def grouper(self):
+    def grouper(self, shift=True):
         ticks = self.good_data()[self.amount_col].astype(bool)
+        if shift:
+            ticks = ticks.tshift(periods=self.shift_periods, freq=self.shift_freq)
         dtgroups = pd.Series(ticks.index[ticks], index=ticks.index[ticks]).reindex(ticks.index).bfill()[self.dt_start():self.dt_end()]
         #numgroups = ticks.astype(int).cumsum().shift(1).fillna(0)[self.dt_start():self.dt_end()]
         dtgroups.name = 'group'
-        return pd.DataFrame(dtgroups)
+        return pd.DataFrame(dtgroups[dtgroups.notnull()])
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
