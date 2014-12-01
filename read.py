@@ -377,9 +377,11 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return delta[self.dt_start():self.dt_end()]
 
     def grouper(self):
-        grpd = self.good_data()[self.amount_col].astype(bool).astype(int).cumsum().shift(1).fillna(0)[self.dt_start():self.dt_end()]
-        grpd.name = 'group'
-        return pd.DataFrame(grpd)
+        ticks = self.good_data()[self.amount_col].astype(bool)
+        dtgroups = pd.Series(ticks.index[ticks], index=ticks.index[ticks]).reindex(ticks.index).bfill()[self.dt_start():self.dt_end()]
+        #numgroups = ticks.astype(int).cumsum().shift(1).fillna(0)[self.dt_start():self.dt_end()]
+        dtgroups.name = 'group'
+        return pd.DataFrame(dtgroups)
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
@@ -506,15 +508,14 @@ class PipV(InstrumentData):
     def v(self, d, emptyfit=None, varinterval=True, rule=None):
         if emptyfit is None:
             emptyfit = self.default_fit
-        if varinterval:
-            return
         if rule is None:
             rule = self.rule
         if self.fits.empty:
             self.find_fits(rule, fit=emptyfit)
-        elif pd.datetools.to_offset(rule) != self.fits.index.freq:
-            # different sampling freq
-            self.find_fits(rule, fit=emptyfit)
+        elif not varinterval:
+            if pd.datetools.to_offset(rule) != self.fits.index.freq:
+                # different sampling freq
+                self.find_fits(rule, fit=emptyfit)
         v = []
         for fit in self.fits[emptyfit.name].values:
             v.append(fit.func(d))
@@ -646,7 +647,10 @@ class PipV(InstrumentData):
                 self.plot_kde(data=group, ax=ax)
                 self.plot(data=group, hexbin=False, ax=ax)
                 plt.show()
-        timestamps = pd.DatetimeIndex(names, freq=rule)
+        if varinterval:
+            timestamps = names
+        else:
+            timestamps = pd.DatetimeIndex(names, freq=rule)
         if self.fits.empty:
             self.fits = pd.DataFrame(fits, index=timestamps, 
                                      columns=[newfit.name])
@@ -741,10 +745,10 @@ class PipV(InstrumentData):
         ax.legend(loc='upper right')
         return ax
 
-    def plots(self, separate=True, peak=False, save=False, ncols=1,
+    def plots(self, rule=None, separate=True, peak=False, save=False, ncols=1,
               prefix='', suffix='.png', ymax=None, **kwargs):
         """Plot datapoints and fit for each timestep."""
-        ngroups = self.grouped().ngroups
+        ngroups = self.grouped(rule=rule).ngroups
         #nrows = int(np.ceil(ngroups/ncols))
         if save:
             home = os.curdir
@@ -760,7 +764,7 @@ class PipV(InstrumentData):
             farr = []
         if ymax is None:
             self.good_data().vel_v.max()
-        for i, (name, group) in enumerate(self.grouped()):
+        for i, (name, group) in enumerate(self.grouped(rule=rule)):
             if separate:
                 f = plt.figure(dpi=175, figsize=(3.5,3))
                 ax = plt.gca()

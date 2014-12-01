@@ -16,6 +16,7 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     #c.pipv.plots(save=True)
     
 c.ab=(0.1,2.1)
+vels = c.pipv.v(0.375, rule=c.pluvio.grouper())
 
 p=e.events.pluvio200[2].pluvio
 d=p.data
