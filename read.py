@@ -413,6 +413,10 @@ class PipDSD(InstrumentData):
         d = datetime.date(*datearr)
         t = datetime.time(int(hh), int(mm))
         return datetime.datetime.combine(d, t)
+        
+    def n(d, rule=None):
+        return self.good_data()[d].resample(rule, how=np.mean, closed='right',
+                                            label='right')
 
     def plot(self, img=True):
         """Plot particle size distribution over time."""

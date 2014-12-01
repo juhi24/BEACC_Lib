@@ -168,11 +168,6 @@ class Case(read.PrecipMeasurer):
         i = self.intensity(**kwargs)
         return i*i.index.freq.delta/pd.datetools.timedelta(hours=1)
 
-    def n(self, d):
-        """Number concentration N(D) 1/(mm*m**3)"""
-        return self.dsd.good_data()[d].resample(self.rule, how=np.mean,
-                                                closed='right', label='right')
-
     def sum_over_d(self, func, **kwargs):
         dD = self.dsd.d_bin
         result = self.series_zeros()
@@ -183,11 +178,11 @@ class Case(read.PrecipMeasurer):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
-        return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule_chooser())*self.n(d)
+        return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule_chooser())*self.dsd.n(d, self.rule)
 
     def r_rho(self, d, rho):
         """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
-        return self.scale*3.6e-6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule_chooser())*self.n(d)
+        return self.scale*3.6e-6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule_chooser())*self.dsd.n(d, self.rule)
 
     def rule_chooser(self):
         if self.varinterval:
@@ -212,12 +207,12 @@ class Case(read.PrecipMeasurer):
 
     def n_t(self):
         """total concentration"""
-        return self.sum_over_d(self.n)
+        return self.sum_over_d(self.dsd.n, rule=self.rule)
 
     def d_m(self):
         """mass weighted mean diameter"""
-        d4n = lambda d: d**4*self.n(d)
-        d3n = lambda d: d**3*self.n(d)
+        d4n = lambda d: d**4*self.dsd.n(d, rule=self.rule)
+        d3n = lambda d: d**3*self.dsd.n(d, rule=self.rule)
         return self.sum_over_d(d4n)/self.sum_over_d(d3n)
 
     def series_zeros(self):
