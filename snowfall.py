@@ -25,7 +25,7 @@ def batch_import(dtstr, datadir='../DATA'):
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
-def batch_create_hdf(datadir='../DATA', outname='baecc.h5', 
+def batch_create_hdf(datadir='../DATA', outname='baecc.h5',
                      dtstr='20140[2-3]??'):
     """Read data from files and export to hdf."""
     instrdict = batch_import(dtstr, datadir)
@@ -57,7 +57,7 @@ class EventsCollection:
                                                autobias=autobias))
         self.events[data.pluvio.name] = cases
 
-    def autoimport_data(self, datafile=['../DATA/baecc.h5'], rule='10min', 
+    def autoimport_data(self, datafile=['../DATA/baecc.h5'], rule='10min',
                         **kwargs):
         """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=1)
@@ -80,7 +80,7 @@ class Case(read.PrecipMeasurer):
         self.varinterval = varinterval
         self.quess = quess
         self.bnd = bnd
-        self.rule = rule
+        self._rule = rule
         self.liquid = liquid
         self._ab = None # alpha, beta
         self.scale = 1e6 # mg --> kg
@@ -99,6 +99,16 @@ class Case(read.PrecipMeasurer):
         dt_end = t[-1]
         return '%s case from %s to %s, %s sampling' % (casetype, dt_start,
                                                        dt_end, self.rule)
+
+    @property
+    def rule(self):
+        if self.varinterval:
+            return self.pluvio.grouper()
+        return self.rule
+
+    @rule.setter
+    def rule(self, rule):
+        self._rule = rule
 
     @property
     def ab(self):
@@ -169,6 +179,7 @@ class Case(read.PrecipMeasurer):
         return i*i.index.freq.delta/pd.datetools.timedelta(hours=1)
 
     def sum_over_d(self, func, **kwargs):
+        """numerical integration over particle diameter"""
         dD = self.dsd.d_bin
         result = self.series_zeros()
         for d in self.dsd.data.columns:
@@ -178,17 +189,20 @@ class Case(read.PrecipMeasurer):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s) / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
-        return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.pipv.v(d, rule=self.rule_chooser())*self.dsd.n(d, self.rule)
+        return self.scale*3.6e-6/RHO_W*alpha*d**beta*self.v(d)*self.n(d)
 
     def r_rho(self, d, rho):
         """(mm/h)/(m/s) * kg/m**3 * mm**3 * m/s * 1/(mm*m**3)"""
-        return self.scale*3.6e-6*TAU/12*rho*d**3*self.pipv.v(d, rule=self.rule_chooser())*self.dsd.n(d, self.rule)
+        return self.scale*3.6e-6*TAU/12*rho*d**3*self.v(d)*self.n(d)
 
-    def rule_chooser(self):
-        if self.varinterval:
-            return self.pluvio.grouper()
-        return self.rule
-    
+    def v(self, d):
+        """velocity wrapper"""
+        return self.pipv.v(d, rule=self.rule)
+
+    def n(self, d):
+        """N wrapper"""
+        return self.dsd.n(d, varinterval=self.varinterval, rule=self.rule)
+
     def v_fall(self, d, how=np.median):
         """v(D) m/s for every timestep, query is slow"""
         vel = self.pipv.dbin(d, self.dsd.d_bin).vel_v
