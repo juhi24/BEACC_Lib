@@ -289,7 +289,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             return
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
-        self.buffer = pd.datetools.timedelta(hours=1)
+        self.buffer = pd.datetools.timedelta(hours=2)
         if dt_start is None or dt_end is None:
             self.buffer = pd.datetools.timedelta(0)
         elif dt_start-self.buffer < self.data.index[0] or dt_end+self.buffer > self.data.index[-1]:
@@ -387,7 +387,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     def tdelta(self):
         a = self.amount(crop=False)
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
-        return delta[self.dt_start():self.dt_end()]
+        longest_delta = pd.datetools.timedelta(hours=1)
+        return delta[self.dt_start():self.dt_end()].fillna(longest_delta)
 
     def grouper(self, shift=True):
         ticks = self.good_data()[self.amount_col].astype(bool)
