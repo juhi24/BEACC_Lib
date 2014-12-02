@@ -396,7 +396,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         dtgroups = pd.Series(ticks.index[ticks], index=ticks.index[ticks]).reindex(ticks.index).bfill()[self.dt_start():self.dt_end()]
         #numgroups = ticks.astype(int).cumsum().shift(1).fillna(0)[self.dt_start():self.dt_end()]
         dtgroups.name = 'group'
-        return pd.DataFrame(dtgroups[dtgroups.notnull()])
+        last_index = self.tdelta().index[-1]
+        return pd.DataFrame(dtgroups[dtgroups.notnull()])[:last_index]
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
