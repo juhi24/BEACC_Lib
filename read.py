@@ -36,7 +36,7 @@ class Fit:
         """penalty function used by the cost function"""
         return 0
 
-    def plot(self, xmax=20, samples=1000, ax=None, label=None, 
+    def plot(self, xmax=20, samples=1000, ax=None, label=None,
              source_data=False, marker='ro', **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
@@ -122,10 +122,12 @@ class PrecipMeasurer:
         """precipitation accumulation in mm"""
         return self.amount(**kwargs).cumsum()
 
-    def intensity(self, **kwargs):
+    def intensity(self, tdelta=None, **kwargs):
         """precipitation intensity in mm/h"""
         r = self.amount(**kwargs)
-        frac = pd.datetools.timedelta(hours=1)/r.index.freq.delta
+        if tdelta is None:
+            tdelta = r.index.freq.delta
+        frac = pd.datetools.timedelta(hours=1)/tdelta
         return frac * r
 
 class InstrumentData:
@@ -170,6 +172,17 @@ class InstrumentData:
             dt = pd.datetools.to_datetime(dt)
         self.data = self.data[dt_start:dt_end]
 
+    def grouped(self, varinterval=True, rule=None, col=None):
+        if rule is None:
+            rule = self.rule
+        if varinterval:
+            data = self.good_data()
+            if col is not None:
+                data = pd.DataFrame(data[col])
+            grpd_data = pd.merge(data, rule, left_index=True, right_index=True)
+            return grpd_data.groupby('group')
+        return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
+
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -178,9 +191,12 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.bias = 0
         self._shift_periods = 0
-        self._shift_freq = None
+        self._shift_freq = '1min'
         self.lwc = None
-        self.bucket_col = 'bucket_nrt'
+        self.col_suffix = 'nrt'
+        self.use_bucket = False
+        self.amount_col = 'acc_' + self.col_suffix
+        self.bucket_col = 'bucket_' + self.col_suffix
         if self.data.empty:
             self.name = path.basename(path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
@@ -221,24 +237,27 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             self.data.drop(['i_rt'], 1, inplace=True) # crap format
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
-        
+        self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
+
     @property
     def shift_periods(self):
         return self._shift_periods
-        
+
     @shift_periods.setter
     def shift_periods(self, shift_periods):
         self._shift_periods = shift_periods
-        self.noprecip_bias(self.lwc, inplace=True)
-        
+        if self.use_bucket:
+            self.noprecip_bias(self.lwc, inplace=True)
+
     @property
     def shift_freq(self):
         return self._shift_freq
-        
+
     @shift_freq.setter
     def shift_freq(self, shift_freq):
         self._shift_freq = shift_freq
-        self.noprecip_bias(self.lwc, inplace=True)
+        if self.use_bucket:
+            self.noprecip_bias(self.lwc, inplace=True)
 
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
@@ -253,11 +272,14 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         data = copy.deepcopy(self.data)
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
         if self.data.index[-1] > swap_date:
+            precip_cols = ['acc_rt', 'acc_nrt', 'acc_tot_nrt', 'bucket_rt',
+                           'bucket_nrt']
             if self.name == 'pluvio200':
                 correction = 2
             elif self.name == 'pluvio400':
                 correction = 0.5
-            data[self.bucket_col] = self.data[self.bucket_col]*correction
+            for col in precip_cols:
+                data[col] = self.data[col]*correction
         return data
 
     def set_span(self, dt_start, dt_end):
@@ -267,7 +289,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             return
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
-        self.buffer = pd.datetools.timedelta(minutes=15)
+        self.buffer = pd.datetools.timedelta(hours=1)
         if dt_start is None or dt_end is None:
             self.buffer = pd.datetools.timedelta(0)
         elif dt_start-self.buffer < self.data.index[0] or dt_end+self.buffer > self.data.index[-1]:
@@ -289,23 +311,38 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     def shift_reset(self):
         """Reset time shift."""
         self.shift_periods = 0
-        self.shift_freq = None
+        self.shift_freq = '1min'
 
-    def amount(self, rule='1H', upsample=True, **kwargs):
+    def bucket_amount(self, rule='1H', upsample=True, **kwargs):
         """Calculate precipitation amount"""
         if upsample:
             acc_1min = self.acc('1min', **kwargs)
         else:
             acc_1min = self.acc_raw()
-        r = acc_1min.diff().resample(rule, how=np.sum, closed='right', label='right')
+        r = acc_1min.diff().resample(rule, how=np.sum, closed='right',
+                                     label='right')
         if not upsample:
             return r.fillna(0)
         t_r0 = r.index[0]
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
 
-    def acc(self, rule='1H', interpolate=True, unbias=True, shift=True,
-            filter_evap=True):
+    def amount(self, crop=True, shift=True, **kwargs):
+        if self.use_bucket:
+            return bucket_amount(shift=shift, **kwargs)
+        am = self.good_data()[self.amount_col]
+        am = am[am > 0]
+        if shift:
+            am = am.tshift(periods=self.shift_periods, freq=self.shift_freq)
+        if crop:
+            am = am[self.dt_start():self.dt_end()]
+        return am
+
+    def intensity(self, **kwargs):
+        return super().intensity(tdelta=self.tdelta(), **kwargs)
+
+    def bucket_acc(self, rule='1H', interpolate=True, unbias=True, shift=True,
+                   filter_evap=True):
         """Resample unbiased accumulated precipitation in mm."""
         accum = self.acc_raw().asfreq('1min')
         if interpolate:
@@ -347,6 +384,20 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             self.bias = bias_acc_filled
         return bias_acc_filled
 
+    def tdelta(self):
+        a = self.amount(crop=False)
+        delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
+        return delta[self.dt_start():self.dt_end()]
+
+    def grouper(self, shift=True):
+        ticks = self.good_data()[self.amount_col].astype(bool)
+        if shift:
+            ticks = ticks.tshift(periods=self.shift_periods, freq=self.shift_freq)
+        dtgroups = pd.Series(ticks.index[ticks], index=ticks.index[ticks]).reindex(ticks.index).bfill()[self.dt_start():self.dt_end()]
+        #numgroups = ticks.astype(int).cumsum().shift(1).fillna(0)[self.dt_start():self.dt_end()]
+        dtgroups.name = 'group'
+        return pd.DataFrame(dtgroups[dtgroups.notnull()])
+
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -377,6 +428,17 @@ class PipDSD(InstrumentData):
         d = datetime.date(*datearr)
         t = datetime.time(int(hh), int(mm))
         return datetime.datetime.combine(d, t)
+
+    def n(self, d, rule=None, varinterval=True):
+        if varinterval:
+            grp = self.grouped(rule=rule, varinterval=varinterval, col=d)
+            n = grp.mean()
+            ns = n[n.columns[0]]
+            ns.name = 'N'
+            ns.index.name = 'datetime'
+            return ns
+        return self.good_data()[d].resample(rule, how=np.mean, closed='right',
+                                            label='right')
 
     def plot(self, img=True):
         """Plot particle size distribution over time."""
@@ -461,21 +523,17 @@ class PipV(InstrumentData):
         num_vbins = round(len(self.dbins)/5)
         return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
 
-    def grouped(self, rule=None):
-        if rule is None:
-            rule = self.rule
-        return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
-
-    def v(self, d, emptyfit=None, rule=None):
+    def v(self, d, emptyfit=None, varinterval=True, rule=None):
         if emptyfit is None:
             emptyfit = self.default_fit
         if rule is None:
             rule = self.rule
         if self.fits.empty:
             self.find_fits(rule, fit=emptyfit)
-        elif pd.datetools.to_offset(rule) != self.fits.index.freq:
-            # different sampling freq
-            self.find_fits(rule, fit=emptyfit)
+        elif not varinterval:
+            if pd.datetools.to_offset(rule) != self.fits.index.freq:
+                # different sampling freq
+                self.find_fits(rule, fit=emptyfit)
         v = []
         for fit in self.fits[emptyfit.name].values:
             v.append(fit.func(d))
@@ -523,7 +581,8 @@ class PipV(InstrumentData):
             vmin = y_fltr[0]
             vmax = y_fltr[-1]
             d = X[:, i][0]
-            filtered = filtered.append(self.dbin(d=d, data=data, vmin=vmin, vmax=vmax))
+            filtered = filtered.append(self.dbin(d=d, data=data, vmin=vmin,
+                                                 vmax=vmax))
         return filtered
 
     def frac_larger(self, d):
@@ -536,7 +595,9 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
 
-    def find_fit(self, fit=None, data=None, kde=False, cut_d=False, use_curve_fit=True, bin_num_min=5, filter_outliers=True, **kwargs):
+    def find_fit(self, fit=None, data=None, kde=False, cut_d=False,
+                 use_curve_fit=True, bin_num_min=5, filter_outliers=True,
+                 **kwargs):
         """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
         """
         if data is None:
@@ -562,7 +623,8 @@ class PipV(InstrumentData):
             d = d[d < dcut]
             v = v[d < dcut]
         if kde:
-            num = np.array([self.dbin(diam, self.binwidth, data=data).vel_v.count() for diam in d])
+            num = np.array([self.dbin(diam, self.binwidth,
+                                      data=data).vel_v.count() for diam in d])
             d = d[num > bin_num_min]
             v = v[num > bin_num_min]
             sig = [self.dbin(diam, self.binwidth, data=data).vel_v.sem() for diam in d]
@@ -580,11 +642,11 @@ class PipV(InstrumentData):
         fit.y = v
         return fit
 
-    def find_fits(self, rule, draw_plots=False, empty_on_fail=True, **kwargs):
+    def find_fits(self, rule, varinterval=True, draw_plots=False, empty_on_fail=True, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         names = []
         fits = []
-        for name, group in self.grouped(rule):
+        for name, group in self.grouped(rule=rule, varinterval=varinterval):
             try:
                 newfit = copy.deepcopy(self.find_fit(data=group, **kwargs))
             except RuntimeError as err:
@@ -603,13 +665,18 @@ class PipV(InstrumentData):
                 self.plot_kde(data=group, ax=ax)
                 self.plot(data=group, hexbin=False, ax=ax)
                 plt.show()
-        timestamps = pd.DatetimeIndex(names, freq=rule)
+        if varinterval:
+            timestamps = names
+        else:
+            timestamps = pd.DatetimeIndex(names, freq=rule)
         if self.fits.empty:
-            self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
+            self.fits = pd.DataFrame(fits, index=timestamps,
+                                     columns=[newfit.name])
         elif self.fits.index.equals(timestamps):
             self.fits[newfit.name] = fits
         else:
-            self.fits = pd.DataFrame(fits, index=timestamps, columns=[newfit.name])
+            self.fits = pd.DataFrame(fits, index=timestamps,
+                                     columns=[newfit.name])
         return self.fits
 
     def fit_coefs(self):
@@ -696,10 +763,10 @@ class PipV(InstrumentData):
         ax.legend(loc='upper right')
         return ax
 
-    def plots(self, separate=True, peak=False, save=False, ncols=1,
+    def plots(self, rule=None, separate=True, peak=False, save=False, ncols=1,
               prefix='', suffix='.png', ymax=None, **kwargs):
         """Plot datapoints and fit for each timestep."""
-        ngroups = self.grouped().ngroups
+        ngroups = self.grouped(rule=rule).ngroups
         #nrows = int(np.ceil(ngroups/ncols))
         if save:
             home = os.curdir
@@ -715,9 +782,9 @@ class PipV(InstrumentData):
             farr = []
         if ymax is None:
             self.good_data().vel_v.max()
-        for i, (name, group) in enumerate(self.grouped()):
+        for i, (name, group) in enumerate(self.grouped(rule=rule)):
             if separate:
-                f = plt.figure(dpi=175, figsize=(3.5,3))
+                f = plt.figure(dpi=175, figsize=(3.5, 3))
                 ax = plt.gca()
                 farr.append(f)
                 axarr.append(ax)
