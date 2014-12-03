@@ -320,13 +320,13 @@ class Case(read.PrecipMeasurer):
         return pd.date_range(self.pluvio.acc().index[0],
                              self.pluvio.acc().index[-1], freq='1min')
 
-    def plot(self, axarr=None, kind='line', pip=True, **kwargs):
+    def plot(self, axarr=None, kind='line', label_suffix='', pip=True, **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
         if axarr is None:
             f, axarr = plt.subplots(4, sharex=True)
         if pip:
-            self.intensity().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
-        self.pluvio.intensity(rule=self.rule).plot(label=self.pluvio.name,
+            self.intensity().plot(label='PIP ' + label_suffix, kind=kind, ax=axarr[0], **kwargs)
+        self.pluvio.intensity(rule=self.rule).plot(label=self.pluvio.name + ' ' + label_suffix,
                                                    kind=kind, ax=axarr[0],
                                                    **kwargs)
         axarr[0].set_ylabel('mm/h')
@@ -336,13 +336,14 @@ class Case(read.PrecipMeasurer):
             title = r'precipitation intensity, $\alpha=%s, \beta=%s$' % (self.ab[0], self.ab[1])
         axarr[0].set_title(title)
         rho = self.density(fltr=True)
-        rho.plot(label='mean density', ax=axarr[1])
-        axarr[1].set_ylabel(r'$\rho_{part}$')
-        self.n_t().plot(ax=axarr[2])
+        rho.plot(label=label_suffix, ax=axarr[1], **kwargs)
+        axarr[1].set_ylabel(r'$\rho_{b}$')
+        self.n_t().plot(label=label_suffix, ax=axarr[2], **kwargs)
         axarr[2].set_ylabel(r'$N_{tot} (m^{-3})$')
-        self.d_m().plot(ax=axarr[3])
+        self.d_m().plot(label=label_suffix, ax=axarr[3], **kwargs)
         axarr[3].set_ylabel(r'$D_m$ (mm)')
-        axarr[0].legend(loc='upper right')
+        for ax in axarr:
+            ax.legend(loc='upper right')
         axarr[-1].set_xlabel('time (UTC)')
         plt.show()
         return axarr
