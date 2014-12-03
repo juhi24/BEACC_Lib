@@ -57,16 +57,16 @@ class EventsCollection:
                                                autobias=autobias))
         self.events[data.pluvio.name] = cases
 
-    def autoimport_data(self, datafile=['../DATA/baecc.h5'], rule='10min',
-                        **kwargs):
+    def autoimport_data(self, datafile=['../DATA/baecc.h5'],
+                        autoshift=False, autobias=False, **casekwargs):
         """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=3)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
-        data = Case.from_hdf(dt_start, dt_end, autoshift=False, rule=rule,
-                             filenames=datafile)
+        data = Case.from_hdf(dt_start, dt_end, autoshift=False,
+                             filenames=datafile, **casekwargs)
         for d in data:
-            self.add_data(d, **kwargs)
+            self.add_data(d, autoshift=autoshift, autobias=autobias)
         return
 
 class Case(read.PrecipMeasurer):
@@ -77,7 +77,8 @@ class Case(read.PrecipMeasurer):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
-        self.varinterval = varinterval
+        self._varinterval = varinterval
+        self.pluvio.varinterval = varinterval
         self.quess = quess
         self.bnd = bnd
         self._rule = rule
@@ -100,10 +101,19 @@ class Case(read.PrecipMeasurer):
                                                        dt_end, self.rule)
 
     @property
+    def varinterval(self):
+        return self._varinterval
+        
+    @varinterval.setter
+    def varinterval(self, varinterval):
+        self._varinterval = varinterval
+        self.pluvio.varinterval = varinterval
+
+    @property
     def rule(self):
         if self.varinterval:
             return self.pluvio.grouper()
-        return self.rule
+        return self._rule
 
     @rule.setter
     def rule(self, rule):
@@ -201,7 +211,7 @@ class Case(read.PrecipMeasurer):
 
     def v(self, d):
         """velocity wrapper"""
-        return self.pipv.v(d, rule=self.rule)
+        return self.pipv.v(d, varinterval=self.varinterval, rule=self.rule)
 
     def n(self, d):
         """N wrapper"""
@@ -225,12 +235,12 @@ class Case(read.PrecipMeasurer):
 
     def n_t(self):
         """total concentration"""
-        return self.sum_over_d(self.dsd.n, rule=self.rule)
+        return self.sum_over_d(self.n)
 
     def d_m(self):
         """mass weighted mean diameter"""
-        d4n = lambda d: d**4*self.dsd.n(d, rule=self.rule)
-        d3n = lambda d: d**3*self.dsd.n(d, rule=self.rule)
+        d4n = lambda d: d**4*self.n(d)
+        d3n = lambda d: d**3*self.n(d)
         return self.sum_over_d(d4n)/self.sum_over_d(d3n)
 
     def series_zeros(self):
@@ -310,9 +320,10 @@ class Case(read.PrecipMeasurer):
         return pd.date_range(self.pluvio.acc().index[0],
                              self.pluvio.acc().index[-1], freq='1min')
 
-    def plot(self, kind='line', pip=True, **kwargs):
+    def plot(self, axarr=None, kind='line', pip=True, **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
-        f, axarr = plt.subplots(4, sharex=True)
+        if axarr is None:
+            f, axarr = plt.subplots(4, sharex=True)
         if pip:
             self.intensity().plot(label='PIP', kind=kind, ax=axarr[0], **kwargs)
         self.pluvio.intensity(rule=self.rule).plot(label=self.pluvio.name,
@@ -334,6 +345,7 @@ class Case(read.PrecipMeasurer):
         axarr[0].legend(loc='upper right')
         axarr[-1].set_xlabel('time (UTC)')
         plt.show()
+        return axarr
 
     def plot_cost(self, resolution=20, ax=None, cmap='binary', **kwargs):
         """The slowest plot you've drawn"""

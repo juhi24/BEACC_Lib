@@ -195,6 +195,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.lwc = None
         self.col_suffix = 'nrt'
         self.use_bucket = False
+        self._varinterval = True
         self.amount_col = 'acc_' + self.col_suffix
         self.bucket_col = 'bucket_' + self.col_suffix
         if self.data.empty:
@@ -238,6 +239,15 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
         self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
+
+    @property
+    def varinterval(self):
+        return self._varinterval
+        
+    @varinterval.setter
+    def varinterval(self, varinterval):
+        self._varinterval = varinterval
+        self.use_bucket = not varinterval
 
     @property
     def shift_periods(self):
@@ -313,10 +323,10 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.shift_periods = 0
         self.shift_freq = '1min'
 
-    def bucket_amount(self, rule='1H', upsample=True, **kwargs):
+    def constinterval_amount(self, rule='1H', upsample=True, **kwargs):
         """Calculate precipitation amount"""
         if upsample:
-            acc_1min = self.acc('1min', **kwargs)
+            acc_1min = self.constinterval_acc('1min', **kwargs)
         else:
             acc_1min = self.acc_raw()
         r = acc_1min.diff().resample(rule, how=np.sum, closed='right',
@@ -327,9 +337,9 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
 
-    def amount(self, crop=True, shift=True, **kwargs):
-        if self.use_bucket:
-            return bucket_amount(shift=shift, **kwargs)
+    def amount(self, crop=True, shift=True, **bucketkwargs):
+        if not self.varinterval:
+            return self.constinterval_amount(shift=shift, **bucketkwargs)
         am = self.good_data()[self.amount_col]
         am = am[am > 0]
         if shift:
@@ -339,10 +349,12 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return am
 
     def intensity(self, **kwargs):
-        return super().intensity(tdelta=self.tdelta(), **kwargs)
+        if self.varinterval:
+            return super().intensity(tdelta=self.tdelta(), **kwargs)
+        return super().intensity(tdelta=None, **kwargs)
 
-    def bucket_acc(self, rule='1H', interpolate=True, unbias=True, shift=True,
-                   filter_evap=True):
+    def constinterval_acc(self, rule='1H', interpolate=True, unbias=True, 
+                          shift=True, filter_evap=True):
         """Resample unbiased accumulated precipitation in mm."""
         accum = self.acc_raw().asfreq('1min')
         if interpolate:
@@ -531,11 +543,11 @@ class PipV(InstrumentData):
         if rule is None:
             rule = self.rule
         if self.fits.empty:
-            self.find_fits(rule, fit=emptyfit)
+            self.find_fits(rule, fit=emptyfit, varinterval=varinterval)
         elif not varinterval:
             if pd.datetools.to_offset(rule) != self.fits.index.freq:
                 # different sampling freq
-                self.find_fits(rule, fit=emptyfit)
+                self.find_fits(rule, fit=emptyfit, varinterval=varinterval)
         v = []
         for fit in self.fits[emptyfit.name].values:
             v.append(fit.func(d))
