@@ -406,6 +406,22 @@ class Case(read.PrecipMeasurer):
         ax.legend(loc='lower right')
         return ax
 
+    def plot_velfitcoefs(self, vmin=None, vmax=None, **kwargs):
+        rho = self.density()
+        params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
+        rho = rho[rho.notnull()]
+        params = params[rho.notnull()]
+        a = params.apply(lambda p: p[0]).values
+        b=params.apply(lambda p: p[1]).values
+        f, ax = plt.subplots()
+        if vmin is None:
+            vmin = rho.min()
+        if vmax is None:
+            vmax = rho.max()
+        plt.scatter(a,b,c=rho.values, vmin=vmin, vmax=vmax, **kwargs)
+        plt.colorbar()
+        return ax
+
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio intensity.
         Extra arguments are passed to pyplot.xcorr.
