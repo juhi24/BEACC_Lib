@@ -23,6 +23,11 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     #c.plot(pip=False)
     #c.pipv.plots(save=True)
 
+c=e.events.pluvio400[2]
+c.pipv.fits=fits21
+c.ab=ab21
+c.plot_velfitcoefs(rhomax=600, countmin=2000)
+
 #c.plot()
 #c.varinterval=True
 #c.minimize_lsq()

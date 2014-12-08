@@ -699,6 +699,9 @@ class PipV(InstrumentData):
             paramslist.append(fit.params)
         return pd.DataFrame(data=np.vstack(paramslist), index=self.fits.index)
 
+    def partcount(self, rule, varinterval):
+        return self.grouped(rule=rule, varinterval=varinterval).Part_ID.count()
+
     def kde(self, data=None):
         """kernel-density estimate of d,v data using gaussian kernels"""
         if data is None:

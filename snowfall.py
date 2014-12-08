@@ -97,8 +97,12 @@ class Case(read.PrecipMeasurer):
         t = self.time_range()
         dt_start = t[0]
         dt_end = t[-1]
-        return '%s case from %s to %s, %s sampling' % (casetype, dt_start,
-                                                       dt_end, self.rule)
+        if self.varinterval:
+            sampling_label = 'varying intervals'
+        else:
+            sampling_label = self.rule
+        return '%s case from %s to %s, %s' % (casetype, dt_start,
+                                              dt_end, sampling_label)
 
     @property
     def varinterval(self):
@@ -242,6 +246,9 @@ class Case(read.PrecipMeasurer):
         d4n = lambda d: d**4*self.n(d)
         d3n = lambda d: d**3*self.n(d)
         return self.sum_over_d(d4n)/self.sum_over_d(d3n)
+
+    def partcount(self):
+        return self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
 
     def series_zeros(self):
         """Return series of zeros of the shape of timestep averaged data."""
@@ -406,20 +413,24 @@ class Case(read.PrecipMeasurer):
         ax.legend(loc='lower right')
         return ax
 
-    def plot_velfitcoefs(self, vmin=None, vmax=None, **kwargs):
+    def plot_velfitcoefs(self, rhomin=None, rhomax=None, countmin=1, **kwargs):
         rho = self.density()
         params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
-        rho = rho[rho.notnull()]
-        params = params[rho.notnull()]
+        selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
+        rho = rho[selection]
+        params = params[selection]
         a = params.apply(lambda p: p[0]).values
         b=params.apply(lambda p: p[1]).values
-        f, ax = plt.subplots()
-        if vmin is None:
+        fig, ax = plt.subplots()
+        if rhomin is None:
             vmin = rho.min()
-        if vmax is None:
+        if rhomax is None:
             vmax = rho.max()
-        plt.scatter(a,b,c=rho.values, vmin=vmin, vmax=vmax, **kwargs)
-        plt.colorbar()
+        choppa = ax.scatter(a,b,c=rho.values, vmin=rhomin, vmax=rhomax,
+                            **kwargs)
+        cb = fig.colorbar(choppa, label='bulk density')
+        ax.set_xlabel('$a_u$')
+        ax.set_ylabel('$b_u$')
         return ax
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
