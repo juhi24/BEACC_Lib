@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-e = EventsCollection('cases/cases_of_interest.csv', '%d.%m. %H:%M')
+e = EventsCollection('cases/feb-apr.csv', '%d.%m. %H:%M')
 e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
 
 axarrarr=[]
@@ -23,10 +23,10 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     #c.plot(pip=False)
     #c.pipv.plots(save=True)
 
-c=e.events.pluvio400[2]
-c.pipv.fits=fits21
-c.ab=ab21
-c.plot_velfitcoefs(rhomax=600, countmin=2000)
+#c=e.events.pluvio400[2]
+#c.pipv.fits=fits21
+#c.ab=ab21
+#c.plot_velfitcoefs(rhomax=600, countmin=2000)
 
 #c.plot()
 #c.varinterval=True

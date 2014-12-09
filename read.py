@@ -400,6 +400,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         a = self.amount(crop=False)
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
         longest_delta = pd.datetools.timedelta(hours=1)
+        delta[delta > longest_delta] = longest_delta
+        delta = pd.to_timedelta(delta)
         return delta[self.dt_start():self.dt_end()].fillna(longest_delta)
 
     def grouper(self, shift=True):
@@ -505,6 +507,7 @@ class PipV(InstrumentData):
                 self.data = self.data.append(newdata)
             self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
             self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
+            self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)
 
@@ -821,4 +824,18 @@ class PipV(InstrumentData):
             fname = t.strftime('%Y%m%d' + suffix)
             f.savefig(path.join(savedir, fname))
         return axarr
-        
+
+class PIPpart(InstrumentData):
+    """PIP particle tables"""
+    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
+        print('Reading PIP particle data...')
+        InstrumentData.__init__(self, filenames, **kwargs)
+        self.name = 'pip_part'
+        if self.data.empty:
+            for filename in filenames:
+                newdata = pd.read_csv(filename, delim_whitespace=True,
+                                      skiprows=8, index_col='datetime',
+                                      parse_dates={'datetime':['Year','Month','Day','Hr','Min','Sec']},
+                                      date_parser=self.parse_datetime)
+                self.data = self.data.append(newdata)
+            self.finish_init(dt_start, dt_end)
