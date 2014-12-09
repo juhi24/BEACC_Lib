@@ -456,32 +456,37 @@ class PipDSD(InstrumentData):
         return self.good_data()[d].resample(rule, how=np.mean, closed='right',
                                             label='right')
 
-    def plot(self, img=True):
+    def plot(self, img=True, **kwargs):
         """Plot particle size distribution over time."""
         if img:
-            plt.matshow(self.good_data().transpose(), norm=LogNorm(),
+            plt.matshow(self.good_data(**kwargs).transpose(), norm=LogNorm(),
                         origin='lower')
         else:
-            plt.pcolor(self.good_data().transpose(), norm=LogNorm())
+            plt.pcolor(self.good_data(**kwargs).transpose(), norm=LogNorm())
         plt.colorbar()
         plt.title('PIP DSD')
         plt.xlabel('time (UTC) BROKEN')
         plt.ylabel('D (mm) BROKEN')
 
-    def filter_cat_and_dog(self, window=5):
+    def filter_cat_and_dog(self, data=None, window=5):
         """a rolling window filter for isolated data points"""
-        is_dog = pd.rolling_count(self.data.mask(self.data == 0).T, window).T == 1
+        if data is None:
+            data = self.data
+        is_dog = pd.rolling_count(data.mask(data == 0).T, window).T == 1
         is_dog.ix[:, :window] = False # ignore first columns
         is_dog[is_dog == False] = np.nan
         is_dog = is_dog.ffill(axis=1).fillna(False)
         is_dog = is_dog.astype(np.bool)
-        filtered = copy.deepcopy(self.data)
+        filtered = copy.deepcopy(data)
         filtered[is_dog] = 0
         return filtered
 
-    def good_data(self, **kwargs):
+    def good_data(self, filter_large=True, **kwargs):
         gain_correction = 2
-        return gain_correction*self.filter_cat_and_dog(**kwargs)
+        data = self.data
+        if filter_large:
+            data = self.filter_cat_and_dog(data=data, **kwargs)
+        return gain_correction*data
 
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
