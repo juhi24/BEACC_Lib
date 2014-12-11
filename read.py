@@ -789,7 +789,7 @@ class PipV(InstrumentData):
         return ax
 
     def plots(self, rule=None, separate=True, peak=False, save=False, ncols=1,
-              prefix='', suffix='.png', ymax=None, **kwargs):
+              prefix='', suffix='.png', ymax=None, plotfit=True, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped(rule=rule).ngroups
         #nrows = int(np.ceil(ngroups/ncols))
@@ -815,7 +815,9 @@ class PipV(InstrumentData):
                 axarr.append(ax)
             if group.Part_ID.count() < 1:
                 continue
-            self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',', alpha=0.3)
+            if plotfit:
+                self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',', 
+                              alpha=0.3)
             self.plot(data=group, ax=axarr[i],
                       ymax=ymax, **kwargs)
             f.tight_layout()

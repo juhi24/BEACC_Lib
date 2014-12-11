@@ -153,8 +153,8 @@ class Case(read.PrecipMeasurer):
     def between_datetime(self, dt_start, dt_end, inplace=False,
                          autoshift=False, autobias=False):
         """Select data only in chosen time frame."""
-        for dt in [dt_start, dt_end]:
-            dt = pd.datetools.to_datetime(dt)
+        dt_start = pd.datetools.to_datetime(dt_start)
+        dt_end = pd.datetools.to_datetime(dt_end)
         if inplace:
             m = self
         else:
@@ -300,8 +300,10 @@ class Case(read.PrecipMeasurer):
     def density(self, fltr=True):
         """Calculates mean density estimate for each timeframe."""
         rho_r_pip = self.amount(params=[1], simple=True)
-        if fltr:
-            rho_r_pip[self.intensity() < 0.1] = np.nan # filter
+        if fltr: #filter
+            rho_r_pip[self.pluvio.intensity() < 0.1] = np.nan
+            if self.ab is not None:
+                rho_r_pip[self.intensity() < 0.1] = np.nan
         return self.pluvio.amount(rule=self.rule)/rho_r_pip
 
     def minimize(self, method='SLSQP', **kwargs):
@@ -330,7 +332,7 @@ class Case(read.PrecipMeasurer):
     def plot(self, axarr=None, kind='line', label_suffix='', pip=True, **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
         if axarr is None:
-            f, axarr = plt.subplots(4, sharex=True)
+            f, axarr = plt.subplots(4, sharex=True, dpi=120)
         if pip:
             self.intensity().plot(label='PIP ' + label_suffix, kind=kind, ax=axarr[0], **kwargs)
         self.pluvio.intensity(rule=self.rule).plot(label=self.pluvio.name + ' ' + label_suffix,
@@ -339,6 +341,8 @@ class Case(read.PrecipMeasurer):
         axarr[0].set_ylabel('mm/h')
         if self.liquid:
             title = 'rain intensity'
+        elif not pip:
+            title = 'precipitation intensity'
         else:
             title = r'precipitation intensity, $\alpha=%s, \beta=%s$' % (self.ab[0], self.ab[1])
         axarr[0].set_title(title)
@@ -351,6 +355,8 @@ class Case(read.PrecipMeasurer):
         axarr[3].set_ylabel(r'$D_m$ (mm)')
         for ax in axarr:
             ax.legend(loc='upper right')
+        for i in [0, 1, 2]:
+            axarr[i].set_xlabel('')
         axarr[-1].set_xlabel('time (UTC)')
         plt.show()
         return axarr
@@ -421,7 +427,8 @@ class Case(read.PrecipMeasurer):
         params = params[selection]
         a = params.apply(lambda p: p[0]).values
         b=params.apply(lambda p: p[1]).values
-        fig, ax = plt.subplots()
+        fig = plt.figure(dpi=120)
+        ax = plt.gca()
         if rhomin is None:
             vmin = rho.min()
         if rhomax is None:
@@ -429,8 +436,8 @@ class Case(read.PrecipMeasurer):
         choppa = ax.scatter(a,b,c=rho.values, vmin=rhomin, vmax=rhomax,
                             **kwargs)
         cb = fig.colorbar(choppa, label='bulk density')
-        ax.set_xlabel('$a_u$')
-        ax.set_ylabel('$b_u$')
+        ax.set_xlabel('$a_u$', fontsize=15)
+        ax.set_ylabel('$b_u$', fontsize=15)
         return ax
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
