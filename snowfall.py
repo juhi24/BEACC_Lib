@@ -297,13 +297,13 @@ class Case(read.PrecipMeasurer):
         """Wrapper for const_lsq to calculate least square particle density"""
         return self.const_lsq(c=[1], simple=True)
 
-    def density(self, fltr=True):
+    def density(self, pluvio_filter=True, pip_filter=True):
         """Calculates mean density estimate for each timeframe."""
         rho_r_pip = self.amount(params=[1], simple=True)
-        if fltr: #filter
+        if pluvio_filter: #filter
             rho_r_pip[self.pluvio.intensity() < 0.1] = np.nan
-            if self.ab is not None:
-                rho_r_pip[self.intensity() < 0.1] = np.nan
+        if pip_filter and self.ab is not None:
+            rho_r_pip[self.intensity() < 0.1] = np.nan
         return self.pluvio.amount(rule=self.rule)/rho_r_pip
 
     def minimize(self, method='SLSQP', **kwargs):
@@ -346,7 +346,7 @@ class Case(read.PrecipMeasurer):
         else:
             title = r'precipitation intensity, $\alpha=%s, \beta=%s$' % (self.ab[0], self.ab[1])
         axarr[0].set_title(title)
-        rho = self.density(fltr=True)
+        rho = self.density()
         rho.plot(label=label_suffix, ax=axarr[1], **kwargs)
         axarr[1].set_ylabel(r'$\rho_{b}$')
         self.n_t().plot(label=label_suffix, ax=axarr[2], **kwargs)
