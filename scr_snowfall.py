@@ -6,7 +6,7 @@ from snowfall import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-e = EventsCollection('cases/cases_of_interest.csv', '%d.%m. %H:%M')
+e = EventsCollection('cases/rain.csv', '%d.%m. %H:%M')
 e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):

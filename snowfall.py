@@ -14,6 +14,7 @@ RHO_W = 1000
 
 def batch_import(dtstr, datadir='../DATA'):
     """Read data from files according to a datestring pattern."""
+    particle_files = glob(path.join(datadir, 'PIP/a_Particle_Tables/004%s*.dat' % dtstr))
     pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
     dsd_files = glob(path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
     pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
@@ -22,7 +23,8 @@ def batch_import(dtstr, datadir='../DATA'):
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
-    return {'vel': pipv, 'dsd': dsd,
+    part = read.PIPpart(particle_files)
+    return {'vel': pipv, 'dsd': dsd, 'particle': part,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
 def batch_create_hdf(datadir='../DATA', outname='baecc.h5',
@@ -71,11 +73,12 @@ class EventsCollection:
 
 class Case(read.PrecipMeasurer):
     """Calculate snowfall rate from particle size and velocity data."""
-    def __init__(self, dsd, pipv, pluvio, varinterval=True, unbias=False,
+    def __init__(self, dsd, pipv, particles, pluvio, varinterval=True, unbias=False,
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
                  bnd=((0, 0.1), (1, 3)), rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
+        self.particles = particles
         self.pluvio = pluvio
         self._varinterval = varinterval
         self.pluvio.varinterval = varinterval
@@ -144,10 +147,11 @@ class Case(read.PrecipMeasurer):
         pluvio400 = read.Pluvio(filenames, hdf_table='pluvio400')
         dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
         pipv = read.PipV(filenames, hdf_table='pip_vel')
+        part = read.PIPpart(filenames, hdf_table='pip_part')
         for instr in [pluvio200, pluvio400, dsd, pipv]:
             instr.set_span(dt_start, dt_end)
-        m200 = cls(dsd, pipv, pluvio200, **kwargs)
-        m400 = cls(dsd, pipv, pluvio400, **kwargs)
+        m200 = cls(dsd, pipv, particles, pluvio200, **kwargs)
+        m400 = cls(dsd, pipv, particles, pluvio400, **kwargs)
         return m200, m400
 
     def between_datetime(self, dt_start, dt_end, inplace=False,
