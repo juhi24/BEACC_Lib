@@ -8,6 +8,9 @@ from glob import glob
 from os import path
 import matplotlib.pyplot as plt
 import copy
+import locale
+
+locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 TAU = 2*np.pi
 RHO_W = 1000
