@@ -300,7 +300,7 @@ class Case(read.PrecipMeasurer):
         """Wrapper for const_lsq to calculate least square particle density"""
         return self.const_lsq(c=[1], simple=True)
 
-    def density(self, pluvio_filter=True, pip_filter=True):
+    def density(self, pluvio_filter=True, pip_filter=False):
         """Calculates mean density estimate for each timeframe."""
         rho_r_pip = self.amount(params=[1], simple=True)
         if pluvio_filter: #filter

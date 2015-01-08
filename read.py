@@ -436,6 +436,8 @@ class PipDSD(InstrumentData):
                            inplace=True)
             self.data.columns = pd.Index([float(i) for i in self.data.columns])
             self.data.sort_index(axis=1)
+            self.data.drop_duplicates(inplace=True)
+            self.data = self.data.resample('1min').fillna(0)
         self.finish_init(dt_start, dt_end)
 
     def parse_datetime(self, hh, mm):
