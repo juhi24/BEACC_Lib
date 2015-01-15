@@ -253,15 +253,28 @@ class Case(read.PrecipMeasurer):
         d4n = lambda d: d**4*self.n(d)
         d3n = lambda d: d**3*self.n(d)
         return self.sum_over_d(d4n)/self.sum_over_d(d3n)
-        
+
     def d_0(self):
         """median volume diameter"""
-        dd = pd.Series(self.dsd.good_data().columns)
+        idxd = self.dsd.good_data().columns
+        dd = pd.Series(idxd)
         dD = self.dsd.d_bin
         d3n = lambda d: d**3*self.n(d)*dD
-        cumvol=dd.apply(d3n).cumsum().T
-        diff = cumvol-cumvol.iloc[:,-1]/2
-        return diff.abs().T.idxmin().apply(lambda i: dd[i])
+        cumvol = dd.apply(d3n).cumsum().T
+        cumvol.columns = idxd
+        sumvol = cumvol.iloc[:,-1]
+        diff = cumvol-sumvol/2
+        dmed = diff.abs().T.idxmin()
+        dmed[sumvol<0.0001] = 0
+        return dmed
+
+    def d_max(self):
+        """maximum diameter from PSD tables"""
+        idxd = self.dsd.good_data().columns
+        dd = pd.Series(idxd)
+        nd = dd.apply(self.n).T
+        nd.columns = idxd
+        return nd[nd>0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
 
     def partcount(self):
         return self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
