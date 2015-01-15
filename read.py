@@ -7,7 +7,6 @@ import datetime
 import pandas as pd
 import numpy as np
 import linecache
-from os import path
 import copy
 from scipy import stats
 from scipy.optimize import curve_fit, fmin, minimize
@@ -199,7 +198,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.amount_col = 'acc_' + self.col_suffix
         self.bucket_col = 'bucket_' + self.col_suffix
         if self.data.empty:
-            self.name = path.basename(path.dirname(self.filenames[0])).lower()
+            self.name = os.path.basename(os.path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
                                     'intensity RT [mm h]',
                                     'accumulated RT/NRT [mm]',
@@ -791,7 +790,8 @@ class PipV(InstrumentData):
         return ax
 
     def plots(self, rule=None, separate=True, peak=False, save=False, ncols=1,
-              prefix='', suffix='.png', ymax=None, plotfit=True, **kwargs):
+              prefix='', suffix='.png', ymax=None, plotfit=True, savedir=None,
+              **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped(rule=rule).ngroups
         #nrows = int(np.ceil(ngroups/ncols))
@@ -799,7 +799,8 @@ class PipV(InstrumentData):
             home = os.curdir
             if 'HOME' in os.environ:
                 home = os.environ['HOME']
-            savedir = path.join(home, 'Pictures', 'vel_plots')
+            if savedir is None:
+                savedir = os.path.join(home, 'Pictures', 'vel_plots')
             #suffix = '_' + self.rule
         if not separate:
             f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
@@ -826,12 +827,12 @@ class PipV(InstrumentData):
             if save and separate:
                 t = group.index[-1]
                 fname = t.strftime(prefix + '%Y%m%d%H%M' + suffix)
-                f.savefig(path.join(savedir, fname))
+                f.savefig(os.path.join(savedir, fname))
             if peak:
                 axarr[i].scatter(*self.kde_peak(data=group), label='kde peak')
         if save and not separate:
             fname = t.strftime('%Y%m%d' + suffix)
-            f.savefig(path.join(savedir, fname))
+            f.savefig(os.path.join(savedir, fname))
         return axarr
 
 class PIPpart(InstrumentData):

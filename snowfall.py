@@ -5,10 +5,10 @@ import read
 from datetime import datetime
 from scipy.optimize import minimize
 from glob import glob
-from os import path
 import matplotlib.pyplot as plt
 import copy
 import locale
+import os
 
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
@@ -16,11 +16,11 @@ TAU = 2*np.pi
 RHO_W = 1000
 
 def batch_import(dtstr, datadir='../DATA'):
-    """Read data from files according to a datestring pattern."""
-    pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
-    dsd_files = glob(path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
-    pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
-    pluvio400_files = glob(path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
+    """Read ASCII data according to a datestring pattern."""
+    pipv_files = glob(os.path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
+    dsd_files = glob(os.path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
+    pluvio200_files = glob(os.path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
+    pluvio400_files = glob(os.path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
@@ -30,11 +30,15 @@ def batch_import(dtstr, datadir='../DATA'):
 
 def batch_create_hdf(datadir='../DATA', outname='baecc.h5',
                      dtstr='20140[2-3]??'):
-    """Read data from files and export to hdf."""
+    """Read ASCII data and export to hdf."""
     instrdict = batch_import(dtstr, datadir)
-    hdf_file = path.join(datadir, outname)
+    hdf_file = os.path.join(datadir, outname)
     for key in instrdict:
         instrdict[key].to_hdf(filename=hdf_file)
+
+def ensure_dir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 class EventsCollection:
     """Manage multiple events."""
@@ -202,7 +206,7 @@ class Case(read.PrecipMeasurer):
         """numerical integration over particle diameter"""
         dD = self.dsd.d_bin
         result = self.series_zeros()
-        for d in self.dsd.data.columns:
+        for d in self.dsd.good_data().columns:
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
 
@@ -249,6 +253,15 @@ class Case(read.PrecipMeasurer):
         d4n = lambda d: d**4*self.n(d)
         d3n = lambda d: d**3*self.n(d)
         return self.sum_over_d(d4n)/self.sum_over_d(d3n)
+        
+    def d_0(self):
+        """median volume diameter"""
+        dd = pd.Series(self.dsd.good_data().columns)
+        dD = self.dsd.d_bin
+        d3n = lambda d: d**3*self.n(d)*dD
+        cumvol=dd.apply(d3n).cumsum().T
+        diff = cumvol-cumvol.iloc[:,-1]/2
+        return diff.abs().T.idxmin().apply(lambda i: dd[i])
 
     def partcount(self):
         return self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
@@ -422,16 +435,18 @@ class Case(read.PrecipMeasurer):
         ax.legend(loc='lower right')
         return ax
 
-    def plot_velfitcoefs(self, rhomin=None, rhomax=None, countmin=1, **kwargs):
-        rho = self.density()
+    def plot_velfitcoefs(self, fig=None, ax=None, rhomin=None, rhomax=None, countmin=1, **kwargs):
+        rho = self.density().replace(np.inf, np.nan)
         params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
         selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
         rho = rho[selection]
         params = params[selection]
         a = params.apply(lambda p: p[0]).values
-        b=params.apply(lambda p: p[1]).values
-        fig = plt.figure(dpi=120)
-        ax = plt.gca()
+        b = params.apply(lambda p: p[1]).values
+        if fig is None:
+            fig = plt.figure(dpi=120)
+        if ax is None:
+            ax = plt.gca()
         if rhomin is None:
             vmin = rho.min()
         if rhomax is None:
