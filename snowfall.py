@@ -333,7 +333,8 @@ class Case(read.PrecipMeasurer):
             rho_r_pip[self.pluvio.intensity() < 0.1] = np.nan
         if pip_filter and self.ab is not None:
             rho_r_pip[self.intensity() < 0.1] = np.nan
-        return self.pluvio.amount(rule=self.rule)/rho_r_pip
+        rho = self.pluvio.amount(rule=self.rule)/rho_r_pip
+        return rho.replace(np.inf, np.nan)
 
     def minimize(self, method='SLSQP', **kwargs):
         """Legacy method for determining alpha and beta."""
@@ -449,7 +450,7 @@ class Case(read.PrecipMeasurer):
         return ax
 
     def plot_velfitcoefs(self, fig=None, ax=None, rhomin=None, rhomax=None, countmin=1, **kwargs):
-        rho = self.density().replace(np.inf, np.nan)
+        rho = self.density()
         params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
         selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
         rho = rho[selection]
