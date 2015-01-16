@@ -15,6 +15,7 @@ locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 TAU = 2*np.pi
 RHO_W = 1000
 MSGDIR = 'msg'
+MSGTLD = '.msg'
 
 def batch_import(dtstr, datadir='../DATA'):
     """Read ASCII data according to a datestring pattern."""
@@ -87,7 +88,7 @@ class Case(read.PrecipMeasurer):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, varinterval=True, unbias=False,
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
-                 bnd=((0, 0.1), (1, 3)), rule='15min'):
+                 bnd=((0, 0.1), (1, 3)), rule='15min', use_msg=True):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
@@ -98,6 +99,7 @@ class Case(read.PrecipMeasurer):
         self._rule = rule
         self.liquid = liquid
         self._ab = None # alpha, beta
+        self.use_msg = use_msg
         if autoshift:
             self.autoshift()
         if unbias:
@@ -263,8 +265,15 @@ class Case(read.PrecipMeasurer):
 
     def n_t(self):
         """total concentration"""
-        nt = self.sum_over_d(self.n)
-        nt.name = 'N_t'
+        name = 'N_t'
+        fpath = os.path.join(self.msgdir(), name + MSGTLD)
+        if os.path.exists(fpath):
+            nt = pd.read_msgpack(fpath)
+        else:
+            nt = self.sum_over_d(self.n)
+            nt.name = name
+            if self.use_msg:
+                nt.to_msgpack(fpath)
         return nt
 
     def d_m(self):
