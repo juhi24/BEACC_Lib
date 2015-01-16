@@ -25,7 +25,7 @@ for c in e.events.pluvio200.values:
 #c.plot_velfitcoefs(rhomax=600, countmin=2000)
 
 def plot_velfitcoefs(c, fig=None, ax=None, rhomin=None, rhomax=None, countmin=1, **kwargs):
-    rho = c.density().replace(np.inf, np.nan)
+    rho = c.density()
     params = c.pipv.fits.polfit.apply(lambda fit: fit.params)
     selection = pd.DataFrame([rho.notnull(), c.partcount() > countmin]).all()
     rho = rho[selection]
@@ -46,3 +46,10 @@ def plot_velfitcoefs(c, fig=None, ax=None, rhomin=None, rhomax=None, countmin=1,
     ax.set_xlabel('$b_u$', fontsize=15)
     ax.set_ylabel('$\rho_u$', fontsize=15)
     return ax
+    
+fig = plt.figure()
+ax=plt.gca()
+
+for c in e.events.pluvio400:
+    c.pipv.find_fits(rule=c.rule)
+    c.plot_d0_bv(countmin=1000, ax=ax)

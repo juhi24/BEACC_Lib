@@ -42,10 +42,12 @@ def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-def scatterplot(x, y, kind='scatter', **kwargs):
+def scatterplot(x, y, c=None, kind='scatter', **kwargs):
     """scatter plot of two Series objects"""
     plotdata = pd.merge(pd.DataFrame(x), pd.DataFrame(y),
                         right_index=True, left_index=True)
+    if c is not None:
+        kwargs['c'] = c
     return plotdata.plot(kind=kind, x=x.name, y=y.name, **kwargs)
 
 class EventsCollection:
@@ -266,48 +268,65 @@ class Case(read.PrecipMeasurer):
     def n_t(self):
         """total concentration"""
         name = 'N_t'
-        fpath = os.path.join(self.msgdir(), name + MSGTLD)
-        if os.path.exists(fpath):
-            nt = pd.read_msgpack(fpath)
-        else:
+        def func():
             nt = self.sum_over_d(self.n)
             nt.name = name
-            if self.use_msg:
-                nt.to_msgpack(fpath)
-        return nt
+            return nt
+        return self.msger(name, func)
+
+    def msger(self, name, func, **kwargs):
+        if self.use_msg:
+            msgpath = os.path.join(self.msgdir(), name + MSGTLD)
+            if os.path.exists(msgpath):
+                data = pd.read_msgpack(msgpath)
+            else:
+                data = func(**kwargs)
+                data.to_msgpack(msgpath)
+        else:
+            data = func(**kwargs)
+        return data
 
     def d_m(self):
         """mass weighted mean diameter"""
-        d4n = lambda d: d**4*self.n(d)
-        d3n = lambda d: d**3*self.n(d)
-        dm = self.sum_over_d(d4n)/self.sum_over_d(d3n)
-        dm.name = 'D_m'
-        return dm
+        name = 'D_m'
+        def func():
+            d4n = lambda d: d**4*self.n(d)
+            d3n = lambda d: d**3*self.n(d)
+            dm = self.sum_over_d(d4n)/self.sum_over_d(d3n)
+            dm.name = name
+            return dm
+        return self.msger(name, func)
 
     def d_0(self):
         """median volume diameter"""
-        idxd = self.dsd.good_data().columns
-        dd = pd.Series(idxd)
-        dD = self.dsd.d_bin
-        d3n = lambda d: d**3*self.n(d)*dD
-        cumvol = dd.apply(d3n).cumsum().T
-        cumvol.columns = idxd
-        sumvol = cumvol.iloc[:,-1]
-        diff = cumvol-sumvol/2
-        dmed = diff.abs().T.idxmin()
-        dmed[sumvol<0.0001] = 0
-        dmed.name = 'D_0'
-        return dmed
+        name = 'D_0'
+        def func():
+            idxd = self.dsd.good_data().columns
+            dd = pd.Series(idxd)
+            dD = self.dsd.d_bin
+            d3n = lambda d: d**3*self.n(d)*dD
+            cumvol = dd.apply(d3n).cumsum().T
+            cumvol.columns = idxd
+            sumvol = cumvol.iloc[:,-1]
+            diff = cumvol-sumvol/2
+            dmed = diff.abs().T.idxmin()
+            dmed[sumvol<0.0001] = 0
+            dmed.name = name
+            return dmed
+        return self.msger(name, func)
 
     def d_max(self):
         """maximum diameter from PSD tables"""
-        idxd = self.dsd.good_data().columns
-        dd = pd.Series(idxd)
-        nd = dd.apply(self.n).T
-        nd.columns = idxd
-        dmax = nd[nd>0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
-        dmax.name = 'D_max'
-        return dmax
+        name = 'D_max'
+        def func():
+            idxd = self.dsd.good_data().columns
+            dd = pd.Series(idxd)
+            nd = dd.apply(self.n).T
+            nd.columns = idxd
+            dmax = nd[nd>0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
+            dmax.name = name
+            return dmax
+        return self.msger(name, func)
 
     def partcount(self):
         return self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
@@ -361,14 +380,17 @@ class Case(read.PrecipMeasurer):
 
     def density(self, pluvio_filter=True, pip_filter=False):
         """Calculates mean density estimate for each timeframe."""
-        rho_r_pip = self.amount(params=[1], simple=True)
-        if pluvio_filter: #filter
-            rho_r_pip[self.pluvio.intensity() < 0.1] = np.nan
-        if pip_filter and self.ab is not None:
-            rho_r_pip[self.intensity() < 0.1] = np.nan
-        rho = self.pluvio.amount(rule=self.rule)/rho_r_pip
-        rho.name = 'density'
-        return rho.replace(np.inf, np.nan)
+        name = 'density'
+        def func():
+            rho_r_pip = self.amount(params=[1], simple=True)
+            if pluvio_filter: #filter
+                rho_r_pip[self.pluvio.intensity() < 0.1] = np.nan
+            if pip_filter and self.ab is not None:
+                rho_r_pip[self.intensity() < 0.1] = np.nan
+            rho = self.pluvio.amount(rule=self.rule)/rho_r_pip
+            rho.name = name
+            return rho.replace(np.inf, np.nan)
+        return self.msger(name, func)
 
     def minimize(self, method='SLSQP', **kwargs):
         """Legacy method for determining alpha and beta."""
@@ -505,6 +527,22 @@ class Case(read.PrecipMeasurer):
         ax.set_xlabel('$a_u$', fontsize=15)
         ax.set_ylabel('$b_u$', fontsize=15)
         return ax
+
+    def plot_d0_bv(self, rhomin=None, rhomax=None, countmin=1, **kwargs):
+        rho = self.density()
+        params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
+        selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
+        rho = rho[selection]
+        params = params[selection]
+        dmax = self.d_max()[selection]
+        a = params.apply(lambda p: p[0])
+        b = params.apply(lambda p: p[1])
+        b.name='b'
+        if rhomin is None:
+            vmin = rho.min()
+        if rhomax is None:
+            vmax = rho.max()
+        return scatterplot(x=dmax, y=b, c=rho, **kwargs)
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio intensity.
