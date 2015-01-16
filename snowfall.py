@@ -14,6 +14,7 @@ locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 TAU = 2*np.pi
 RHO_W = 1000
+MSGDIR = 'msg'
 
 def batch_import(dtstr, datadir='../DATA'):
     """Read ASCII data according to a datestring pattern."""
@@ -162,6 +163,16 @@ class Case(read.PrecipMeasurer):
         m200 = cls(dsd, pipv, pluvio200, **kwargs)
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
+        
+    def msgdir(self):
+        t = self.time_range()
+        dt_start = t[0]
+        dt_end = t[-1]
+        dtstrformat = '%Y%m%d%H%M'
+        dtstr = dt_start.strftime(dtstrformat) + '-' + dt_end.strftime(dtstrformat)
+        msgdir = os.path.join(MSGDIR, dtstr, self.pluvio.name)
+        ensure_dir(msgdir)
+        return msgdir
 
     def between_datetime(self, dt_start, dt_end, inplace=False,
                          autoshift=False, autobias=False):
