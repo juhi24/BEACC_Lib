@@ -40,6 +40,12 @@ def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+def scatterplot(x, y, kind='scatter', **kwargs):
+    """scatter plot of two Series objects"""
+    plotdata = pd.merge(pd.DataFrame(x), pd.DataFrame(y),
+                        right_index=True, left_index=True)
+    return plotdata.plot(kind=kind, x=x.name, y=y.name, **kwargs)
+
 class EventsCollection:
     """Manage multiple events."""
     def __init__(self, csv, dtformat='%d %B %H UTC'):
@@ -246,13 +252,17 @@ class Case(read.PrecipMeasurer):
 
     def n_t(self):
         """total concentration"""
-        return self.sum_over_d(self.n)
+        nt = self.sum_over_d(self.n)
+        nt.name = 'N_t'
+        return nt
 
     def d_m(self):
         """mass weighted mean diameter"""
         d4n = lambda d: d**4*self.n(d)
         d3n = lambda d: d**3*self.n(d)
-        return self.sum_over_d(d4n)/self.sum_over_d(d3n)
+        dm = self.sum_over_d(d4n)/self.sum_over_d(d3n)
+        dm.name = 'D_m'
+        return dm
 
     def d_0(self):
         """median volume diameter"""
@@ -266,6 +276,7 @@ class Case(read.PrecipMeasurer):
         diff = cumvol-sumvol/2
         dmed = diff.abs().T.idxmin()
         dmed[sumvol<0.0001] = 0
+        dmed.name = 'D_0'
         return dmed
 
     def d_max(self):
@@ -274,7 +285,9 @@ class Case(read.PrecipMeasurer):
         dd = pd.Series(idxd)
         nd = dd.apply(self.n).T
         nd.columns = idxd
-        return nd[nd>0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
+        dmax = nd[nd>0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
+        dmax.name = 'D_max'
+        return dmax
 
     def partcount(self):
         return self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
@@ -334,6 +347,7 @@ class Case(read.PrecipMeasurer):
         if pip_filter and self.ab is not None:
             rho_r_pip[self.intensity() < 0.1] = np.nan
         rho = self.pluvio.amount(rule=self.rule)/rho_r_pip
+        rho.name = 'density'
         return rho.replace(np.inf, np.nan)
 
     def minimize(self, method='SLSQP', **kwargs):
