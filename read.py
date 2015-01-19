@@ -12,10 +12,20 @@ from scipy import stats
 from scipy.optimize import curve_fit, fmin, minimize
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
+MSGDIR = 'msg'
+MSGTLD = '.msg'
 
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days=366)
+
+def msg_io(msgpath, func, **kwargs):
+    if os.path.exists(msgpath):
+        data = pd.read_msgpack(msgpath)
+    else:
+        data = func(**kwargs)
+        data.to_msgpack(msgpath)
+    return data
 
 class Fit:
     """parent for different fit types"""
@@ -131,10 +141,12 @@ class PrecipMeasurer:
 
 class InstrumentData:
     """Parent for instrument data classes."""
-    def __init__(self, filenames, hdf_table=None):
+    def __init__(self, filenames, hdf_table=None, use_msg=True, case=None):
         """Read from either instrument output data file or hdf5."""
         self.filenames = filenames
         self.data = pd.DataFrame()
+        self.use_msg = use_msg
+        self.case = case
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
@@ -497,7 +509,7 @@ class PipV(InstrumentData):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
         self.dmin = 0.375 # smallest diameter where data is good
-        self.fits = pd.DataFrame()
+        self._fits = pd.DataFrame()
         self.dbins = np.linspace(0.375, 25.875, num=206)
         self._default_fit = PolFit()
         if self.data.empty:
@@ -527,6 +539,14 @@ class PipV(InstrumentData):
     def binwidth(self):
         d = self.dbins
         return (d[-1]-d[0])/(len(d)-1)
+        
+    @property
+    def fits(self):
+        return self._fits
+        
+    @fits.setter
+    def fits(self, fits):
+        self._fits = fits
 
     @property
     def default_fit(self):

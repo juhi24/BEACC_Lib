@@ -14,8 +14,6 @@ locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 TAU = 2*np.pi
 RHO_W = 1000
-MSGDIR = 'msg'
-MSGTLD = '.msg'
 
 def batch_import(dtstr, datadir='../DATA'):
     """Read ASCII data according to a datestring pattern."""
@@ -102,6 +100,8 @@ class Case(read.PrecipMeasurer):
         self.liquid = liquid
         self._ab = None # alpha, beta
         self.use_msg = use_msg
+        for instr in [self.dsd, self.pipv, self.pluvio]:
+            instr.case = self
         if autoshift:
             self.autoshift()
         if unbias:
@@ -174,7 +174,7 @@ class Case(read.PrecipMeasurer):
         dt_end = t[-1]
         dtstrformat = '%Y%m%d%H%M'
         dtstr = dt_start.strftime(dtstrformat) + '-' + dt_end.strftime(dtstrformat)
-        msgdir = os.path.join(MSGDIR, dtstr, self.pluvio.name)
+        msgdir = os.path.join(read.MSGDIR, dtstr, self.pluvio.name)
         ensure_dir(msgdir)
         return msgdir
 
@@ -276,12 +276,8 @@ class Case(read.PrecipMeasurer):
 
     def msger(self, name, func, **kwargs):
         if self.use_msg:
-            msgpath = os.path.join(self.msgdir(), name + MSGTLD)
-            if os.path.exists(msgpath):
-                data = pd.read_msgpack(msgpath)
-            else:
-                data = func(**kwargs)
-                data.to_msgpack(msgpath)
+            msgpath = os.path.join(self.msgdir(), name + read.MSGTLD)
+            data = read.msg_io(msgpath, func, **kwargs)
         else:
             data = func(**kwargs)
         return data
