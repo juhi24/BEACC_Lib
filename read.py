@@ -12,7 +12,7 @@ from scipy import stats
 from scipy.optimize import curve_fit, fmin, minimize
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
-MSGDIR = 'msg'
+CACHE_DIR = 'cache'
 MSGTLD = '.msg'
 
 def datenum2datetime(matlab_datenum):
@@ -27,6 +27,34 @@ def msg_io(msgpath, func, **kwargs):
         data.to_msgpack(msgpath)
     return data
 
+def ensure_dir(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    
+class Cacher:
+    """common methods to use msg cache"""
+    def __init__(self, use_cache=True):
+        self.use_cache = use_cache
+    
+    def msger(self, name, func, *cache_dir_args, **kwargs):
+        if self.use_cache:
+            msgpath = os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
+            data = msg_io(msgpath, func, **kwargs)
+        else:
+            data = func(**kwargs)
+        return data
+        
+    def cache_dir(self, dt_start, dt_end, *extra_dir_names):
+        dtstrformat = '%Y%m%d%H%M'
+        dtstr = dt_start.strftime(dtstrformat) + '-' + dt_end.strftime(dtstrformat)
+        cache_dir = os.path.join(CACHE_DIR, dtstr, *extra_dir_names)
+        ensure_dir(cache_dir)
+        return cache_dir
+        
+    def msgpath(self, name):
+        """wrapper for full msgpack file path"""
+        return os.path.join(self.cache_dir(), name + MSGTLD)
+        
 class Fit:
     """parent for different fit types"""
     def __init__(self, params=None, name='fit'):
@@ -139,14 +167,14 @@ class PrecipMeasurer:
         frac = pd.datetools.timedelta(hours=1)/tdelta
         return frac * r
 
-class InstrumentData:
+class InstrumentData(Cacher):
     """Parent for instrument data classes."""
-    def __init__(self, filenames, hdf_table=None, use_msg=True, case=None):
+    def __init__(self, filenames, hdf_table=None, use_cache=True, case=None):
         """Read from either instrument output data file or hdf5."""
         self.filenames = filenames
         self.data = pd.DataFrame()
-        self.use_msg = use_msg
-        self.case = case
+        self.use_cache = use_cache
+        self.case = case # to be used only for msg cache!
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
@@ -193,6 +221,12 @@ class InstrumentData:
             grpd_data = pd.merge(data, rule, left_index=True, right_index=True)
             return grpd_data.groupby('group')
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
+        
+    def cache_dir(self):
+        if self.case is None:
+            return
+        dt_start, dt_end = self.case.dt_start_end()
+        return super().cache_dir(dt_start, dt_end, self.case.pluvio.name)
 
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
@@ -542,11 +576,21 @@ class PipV(InstrumentData):
         
     @property
     def fits(self):
+        if self.use_cache:
+            msgpath = self.msgpath('velfits')
+            if os.path.exists(msgpath):
+                return pd.read_msgpack(msgpath)
+            else:
+                return pd.DataFrame()
         return self._fits
         
     @fits.setter
     def fits(self, fits):
-        self._fits = fits
+        if self.use_cache:
+            msgpath = self.msgpath('velfits')
+            fits.to_msgpack(msgpath)
+        else:
+            self._fits = fits
 
     @property
     def default_fit(self):
@@ -641,8 +685,7 @@ class PipV(InstrumentData):
     def find_fit(self, fit=None, data=None, kde=False, cut_d=False,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
                  **kwargs):
-        """Find and store a Gunn&Kinzer shape fit for either raw data or kde.
-        """
+        """Find and store a fit for either raw data or kde."""
         if data is None:
             data = self.good_data()
         if fit is None:

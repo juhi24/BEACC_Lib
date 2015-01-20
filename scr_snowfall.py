@@ -47,9 +47,9 @@ def plot_velfitcoefs(c, fig=None, ax=None, rhomin=None, rhomax=None, countmin=1,
     ax.set_ylabel('$\rho_u$', fontsize=15)
     return ax
     
-fig = plt.figure()
-ax=plt.gca()
-
-for c in e.events.pluvio400:
-    c.pipv.find_fits(rule=c.rule)
-    c.plot_d0_bv(countmin=1000, ax=ax)
+#fig = plt.figure()
+#ax=plt.gca()
+#
+#for c in e.events.pluvio400:
+#    c.pipv.find_fits(rule=c.rule)
+#    c.plot_d0_bv(countmin=1000, ax=ax)

@@ -36,10 +36,6 @@ def batch_create_hdf(datadir='../DATA', outname='baecc.h5',
     for key in instrdict:
         instrdict[key].to_hdf(filename=hdf_file)
 
-def ensure_dir(directory):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
 def scatterplot(x, y, c=None, kind='scatter', **kwargs):
     """scatter plot of two Series objects"""
     plotdata = pd.merge(pd.DataFrame(x), pd.DataFrame(y),
@@ -84,11 +80,12 @@ class EventsCollection:
             self.add_data(d, autoshift=autoshift, autobias=autobias)
         return
 
-class Case(read.PrecipMeasurer):
+class Case(read.PrecipMeasurer, read.Cacher):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, varinterval=True, unbias=False,
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
-                 bnd=((0, 0.1), (1, 3)), rule='15min', use_msg=True):
+                 bnd=((0, 0.1), (1, 3)), rule='15min', use_cache=True):
+        super().__init__(use_cache=use_cache)
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
@@ -99,7 +96,6 @@ class Case(read.PrecipMeasurer):
         self._rule = rule
         self.liquid = liquid
         self._ab = None # alpha, beta
-        self.use_msg = use_msg
         for instr in [self.dsd, self.pipv, self.pluvio]:
             instr.case = self
         if autoshift:
@@ -112,9 +108,7 @@ class Case(read.PrecipMeasurer):
             casetype = 'rain'
         else:
             casetype = 'snow'
-        t = self.time_range()
-        dt_start = t[0]
-        dt_end = t[-1]
+        dt_start, dt_end = self.dt_start_end()
         if self.varinterval:
             sampling_label = 'varying intervals'
         else:
@@ -122,6 +116,16 @@ class Case(read.PrecipMeasurer):
         return '%s case from %s to %s, %s' % (casetype, dt_start,
                                               dt_end, sampling_label)
 
+    @property
+    def use_cache(self):
+        return self._use_cache
+    
+    @use_cache.setter
+    def use_cache(self, use_cache):
+        self._use_cache = use_cache
+        for instr in [self.dsd, self.pipv, self.pluvio]:
+            instr.use_cache = use_cache
+    
     @property
     def varinterval(self):
         return self._varinterval
@@ -167,16 +171,6 @@ class Case(read.PrecipMeasurer):
         m200 = cls(dsd, pipv, pluvio200, **kwargs)
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
-        
-    def msgdir(self):
-        t = self.time_range()
-        dt_start = t[0]
-        dt_end = t[-1]
-        dtstrformat = '%Y%m%d%H%M'
-        dtstr = dt_start.strftime(dtstrformat) + '-' + dt_end.strftime(dtstrformat)
-        msgdir = os.path.join(read.MSGDIR, dtstr, self.pluvio.name)
-        ensure_dir(msgdir)
-        return msgdir
 
     def between_datetime(self, dt_start, dt_end, inplace=False,
                          autoshift=False, autobias=False):
@@ -189,6 +183,7 @@ class Case(read.PrecipMeasurer):
             m = copy.deepcopy(self)
         for instr in [m.dsd, m.pipv, m.pluvio]:
             instr.between_datetime(dt_start, dt_end, inplace=True)
+            instr.case = m
         m.pluvio.bias = 0
         if autoshift:
             m.autoshift(inplace=True)
@@ -274,13 +269,9 @@ class Case(read.PrecipMeasurer):
             return nt
         return self.msger(name, func)
 
-    def msger(self, name, func, **kwargs):
-        if self.use_msg:
-            msgpath = os.path.join(self.msgdir(), name + read.MSGTLD)
-            data = read.msg_io(msgpath, func, **kwargs)
-        else:
-            data = func(**kwargs)
-        return data
+    def cache_dir(self):
+        dt_start, dt_end = self.dt_start_end()
+        return super().cache_dir(dt_start, dt_end, self.pluvio.name)
 
     def d_m(self):
         """mass weighted mean diameter"""
@@ -406,6 +397,10 @@ class Case(read.PrecipMeasurer):
         self.ab = [alpha, beta]
         return result
 
+    def dt_start_end(self):
+        t = self.time_range()
+        return (t[0], t[-1])
+    
     def time_range(self):
         """data time ticks on minute interval"""
         return pd.date_range(self.pluvio.acc().index[0],
