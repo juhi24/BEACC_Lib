@@ -94,7 +94,10 @@ class Case(read.PrecipMeasurer, read.Cacher):
         self.pluvio.varinterval = varinterval
         self.quess = quess
         self.bnd = bnd
-        self._rule = rule
+        if varinterval:
+            self._rule = None
+        else:
+            self._rule = rule
         self.liquid = liquid
         self._ab = None # alpha, beta
         for instr in [self.dsd, self.pipv, self.pluvio]:
@@ -135,11 +138,12 @@ class Case(read.PrecipMeasurer, read.Cacher):
     def varinterval(self, varinterval):
         self._varinterval = varinterval
         self.pluvio.varinterval = varinterval
+        self.reset()
 
     @property
     def rule(self):
-        if self.varinterval:
-            return self.pluvio.grouper()
+        if self.varinterval and self._rule is None:
+            self._rule = self.pluvio.grouper() # TODO: needs to be reset on changes for pluvio data
         return self._rule
 
     @rule.setter
@@ -190,7 +194,13 @@ class Case(read.PrecipMeasurer, read.Cacher):
             m.autoshift(inplace=True)
         if autobias:
             m.noprecip_bias(inplace=True)
+        m.reset()
         return m
+
+    def reset(self):
+        """Reset memory cache."""
+        if self.varinterval:
+            self.rule = None
 
     def intensity(self, params=None, simple=False):
         """Calculate precipitation intensity using given or saved parameters."""
