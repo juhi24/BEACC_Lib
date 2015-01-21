@@ -497,7 +497,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             ax = plt.gca()
         diam = []
         vel = []
-        for d in self.dsd.data.columns:
+        for d in self.dsd.good_data().columns:
             v_new = self.v_fall(d).values
             d_new = [d]*len(v_new)
             vel.extend(v_new)

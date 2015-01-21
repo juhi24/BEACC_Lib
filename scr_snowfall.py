@@ -19,6 +19,7 @@ plt.ion()
 #plt.figure(dpi=120)
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
+    c.dsd.store_good_data() # improve performance by storing filtered dsd tables in memory
     c.pluvio.shift_periods = -6
     #c.plot_velfitcoefs(ax=ax, rhomax=600, countmin=2000)
 

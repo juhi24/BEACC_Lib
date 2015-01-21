@@ -179,6 +179,8 @@ class InstrumentData(Cacher):
         self.data = pd.DataFrame()
         self.use_cache = use_cache
         self.case = case # to be used only for msg cache!
+        # if filtered data needed often, keep in memory
+        self.stored_good_data = None # set to None to disable
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
@@ -190,12 +192,17 @@ class InstrumentData(Cacher):
         self.set_span(dt_start, dt_end)
         self.storefilename = self.name + '.h5'
 
+    def store_good_data(self, **kwargs):
+        self.stored_good_data = self.good_data(**kwargs)
+
     def parse_datetime(self):
         """Parse timestamps in data files. Used by class constructor."""
         pass
 
     def good_data(self):
         """Return useful data with filters and corrections applied."""
+        if self.stored_good_data is not None:
+            return self.stored_good_data
         return self.data
 
     def to_hdf(self, filename='../DATA/baecc.h5'):
@@ -329,6 +336,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return datetime.datetime(*t[:t_end])
 
     def good_data(self):
+        if self.stored_good_data is not None:
+            return self.stored_good_data
         data = copy.deepcopy(self.data)
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
         if self.data.index[-1] > swap_date:
@@ -534,6 +543,8 @@ class PipDSD(InstrumentData):
         return filtered
 
     def good_data(self, filter_large=True, **kwargs):
+        if self.stored_good_data is not None:
+            return self.stored_good_data
         gain_correction = 2
         data = self.data
         if filter_large:
@@ -645,6 +656,8 @@ class PipV(InstrumentData):
         return datetime.datetime(yr, mo, dd, hh, int(mm))
 
     def good_data(self):
+        if self.stored_good_data is not None:
+            return self.stored_good_data
         return self.data[self.data.Wad_Dia > self.dmin]
 
     def dbin(self, d, binwidth=None, data=None, vmin=None, vmax=None):
