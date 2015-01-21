@@ -85,7 +85,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
     def __init__(self, dsd, pipv, pluvio, varinterval=True, unbias=False,
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
                  bnd=((0, 0.1), (1, 3)), rule='15min', use_cache=True):
-        super().__init__(use_cache=use_cache)
+        self._use_cache = use_cache
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio

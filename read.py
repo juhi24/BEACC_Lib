@@ -33,8 +33,9 @@ def ensure_dir(directory):
     
 class Cacher:
     """common methods to use msg cache"""
-    def __init__(self, use_cache=True):
+    def __init__(self, use_cache=True, storefilename='store.h5'):
         self.use_cache = use_cache
+        self.storefilename = storefilename
     
     def msger(self, name, func, *cache_dir_args, **kwargs):
         if self.use_cache:
@@ -51,9 +52,12 @@ class Cacher:
         ensure_dir(cache_dir)
         return cache_dir
         
-    def msgpath(self, name):
+    def msgpath(self, name, *cache_dir_args):
         """wrapper for full msgpack file path"""
-        return os.path.join(self.cache_dir(), name + MSGTLD)
+        return os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
+        
+    def store_path(self, *cache_dir_args):
+        return os.path.join(self.cache_dir(*cache_dir_args), self.storefilename)
         
 class Fit:
     """parent for different fit types"""
@@ -170,7 +174,7 @@ class PrecipMeasurer:
 class InstrumentData(Cacher):
     """Parent for instrument data classes."""
     def __init__(self, filenames, hdf_table=None, use_cache=True, case=None):
-        """Read from either instrument output data file or hdf5."""
+        """Read from either ASCII data file or hdf5."""
         self.filenames = filenames
         self.data = pd.DataFrame()
         self.use_cache = use_cache
@@ -184,6 +188,7 @@ class InstrumentData(Cacher):
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
         self.set_span(dt_start, dt_end)
+        self.storefilename = self.name + '.h5'
 
     def parse_datetime(self):
         """Parse timestamps in data files. Used by class constructor."""
@@ -577,18 +582,18 @@ class PipV(InstrumentData):
     @property
     def fits(self):
         if self.use_cache:
-            msgpath = self.msgpath('velfits')
-            if os.path.exists(msgpath):
-                return pd.read_msgpack(msgpath)
-            else:
+            try:
+                with pd.HDFStore(self.store_path()) as store:
+                    return store.get('fits')
+            except KeyError:
                 return pd.DataFrame()
         return self._fits
         
     @fits.setter
     def fits(self, fits):
         if self.use_cache:
-            msgpath = self.msgpath('velfits')
-            fits.to_msgpack(msgpath)
+            with pd.HDFStore(self.store_path()) as store:
+                store['fits'] = fits
         else:
             self._fits = fits
 
