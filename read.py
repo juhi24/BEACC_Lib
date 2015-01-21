@@ -30,13 +30,13 @@ def msg_io(msgpath, func, **kwargs):
 def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
-    
+
 class Cacher:
     """common methods to use msg cache"""
     def __init__(self, use_cache=True, storefilename='store.h5'):
         self.use_cache = use_cache
         self.storefilename = storefilename
-    
+
     def msger(self, name, func, *cache_dir_args, **kwargs):
         if self.use_cache:
             msgpath = os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
@@ -44,21 +44,21 @@ class Cacher:
         else:
             data = func(**kwargs)
         return data
-        
+
     def cache_dir(self, dt_start, dt_end, *extra_dir_names):
         dtstrformat = '%Y%m%d%H%M'
         dtstr = dt_start.strftime(dtstrformat) + '-' + dt_end.strftime(dtstrformat)
         cache_dir = os.path.join(CACHE_DIR, dtstr, *extra_dir_names)
         ensure_dir(cache_dir)
         return cache_dir
-        
+
     def msgpath(self, name, *cache_dir_args):
         """wrapper for full msgpack file path"""
         return os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
-        
+
     def store_path(self, *cache_dir_args):
         return os.path.join(self.cache_dir(*cache_dir_args), self.storefilename)
-        
+
 class Fit:
     """parent for different fit types"""
     def __init__(self, params=None, name='fit'):
@@ -226,7 +226,7 @@ class InstrumentData(Cacher):
             grpd_data = pd.merge(data, rule, left_index=True, right_index=True)
             return grpd_data.groupby('group')
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
-        
+
     def cache_dir(self):
         if self.case is None:
             return
@@ -293,7 +293,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     @property
     def varinterval(self):
         return self._varinterval
-        
+
     @varinterval.setter
     def varinterval(self, varinterval):
         self._varinterval = varinterval
@@ -403,7 +403,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             return super().intensity(tdelta=self.tdelta(), **kwargs)
         return super().intensity(tdelta=None, **kwargs)
 
-    def constinterval_acc(self, rule='1H', interpolate=True, unbias=True, 
+    def constinterval_acc(self, rule='1H', interpolate=True, unbias=True,
                           shift=True, filter_evap=True):
         """Resample unbiased accumulated precipitation in mm."""
         accum = self.acc_raw().asfreq('1min')
@@ -578,7 +578,7 @@ class PipV(InstrumentData):
     def binwidth(self):
         d = self.dbins
         return (d[-1]-d[0])/(len(d)-1)
-        
+
     @property
     def fits(self):
         if self.use_cache:
@@ -588,7 +588,7 @@ class PipV(InstrumentData):
             except KeyError:
                 return pd.DataFrame()
         return self._fits
-        
+
     @fits.setter
     def fits(self, fits):
         if self.use_cache:
@@ -887,7 +887,7 @@ class PipV(InstrumentData):
             if group.Part_ID.count() < 1:
                 continue
             if plotfit:
-                self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',', 
+                self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',',
                               alpha=0.3)
             self.plot(data=group, ax=axarr[i],
                       ymax=ymax, **kwargs)
@@ -909,14 +909,14 @@ class PIPpart(InstrumentData):
         print('Reading PIP particle data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_part'
-        dtype = {'Year':np.int32,'Month':np.int32,'Day':np.int32,'Hr':np.int32,
-                 'Min':np.int32,'Sec':np.int32}
+        dtype = {'Year':np.int32, 'Month':np.int32, 'Day':np.int32,
+                 'Hr':np.int32, 'Min':np.int32, 'Sec':np.int32}
         if self.data.empty:
             for filename in filenames:
                 newdata = pd.read_csv(filename, delim_whitespace=True,
-                                      skiprows=[0,1,2,3,4,5,6,7,9],
+                                      skiprows=[0, 1, 2, 3, 4, 5, 6, 7, 9],
                                       index_col='datetime',
-                                      parse_dates={'datetime':['Year','Month','Day','Hr','Min','Sec']},
+                                      parse_dates={'datetime':['Year', 'Month', 'Day', 'Hr', 'Min', 'Sec']},
                                       date_parser=datetime.datetime,
                                       dtype=dtype)
                 self.data = self.data.append(newdata)

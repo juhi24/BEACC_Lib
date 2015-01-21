@@ -4,6 +4,7 @@ import pandas as pd
 import read
 from datetime import datetime
 from scipy.optimize import minimize
+from scipy.special import gamma
 from glob import glob
 import matplotlib.pyplot as plt
 import copy
@@ -110,7 +111,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             casetype = 'snow'
         dt_start, dt_end = self.dt_start_end()
         if self.varinterval:
-            sampling_label = 'varying intervals'
+            sampling_label = 'adaptive'
         else:
             sampling_label = self.rule
         return '%s case from %s to %s, %s' % (casetype, dt_start,
@@ -119,17 +120,17 @@ class Case(read.PrecipMeasurer, read.Cacher):
     @property
     def use_cache(self):
         return self._use_cache
-    
+
     @use_cache.setter
     def use_cache(self, use_cache):
         self._use_cache = use_cache
         for instr in [self.dsd, self.pipv, self.pluvio]:
             instr.use_cache = use_cache
-    
+
     @property
     def varinterval(self):
         return self._varinterval
-        
+
     @varinterval.setter
     def varinterval(self, varinterval):
         self._varinterval = varinterval
@@ -254,7 +255,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
     def v_fall_all(self):
         """v(D) in m/s for every timestep and diameter bin"""
         v_d = []
-        for d in self.dsd.data.columns:
+        for d in self.dsd.good_data().columns:
             vel = self.v_fall(d)
             vel.name = d
             v_d.append(vel)
@@ -277,9 +278,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         """mass weighted mean diameter"""
         name = 'D_m'
         def func():
-            d4n = lambda d: d**4*self.n(d)
-            d3n = lambda d: d**3*self.n(d)
-            dm = self.sum_over_d(d4n)/self.sum_over_d(d3n)
+            dm = self.n_moment(4)/self.n_moment(3)
             dm.name = name
             return dm
         return self.msger(name, func)
@@ -294,10 +293,10 @@ class Case(read.PrecipMeasurer, read.Cacher):
             d3n = lambda d: d**3*self.n(d)*dD
             cumvol = dd.apply(d3n).cumsum().T
             cumvol.columns = idxd
-            sumvol = cumvol.iloc[:,-1]
+            sumvol = cumvol.iloc[:, -1]
             diff = cumvol-sumvol/2
             dmed = diff.abs().T.idxmin()
-            dmed[sumvol<0.0001] = 0
+            dmed[sumvol < 0.0001] = 0
             dmed.name = name
             return dmed
         return self.msger(name, func)
@@ -310,10 +309,32 @@ class Case(read.PrecipMeasurer, read.Cacher):
             dd = pd.Series(idxd)
             nd = dd.apply(self.n).T
             nd.columns = idxd
-            dmax = nd[nd>0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
+            dmax = nd[nd > 0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
             dmax.name = name
             return dmax
         return self.msger(name, func)
+
+    def n_moment(self, n):
+        moment = lambda d: d**n*self.n(d)
+        return self.sum_over_d(moment)
+
+    def eta(self):
+        return self.n_moment(4)**2/(self.n_moment(6)*self.n_moment(2))
+
+    def mu(self):
+        eta = self.eta()
+        return ((7-11*eta)-np.sqrt(eta**2+14*eta+1))/(2*(eta-1))
+
+    def lam(self):
+        mu = self.mu()
+        return np.sqrt(self.n_moment(2)*gamma(mu+5)/(self.n_moment(4)*gamma(mu+3)))
+
+    def n_0(self):
+        mu = self.mu()
+        return self.n_moment(2)*self.lam()**(mu+3)/gamma(mu+3)
+
+    def d_0_gamma(self):
+        return (3.67+self.mu())/self.lam()
 
     def partcount(self):
         return self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
@@ -400,7 +421,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
     def dt_start_end(self):
         t = self.time_range()
         return (t[0], t[-1])
-    
+
     def time_range(self):
         """data time ticks on minute interval"""
         return pd.date_range(self.pluvio.acc().index[0],
@@ -512,7 +533,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             vmin = rho.min()
         if rhomax is None:
             vmax = rho.max()
-        choppa = ax.scatter(a,b,c=rho.values, vmin=rhomin, vmax=rhomax,
+        choppa = ax.scatter(a, b, c=rho.values, vmin=rhomin, vmax=rhomax,
                             **kwargs)
         cb = fig.colorbar(choppa, label='bulk density')
         ax.set_xlabel('$a_u$', fontsize=15)
@@ -528,7 +549,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         dmax = self.d_max()[selection]
         a = params.apply(lambda p: p[0])
         b = params.apply(lambda p: p[1])
-        b.name='b'
+        b.name = 'b'
         if rhomin is None:
             vmin = rho.min()
         if rhomax is None:
