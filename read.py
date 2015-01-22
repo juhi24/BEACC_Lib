@@ -561,6 +561,9 @@ class PipV(InstrumentData):
         self.dmin = 0.375 # smallest diameter where data is good
         self._fits = pd.DataFrame()
         self.dbins = np.linspace(0.375, 25.875, num=206)
+        self.std = pd.DataFrame(columns=self.dbins)
+        # half width at fraction of maximum
+        self.hwfm = pd.DataFrame(columns=self.dbins)
         self._default_fit = PolFit()
         if self.data.empty:
             for filename in filenames:
@@ -675,20 +678,25 @@ class PipV(InstrumentData):
 
     def filter_outlier(self, data=None, frac=0.5):
         filtered = pd.DataFrame()
+        HWfracM = []
+        std = []
         X, Y, Z = self.kde_grid(data)
         y = Y[:, 0]
         for i in range(0, Z.shape[1]):
             z = Z[:, i]
             z_lim = z.max()*frac
-            y_fltr = y[z > z_lim]
+            y_fltr = y[z > z_lim] # FWHM when frac=0.5
             if y_fltr.size == 0:
                 continue
             vmin = y_fltr[0]
             vmax = y_fltr[-1]
-            d = X[:, i][0]
-            filtered = filtered.append(self.dbin(d=d, data=data, vmin=vmin,
-                                                 vmax=vmax))
-        return filtered
+            HWfracM.append(0.5*(vmax-vmin))
+            d = X[0, i]
+            bin_data = self.dbin(d=d, data=data, vmin=vmin, vmax=vmax)
+            std.append(bin_data.vel_v.std())
+            filtered = filtered.append(bin_data)
+        # return filtered data, stds and half width at frac*kde_max
+        return filtered, np.array(std), np.array(HWfracM) 
 
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
@@ -700,9 +708,9 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
 
-    def find_fit(self, fit=None, data=None, kde=False, cut_d=False,
+    def find_fit(self, fit=None, data=None, kde=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
-                 **kwargs):
+                 name=None, **kwargs):
         """Find and store a fit for either raw data or kde."""
         if data is None:
             data = self.good_data()
@@ -714,7 +722,12 @@ class PipV(InstrumentData):
             kde = False
             use_curve_fit = False
         elif filter_outliers:
-            data = self.filter_outlier(data)
+            data, std, HWfracM = self.filter_outlier(data=data, frac=frac)
+            if name is not None:
+                std.resize(self.dbins.size, refcheck=False)
+                HWfracM.resize(self.dbins.size, refcheck=False)
+                self.std = self.std.append(pd.DataFrame(pd.Series(std, index=self.dbins, name=name)).T)
+                self.hwfm = self.hwfm.append(pd.DataFrame(pd.Series(HWfracM, index=self.dbins, name=name)).T)
         else:
             print('Could not apply filter.')
         if kde:
@@ -752,7 +765,8 @@ class PipV(InstrumentData):
         fits = []
         for name, group in self.grouped(rule=rule, varinterval=varinterval):
             try:
-                newfit = copy.deepcopy(self.find_fit(data=group, **kwargs))
+                newfit = copy.deepcopy(self.find_fit(data=group, name=name, 
+                                                     **kwargs))
             except RuntimeError as err:
                 print('%s: %s' % (name, err))
                 print('Particle count: %s' % group.vel_v.count())
