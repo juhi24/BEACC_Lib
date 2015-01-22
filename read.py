@@ -140,6 +140,9 @@ class InstrumentData:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
 
+    def append_data(self,appended):
+        self.data = self.data.append(appended.data)
+
     def finish_init(self, dt_start, dt_end):
         """Sort and name index, cut time span."""
         self.data.sort_index(inplace=True)
@@ -511,6 +514,7 @@ class PipV(InstrumentData):
         print('Reading PIP particle velocity data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
+        #print(filenames)
         if dBin == 0.25:
             self.dmin = 0.375
             self.dmax = 25.875
@@ -540,7 +544,7 @@ class PipV(InstrumentData):
                     {'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
                     'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
                 self.data = self.data.append(newdata)
-                #print(filename)
+                print(filename)
             self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
             print('index setted')
             self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()

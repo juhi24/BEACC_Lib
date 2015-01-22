@@ -17,14 +17,21 @@ RHO_W = 1000
 
 def batch_import(dtstr, datadir='../DATA'):
     """Read data from files according to a datestring pattern."""
-    pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
     dsd_files = glob(path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
     pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
     pluvio400_files = glob(path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     dsd = read.PipDSD(dsd_files)
-    pipv = read.PipV(filenames=pipv_files,dBin=dsd.d_bin)
+    flag = False
+    for hr in list(range(0,24)):
+        pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2))))
+        if len(pipv_files):
+            if flag :
+                pipv.append_data(read.PipV(filenames=pipv_files,dBin=dsd.d_bin))
+            else:
+                pipv = read.PipV(filenames=pipv_files,dBin=dsd.d_bin)
+                flag = True
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
