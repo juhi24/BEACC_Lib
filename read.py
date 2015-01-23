@@ -141,7 +141,11 @@ class InstrumentData:
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
 
     def append_data(self,appended):
-        self.data = self.data.append(appended.data)
+        print(len(appended.data.index))
+        print(self.data.dtypes)
+        print(appended.data.dtypes)
+        if len(appended.data.index):
+            self.data = self.data.append(appended.data)
 
     def finish_init(self, dt_start, dt_end):
         """Sort and name index, cut time span."""
@@ -284,7 +288,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     def good_data(self):
         data = copy.deepcopy(self.data)
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
-        if self.data.index[-1] > swap_date:
+        swap_date2 = pd.datetime(2014, 8, 31, 8, 0, 0)  # TODO correct
+        if self.data.index[-1] > swap_date and self.data.index[-1] < swap_date2:
             precip_cols = ['acc_rt', 'acc_nrt', 'acc_tot_nrt', 'bucket_rt',
                            'bucket_nrt']
             if self.name == 'pluvio200':
@@ -529,10 +534,9 @@ class PipV(InstrumentData):
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                print(filename[-23:-15])
                 if int(filename[-23:-15])>0:
                     newdata = pd.read_csv(filename,
-                                          engine='python',sep='\t',skiprows=8,skip_footer=1,
+                                          engine='python',sep='\t',skipinitialspace=True,skiprows=8,skip_footer=1,
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime)
                 else :
@@ -542,17 +546,16 @@ class PipV(InstrumentData):
                                           date_parser=self.parse_datetime)
                 newdata.rename_axis(
                     {'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
-                    'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
-                self.data = self.data.append(newdata)
+                     'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
+                if len(newdata.index):
+                    self.data = self.data.append(newdata)
                 print(filename)
-            self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
-            print('index setted')
-            self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
-            print('grouped')
-            self.data = self.data[self.data.vel_v.notnull()]
-            print('deleted null')
+            print(len(self.data.index))
+            if len(self.data.index):
+                self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
+                self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
+                self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
-            print('index setted again')
         self.finish_init(dt_start, dt_end)
 
     @property
@@ -606,8 +609,6 @@ class PipV(InstrumentData):
         return d3.resample(rule, how=np.sum, closed='right', label='right')
 
     def parse_datetime(self, mm):
-#        if int(mm) < 0 :
-#    	    return np.nan
         datestr = self.current_file.split('/')[-1].split('_')[0]
         yr = int(datestr[3:7])
         mo = int(datestr[7:9])

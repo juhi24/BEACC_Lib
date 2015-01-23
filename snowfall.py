@@ -31,7 +31,8 @@ def batch_import(dtstr, datadir='../DATA'):
                 pipv.append_data(read.PipV(filenames=pipv_files,dBin=dsd.d_bin))
             else:
                 pipv = read.PipV(filenames=pipv_files,dBin=dsd.d_bin)
-                flag = True
+                if(len(pipv.data.index)):
+                    flag = True
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
