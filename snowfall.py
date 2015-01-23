@@ -326,25 +326,37 @@ class Case(read.PrecipMeasurer, read.Cacher):
 
     def n_moment(self, n):
         moment = lambda d: d**n*self.n(d)
-        return self.sum_over_d(moment)
+        nth_mo = self.sum_over_d(moment)
+        nth_mo.name = 'M' + str(n)
+        return nth_mo
 
     def eta(self):
-        return self.n_moment(4)**2/(self.n_moment(6)*self.n_moment(2))
+        eta = self.n_moment(4)**2/(self.n_moment(6)*self.n_moment(2))
+        eta.name = 'eta'
+        return eta
 
     def mu(self):
         eta = self.eta()
-        return ((7-11*eta)-np.sqrt(eta**2+14*eta+1))/(2*(eta-1))
+        mu = ((7-11*eta)-np.sqrt(eta**2+14*eta+1))/(2*(eta-1))
+        mu.name = 'mu'
+        return mu
 
     def lam(self):
         mu = self.mu()
-        return np.sqrt(self.n_moment(2)*gamma(mu+5)/(self.n_moment(4)*gamma(mu+3)))
+        lam = np.sqrt(self.n_moment(2)*gamma(mu+5)/(self.n_moment(4)*gamma(mu+3)))
+        lam.name = 'lambda'
+        return lam
 
     def n_0(self):
         mu = self.mu()
-        return self.n_moment(2)*self.lam()**(mu+3)/gamma(mu+3)
+        n0 = self.n_moment(2)*self.lam()**(mu+3)/gamma(mu+3)
+        n0.name = 'N_0'
+        return n0
 
     def d_0_gamma(self):
-        return (3.67+self.mu())/self.lam()
+        d0 = (3.67+self.mu())/self.lam()
+        d0.name = 'D_0'
+        return d0
 
     def partcount(self):
         return self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
@@ -527,7 +539,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
         ax.legend(loc='lower right')
         return ax
 
-    def plot_velfitcoefs(self, fig=None, ax=None, rhomin=None, rhomax=None, countmin=1, **kwargs):
+    def plot_velfitcoefs(self, fig=None, ax=None, rhomin=None, rhomax=None, 
+                         countmin=1, **kwargs):
         rho = self.density()
         params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
         selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
@@ -550,21 +563,25 @@ class Case(read.PrecipMeasurer, read.Cacher):
         ax.set_ylabel('$b_u$', fontsize=15)
         return ax
 
-    def plot_d0_bv(self, rhomin=None, rhomax=None, countmin=1, **kwargs):
+    def plot_d0_bv(self, rhomin=None, rhomax=None, countmin=1, 
+                   count_as_size=True, countscale=4, **kwargs):
         rho = self.density()
         params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
         selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
+        count = self.partcount()[selection]
         rho = rho[selection]
         params = params[selection]
-        dmax = self.d_max()[selection]
+        d0 = self.d_0_gamma()[selection]
         a = params.apply(lambda p: p[0])
         b = params.apply(lambda p: p[1])
         b.name = 'b'
+        if count_as_size:
+            kwargs['s'] = 0.01*countscale*count
         if rhomin is None:
-            vmin = rho.min()
+            rhomin = rho.min()
         if rhomax is None:
-            vmax = rho.max()
-        return scatterplot(x=dmax, y=b, c=rho, **kwargs)
+            rhomax = rho.max()
+        return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax, **kwargs)
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio intensity.

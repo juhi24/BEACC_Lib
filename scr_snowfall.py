@@ -50,8 +50,12 @@ def plot_velfitcoefs(c, fig=None, ax=None, rhomin=None, rhomax=None, countmin=1,
     return ax
     
 #fig = plt.figure()
-#ax=plt.gca()
+ax=plt.gca()
 #
-#for c in e.events.pluvio400:
-#    c.pipv.find_fits(rule=c.rule)
-#    c.plot_d0_bv(countmin=1000, ax=ax)
+
+markers = ['o', 's', '^', 'v', 'D', '*']
+
+for i,c in enumerate(e.events.pluvio400):
+    #c.pipv.find_fits(rule=c.rule)
+    c.plot_d0_bv(countmin=1, rhomax=600, colorbar=False, edgecolors='none',
+                 ax=ax, countscale=3, legend=True, marker=markers[i])
