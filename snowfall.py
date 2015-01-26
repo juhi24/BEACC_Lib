@@ -279,22 +279,6 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """N wrapper"""
         return self.dsd.n(d, varinterval=self.varinterval, rule=self.rule)
 
-    def v_fall(self, d, how=np.median):
-        """v(D) m/s for every timestep, query is slow"""
-        vel = self.pipv.dbin(d, self.dsd.d_bin).vel_v
-        if vel.empty:
-            return self.series_nans()
-        return vel.resample(self.rule, how=how, closed='right', label='right')
-
-    def v_fall_all(self):
-        """v(D) in m/s for every timestep and diameter bin"""
-        v_d = []
-        for d in self.dsd.good_data().columns:
-            vel = self.v_fall(d)
-            vel.name = d
-            v_d.append(vel)
-        return pd.concat(v_d, axis=1)
-
     def n_t(self):
         """total concentration"""
         name = 'N_t'
@@ -541,32 +525,6 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         ax.set_ylabel('cost')
         ax.set_title('cost function value')
         return ax.plot(beta, cost, *args, **kwargs)
-
-    def plot_v_binned(self, ax=None, **kwargs):
-        """Plot velocity in diameter bins."""
-        if ax is None:
-            ax = plt.gca()
-        diam = []
-        vel = []
-        for d in self.dsd.good_data().columns:
-            v_new = self.v_fall(d).values
-            d_new = [d]*len(v_new)
-            vel.extend(v_new)
-            diam.extend(d_new)
-        ax.plot(diam, vel, 'h', **kwargs)
-        return ax
-
-    def plot_v_stuff(self, ax=None, **kwargs):
-        """Plot a lot of velocity related stuff in a single figure."""
-        if ax is None:
-            ax = plt.gca()
-        self.plot_v_binned(label='%s bin median' % self.rule, ax=ax, zorder=3,
-                           **kwargs)
-        self.v_fall_all().mean().plot(label='timestep mean', ax=ax, zorder=4,
-                                      **kwargs)
-        self.pipv.plot(ax=ax, zorder=2, **kwargs)
-        ax.legend(loc='lower right')
-        return ax
 
     def plot_velfitcoefs(self, fig=None, ax=None, rhomin=None, rhomax=None,
                          countmin=1, **kwargs):
