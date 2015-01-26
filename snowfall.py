@@ -52,11 +52,13 @@ class MultiSeries:
         pass
 
     def plot_pairs(self, x='a', y='b', c=None, sizecol=None, scale=1,
-                   kind='scatter', pluvio=None, **kwargs):
+                   kind='scatter', pluvio=None, query=None, **kwargs):
         sumkwargs = {}
         if pluvio is not None:
             sumkwargs['pluvio'] = pluvio
         data = self.summary(**sumkwargs)
+        if query is not None:
+            data.query(query)
         if c is not None:
             kwargs['c'] = c
         if sizecol is not None:
@@ -200,6 +202,13 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         m200 = cls(dsd, pipv, pluvio200, **kwargs)
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
+
+    def dtstr(self, dtformat = '%b %d'):
+        start, end = self.dt_start_end()
+        dtstr = start.strftime(dtformat)
+        if start.date() != end.date():
+            dtstr += '-' + end.strftime(dtformat)
+        return dtstr
 
     def between_datetime(self, dt_start, dt_end, inplace=False,
                          autoshift=False, autobias=False):
@@ -570,9 +579,11 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             rhomax = rho.max()
         return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax, **kwargs)
 
-    def summary(self):
+    def summary(self, **kwargs):
+        casename = self.series_nans().fillna(self.dtstr(**kwargs))
+        casename.name = 'case'
         data = read.merge_multiseries(self.partcount(), self.density(),
-                                      self.d_0(), self.n_t(),
+                                      self.d_0(), self.n_t(), casename,
                                       self.pipv.fit_params(), self.d_m(),
                                       self.d_max(), self.d_0_gamma())
         return data.sort_index(axis=1)

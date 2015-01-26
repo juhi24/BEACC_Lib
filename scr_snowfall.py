@@ -22,40 +22,13 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.dsd.store_good_data() # improve performance by storing filtered dsd tables in memory
     c.pluvio.shift_periods = -6
     c.reset() # reset on changing pluvio timeshift
-    #c.plot_velfitcoefs(ax=ax, rhomax=600, countmin=2000)
 
-#c.plot_velfitcoefs(rhomax=600, countmin=2000)
-
-def plot_velfitcoefs(c, fig=None, ax=None, rhomin=None, rhomax=None, countmin=1, **kwargs):
-    rho = c.density()
-    params = c.pipv.fits.polfit.apply(lambda fit: fit.params)
-    selection = pd.DataFrame([rho.notnull(), c.partcount() > countmin]).all()
-    rho = rho[selection]
-    params = params[selection]
-    a = params.apply(lambda p: p[0]).values
-    b = params.apply(lambda p: p[1]).values
-    if fig is None:
-        fig = plt.figure(dpi=120)
-    if ax is None:
-        ax = plt.gca()
-    if rhomin is None:
-        vmin = rho.min()
-    if rhomax is None:
-        vmax = rho.max()
-    choppa = ax.scatter(b,rho.values,c=a, vmin=rhomin, vmax=rhomax,
-                        **kwargs)
-    cb = fig.colorbar(choppa, label='a')
-    ax.set_xlabel('$b_u$', fontsize=15)
-    ax.set_ylabel('$\rho_u$', fontsize=15)
-    return ax
-    
 #fig = plt.figure()
 ax=plt.gca()
-#
 
 markers = ['o', 's', '^', 'v', 'D', '*']
 
-for i,c in enumerate(e.events.pluvio400):
-    #c.pipv.find_fits(rule=c.rule)
-    c.plot_d0_bv(countmin=1, rhomax=600, colorbar=False, edgecolors='none',
-                 ax=ax, countscale=3, legend=True, marker=markers[i])
+#for i,c in enumerate(e.events.pluvio400):
+#    #c.pipv.find_fits(rule=c.rule)
+#    c.plot_d0_bv(countmin=1, rhomax=600, colorbar=False, edgecolors='none',
+#                 ax=ax, countscale=3, legend=True, marker=markers[i])
