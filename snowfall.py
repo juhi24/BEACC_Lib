@@ -39,13 +39,31 @@ def batch_create_hdf(datadir='../DATA', outname='baecc.h5',
 
 def scatterplot(x, y, c=None, kind='scatter', **kwargs):
     """scatter plot of two Series objects"""
-    plotdata = pd.merge(pd.DataFrame(x), pd.DataFrame(y),
-                        right_index=True, left_index=True)
+    plotdata = read.merge_series(x, y)
     if c is not None:
         kwargs['c'] = c
     return plotdata.plot(kind=kind, x=x.name, y=y.name, **kwargs)
 
-class EventsCollection:
+class MultiSeries:
+    def __init__(self):
+        pass
+
+    def summary():
+        pass
+
+    def plot_pairs(self, x='a', y='b', c=None, sizecol=None, scale=1,
+                   kind='scatter', pluvio=None, **kwargs):
+        sumkwargs = {}
+        if pluvio is not None:
+            sumkwargs['pluvio'] = pluvio
+        data = self.summary(**sumkwargs)
+        if c is not None:
+            kwargs['c'] = c
+        if sizecol is not None:
+            kwargs['s'] = scale*np.sqrt(data[sizecol])
+        return data.plot(x=x, y=y, kind=kind, **kwargs)
+
+class EventsCollection(MultiSeries):
     """Manage multiple events."""
     def __init__(self, csv, dtformat='%d %B %H UTC'):
         """Read event metadata from a csv file."""
@@ -81,7 +99,13 @@ class EventsCollection:
             self.add_data(d, autoshift=autoshift, autobias=autobias)
         return
 
-class Case(read.PrecipMeasurer, read.Cacher):
+    def summary(self, pluvio='pluvio200', **kwargs):
+        sumlist = []
+        for c in self.events[pluvio]:
+            sumlist.append(c.summary())
+        return pd.concat(sumlist, **kwargs)
+
+class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, varinterval=True, unbias=False,
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
@@ -354,12 +378,17 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return n0
 
     def d_0_gamma(self):
-        d0 = (3.67+self.mu())/self.lam()
-        d0.name = 'D_0'
-        return d0
+        name = 'D_0_gamma'
+        def func():
+            d0 = (3.67+self.mu())/self.lam()
+            d0.name = name
+            return d0
+        return self.msger(name, func)
 
     def partcount(self):
-        return self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
+        count = self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
+        count.name = 'count'
+        return count
 
     def series_zeros(self):
         """Return series of zeros of the shape of timestep averaged data."""
@@ -539,7 +568,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         ax.legend(loc='lower right')
         return ax
 
-    def plot_velfitcoefs(self, fig=None, ax=None, rhomin=None, rhomax=None, 
+    def plot_velfitcoefs(self, fig=None, ax=None, rhomin=None, rhomax=None,
                          countmin=1, **kwargs):
         rho = self.density()
         params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
@@ -563,7 +592,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         ax.set_ylabel('$b_u$', fontsize=15)
         return ax
 
-    def plot_d0_bv(self, rhomin=None, rhomax=None, countmin=1, 
+    def plot_d0_bv(self, rhomin=None, rhomax=None, countmin=1,
                    count_as_size=True, countscale=4, **kwargs):
         rho = self.density()
         params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
@@ -582,6 +611,13 @@ class Case(read.PrecipMeasurer, read.Cacher):
         if rhomax is None:
             rhomax = rho.max()
         return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax, **kwargs)
+
+    def summary(self):
+        data = read.merge_multiseries(self.partcount(), self.density(),
+                                      self.d_0(), self.n_t(),
+                                      self.pipv.fit_params(), self.d_m(),
+                                      self.d_max(), self.d_0_gamma())
+        return data.sort_index(axis=1)
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio intensity.

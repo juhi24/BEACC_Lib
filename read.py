@@ -31,6 +31,19 @@ def ensure_dir(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+def merge_series(s1, s2, **kwargs):
+    """Merge pandas Series and/or DataFrames on index"""
+    return pd.merge(pd.DataFrame(s1), pd.DataFrame(s2),
+                    left_index=True, right_index=True, **kwargs)
+
+def merge_multiseries(s1, s2, *series, **kwargs):
+    """Merge multiple pandas Series and/or DataFrames on index"""
+    s_all = merge_series(s1, s2, **kwargs)
+    if len(series) > 0:
+        for s in series:
+            s_all = merge_series(s_all, s, **kwargs)
+    return s_all
+
 class Cacher:
     """common methods to use msg cache"""
     def __init__(self, use_cache=True, storefilename='store.h5'):
@@ -696,7 +709,7 @@ class PipV(InstrumentData):
             std.append(bin_data.vel_v.std())
             filtered = filtered.append(bin_data)
         # return filtered data, stds and half width at frac*kde_max
-        return filtered, np.array(std), np.array(HWfracM) 
+        return filtered, np.array(std), np.array(HWfracM)
 
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
@@ -765,7 +778,7 @@ class PipV(InstrumentData):
         fits = []
         for name, group in self.grouped(rule=rule, varinterval=varinterval):
             try:
-                newfit = copy.deepcopy(self.find_fit(data=group, name=name, 
+                newfit = copy.deepcopy(self.find_fit(data=group, name=name,
                                                      **kwargs))
             except RuntimeError as err:
                 print('%s: %s' % (name, err))
@@ -797,11 +810,17 @@ class PipV(InstrumentData):
                                      columns=[newfit.name])
         return self.fits
 
-    def fit_coefs(self):
-        paramslist = []
-        for fit in self.fits[self.default_fit.name].values:
-            paramslist.append(fit.params)
-        return pd.DataFrame(data=np.vstack(paramslist), index=self.fits.index)
+    def fit_params(self, fit_type=None):
+        if fit_type is None:
+            fit_type = self.default_fit.name
+        letter = 'abcdef'
+        params = self.fits[fit_type].apply(lambda fit: fit.params)
+        paramlist = []
+        for i in range(params.values[0].size):
+            param = params.apply(lambda p: p[i])
+            param.name = letter[i]
+            paramlist.append(param)
+        return merge_multiseries(*paramlist)
 
     def partcount(self, rule, varinterval):
         return self.grouped(rule=rule, varinterval=varinterval).Part_ID.count()
@@ -876,7 +895,7 @@ class PipV(InstrumentData):
         t_end = data.index[-1]
         label_format = '%H:%M'
         ax.set_title('%s-%s UTC' % (t_start.strftime(label_format),
-                                  t_end.strftime(label_format)))
+                                    t_end.strftime(label_format)))
         if show_particle_count:
             ax.text(right, margin, 'particle count: %s' % str(partcount))
         ax.set_ylabel('Fall velocity (m/s)')
