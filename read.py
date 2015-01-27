@@ -12,8 +12,6 @@ from scipy import stats
 from scipy.optimize import curve_fit, fmin, minimize
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
-CACHE_DIR = 'cache'
-MSGTLD = '.msg'
 
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
@@ -184,29 +182,28 @@ class PrecipMeasurer:
         frac = pd.datetools.timedelta(hours=1)/tdelta
         return frac * r
 
-class InstrumentData(Cacher):
+class InstrumentData:
     """Parent for instrument data classes."""
-    def __init__(self, filenames, hdf_table=None, use_cache=True, case=None):
-        """Read from either ASCII data file or hdf5."""
+    def __init__(self, filenames, hdf_table=None):
+        """Read from either instrument output data file or hdf5."""
         self.filenames = filenames
         self.data = pd.DataFrame()
-        self.use_cache = use_cache
-        self.case = case # to be used only for msg cache!
-        # if filtered data needed often, keep in memory
-        self.stored_good_data = None # set to None to disable
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
+
+    def append_data(self,appended):
+        print(len(appended.data.index))
+        print(self.data.dtypes)
+        print(appended.data.dtypes)
+        if len(appended.data.index):
+            self.data = self.data.append(appended.data)
 
     def finish_init(self, dt_start, dt_end):
         """Sort and name index, cut time span."""
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
         self.set_span(dt_start, dt_end)
-        self.storefilename = self.name + '.h5'
-
-    def store_good_data(self, **kwargs):
-        self.stored_good_data = self.good_data(**kwargs)
 
     def parse_datetime(self):
         """Parse timestamps in data files. Used by class constructor."""
@@ -214,8 +211,6 @@ class InstrumentData(Cacher):
 
     def good_data(self):
         """Return useful data with filters and corrections applied."""
-        if self.stored_good_data is not None:
-            return self.stored_good_data
         return self.data
 
     def to_hdf(self, filename='../DATA/baecc.h5'):
@@ -247,12 +242,6 @@ class InstrumentData(Cacher):
             return grpd_data.groupby('group')
         return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
 
-    def cache_dir(self):
-        if self.case is None:
-            return
-        dt_start, dt_end = self.case.dt_start_end()
-        return super().cache_dir(dt_start, dt_end, self.case.pluvio.name)
-
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -269,7 +258,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.amount_col = 'acc_' + self.col_suffix
         self.bucket_col = 'bucket_' + self.col_suffix
         if self.data.empty:
-            self.name = os.path.basename(os.path.dirname(self.filenames[0])).lower()
+            self.name = os.path.basename(path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
                                     'intensity RT [mm h]',
                                     'accumulated RT/NRT [mm]',
@@ -313,7 +302,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     @property
     def varinterval(self):
         return self._varinterval
-
+        
     @varinterval.setter
     def varinterval(self, varinterval):
         self._varinterval = varinterval
@@ -349,8 +338,6 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return datetime.datetime(*t[:t_end])
 
     def good_data(self):
-        if self.stored_good_data is not None:
-            return self.stored_good_data
         data = copy.deepcopy(self.data)
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
         swap_date2 = pd.datetime(2014, 8, 31, 8, 0, 0) # TODO put correct switch date
@@ -426,7 +413,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             return super().intensity(tdelta=self.tdelta(), **kwargs)
         return super().intensity(tdelta=None, **kwargs)
 
-    def constinterval_acc(self, rule='1H', interpolate=True, unbias=True,
+    def constinterval_acc(self, rule='1H', interpolate=True, unbias=True, 
                           shift=True, filter_evap=True):
         """Resample unbiased accumulated precipitation in mm."""
         accum = self.acc_raw().asfreq('1min')
@@ -493,25 +480,39 @@ class PipDSD(InstrumentData):
         """Create a PipDSD object using data from a list of PIP DSD table files."""
         print('Reading PIP DSD data...')
         InstrumentData.__init__(self, filenames, **kwargs)
-        self.d_bin = 0.25
         self.name = 'pip_dsd'
+        self.d_bin = 0.25
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                self.data = self.data.append(pd.read_csv(filename,
-                                delim_whitespace=True, skiprows=8, header=3,
-                                parse_dates={'datetime':['hr_d', 'min_d']},
-                                date_parser=self.parse_datetime,
-                                index_col='datetime'))
-            #self.num_d = self.data[['Num_d']]
+                print(filename[-18:-8])
+                if int(filename[-16:-8])>0:
+                    self.data = self.data.append(pd.read_csv(filename,
+                                    engine='python',sep='\t',skiprows=8,skip_footer=1,header=3,
+                                    parse_dates={'datetime':['hr_d', 'min_d']},
+                                    date_parser=self.parse_datetime,
+                                    index_col='datetime'))
+                else:
+                    self.data = self.data.append(pd.read_csv(filename,
+                                    delim_whitespace=True, skiprows=8,header=3,
+                                    parse_dates={'datetime':['hr_d', 'min_d']},
+                                    date_parser=self.parse_datetime,
+                                    index_col='datetime'))
+
+            # self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data, last sometimes nans
-            self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1,
+            self.d_bin = float(linecache.getline(self.current_file,11).split()[5])
+            self.data.drop(['day_time', 'Num_d', 'Bin_cen', self.data.columns.values[3]], 1,
                            inplace=True)
             self.data.columns = pd.Index([float(i) for i in self.data.columns])
             self.data.sort_index(axis=1)
         self.data.drop_duplicates(inplace=True)
+        print('duplicates dropped')
         self.data = self.data.resample('1min').fillna(0)
+        print('resampled')
+        print('filled')
         self.finish_init(dt_start, dt_end)
+        print('pip dsd created')
 
     def parse_datetime(self, hh, mm):
         dateline = linecache.getline(self.current_file, 6)
@@ -557,8 +558,6 @@ class PipDSD(InstrumentData):
         return filtered
 
     def good_data(self, filter_large=True, **kwargs):
-        if self.stored_good_data is not None:
-            return self.stored_good_data
         gain_correction = 2
         data = self.data
         if filter_large:
@@ -567,14 +566,14 @@ class PipDSD(InstrumentData):
 
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
-    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
+    def __init__(self, filenames, dt_start=None, dt_end=None,dBin=0.25, **kwargs):
         """Create a PipV object using data from a list of PIP velocity table files."""
         print('Reading PIP particle velocity data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
         self.dmin = 0.375 # smallest diameter where data is good
         self._fits = pd.DataFrame()
-        self.dbins = np.linspace(0.375, 25.875, num=206)
+        self.dbins = np.linspace(self.dmin, 25.875, num=206)
         self.std = pd.DataFrame(columns=self.dbins)
         # half width at fraction of maximum
         self.hwfm = pd.DataFrame(columns=self.dbins)
@@ -582,17 +581,27 @@ class PipV(InstrumentData):
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                newdata = pd.read_csv(filename,
-                                      delim_whitespace=True, skiprows=8,
-                                      parse_dates={'datetime':['minute_p']},
-                                      date_parser=self.parse_datetime)
+                if int(filename[-23:-15])>0:
+                    newdata = pd.read_csv(filename,
+                                          engine='python',sep='\t',skipinitialspace=True,skiprows=8,skip_footer=1,
+                                          parse_dates={'datetime':['minute_p']},
+                                          date_parser=self.parse_datetime)
+                else :
+                    newdata = pd.read_csv(filename,
+                                          delim_whitespace=True, skiprows=8,
+                                          parse_dates={'datetime':['minute_p']},
+                                          date_parser=self.parse_datetime)
                 newdata.rename_axis(
                     {'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
                      'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
-                self.data = self.data.append(newdata)
-            self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
-            self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
-            self.data = self.data[self.data.vel_v.notnull()]
+                if len(newdata.index):
+                    self.data = self.data.append(newdata)
+                print(filename)
+            print(len(self.data.index))
+            if len(self.data.index):
+                self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
+                self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
+                self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)
 
@@ -606,24 +615,6 @@ class PipV(InstrumentData):
     def binwidth(self):
         d = self.dbins
         return (d[-1]-d[0])/(len(d)-1)
-
-    @property
-    def fits(self):
-        if self.use_cache:
-            try:
-                with pd.HDFStore(self.store_path()) as store:
-                    return store.get('fits')
-            except KeyError:
-                return pd.DataFrame()
-        return self._fits
-
-    @fits.setter
-    def fits(self, fits):
-        if self.use_cache:
-            with pd.HDFStore(self.store_path()) as store:
-                store['fits'] = fits
-        else:
-            self._fits = fits
 
     @property
     def default_fit(self):
@@ -673,8 +664,6 @@ class PipV(InstrumentData):
         return datetime.datetime(yr, mo, dd, hh, int(mm))
 
     def good_data(self):
-        if self.stored_good_data is not None:
-            return self.stored_good_data
         return self.data[self.data.Wad_Dia > self.dmin]
 
     def dbin(self, d, binwidth=None, data=None, vmin=None, vmax=None):
@@ -905,8 +894,7 @@ class PipV(InstrumentData):
         return ax
 
     def plots(self, rule=None, separate=True, peak=False, save=False, ncols=1,
-              prefix='', suffix='.png', ymax=None, plotfit=True, savedir=None,
-              **kwargs):
+              prefix='', suffix='.png', ymax=None, plotfit=True, **kwargs):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped(rule=rule).ngroups
         #nrows = int(np.ceil(ngroups/ncols))
@@ -914,8 +902,7 @@ class PipV(InstrumentData):
             home = os.curdir
             if 'HOME' in os.environ:
                 home = os.environ['HOME']
-            if savedir is None:
-                savedir = os.path.join(home, 'Pictures', 'vel_plots')
+            savedir = os.path.join(home, 'Pictures', 'vel_plots')
             #suffix = '_' + self.rule
         if not separate:
             f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
@@ -934,7 +921,7 @@ class PipV(InstrumentData):
             if group.Part_ID.count() < 1:
                 continue
             if plotfit:
-                self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',',
+                self.plot_fit(tstep=name, zorder=6, ax=axarr[i], marker=',', 
                               alpha=0.3)
             self.plot(data=group, ax=axarr[i],
                       ymax=ymax, **kwargs)
@@ -942,12 +929,12 @@ class PipV(InstrumentData):
             if save and separate:
                 t = group.index[-1]
                 fname = t.strftime(prefix + '%Y%m%d%H%M' + suffix)
-                f.savefig(os.path.join(savedir, fname))
+                f.savefig(path.join(savedir, fname))
             if peak:
                 axarr[i].scatter(*self.kde_peak(data=group), label='kde peak')
         if save and not separate:
             fname = t.strftime('%Y%m%d' + suffix)
-            f.savefig(os.path.join(savedir, fname))
+            f.savefig(path.join(savedir, fname))
         return axarr
 
 class PIPpart(InstrumentData):
@@ -956,14 +943,14 @@ class PIPpart(InstrumentData):
         print('Reading PIP particle data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_part'
-        dtype = {'Year':np.int32, 'Month':np.int32, 'Day':np.int32,
-                 'Hr':np.int32, 'Min':np.int32, 'Sec':np.int32}
+        dtype = {'Year':np.int32,'Month':np.int32,'Day':np.int32,'Hr':np.int32,
+                 'Min':np.int32,'Sec':np.int32}
         if self.data.empty:
             for filename in filenames:
                 newdata = pd.read_csv(filename, delim_whitespace=True,
-                                      skiprows=[0, 1, 2, 3, 4, 5, 6, 7, 9],
+                                      skiprows=[0,1,2,3,4,5,6,7,9],
                                       index_col='datetime',
-                                      parse_dates={'datetime':['Year', 'Month', 'Day', 'Hr', 'Min', 'Sec']},
+                                      parse_dates={'datetime':['Year','Month','Day','Hr','Min','Sec']},
                                       date_parser=datetime.datetime,
                                       dtype=dtype)
                 self.data = self.data.append(newdata)

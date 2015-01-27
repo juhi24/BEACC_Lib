@@ -4,13 +4,12 @@ import pandas as pd
 import read
 from datetime import datetime
 from scipy.optimize import minimize
-from scipy.special import gamma
 from glob import glob
 from itertools import cycle
+from os import path
 import matplotlib.pyplot as plt
 import copy
 import locale
-import os
 
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
@@ -18,24 +17,34 @@ TAU = 2*np.pi
 RHO_W = 1000
 
 def batch_import(dtstr, datadir='../DATA'):
-    """Read ASCII data according to a datestring pattern."""
-    pipv_files = glob(os.path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
-    dsd_files = glob(os.path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
-    pluvio200_files = glob(os.path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
-    pluvio400_files = glob(os.path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
+    """Read data from files according to a datestring pattern."""
+    dsd_files = glob(path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
+    pluvio200_files = glob(path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
+    pluvio400_files = glob(path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
-    pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
+    flag = False
+    for hr in list(range(0,24)):
+        pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2))))
+        if len(pipv_files):
+            if flag :
+                pipv.append_data(read.PipV(filenames=pipv_files,dBin=dsd.d_bin))
+            else:
+                pipv = read.PipV(filenames=pipv_files,dBin=dsd.d_bin)
+                if(len(pipv.data.index)):
+                    flag = True
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
 def batch_create_hdf(datadir='../DATA', outname='baecc.h5',
                      dtstr='20140[2-3]??'):
-    """Read ASCII data and export to hdf."""
+    """Read data from files and export to hdf."""
     instrdict = batch_import(dtstr, datadir)
-    hdf_file = os.path.join(datadir, outname)
+    print('batch data imported')
+    hdf_file = path.join(datadir, outname)
     for key in instrdict:
+        print("salvo "+key)
         instrdict[key].to_hdf(filename=hdf_file)
 
 def scatterplot(x, y, c=None, kind='scatter', **kwargs):
@@ -127,8 +136,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, varinterval=True, unbias=False,
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
-                 bnd=((0, 0.1), (1, 3)), rule='15min', use_cache=True):
-        self._use_cache = use_cache
+                 bnd=((0, 0.1), (1, 3)), rule='15min'):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
@@ -136,14 +144,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         self.pluvio.varinterval = varinterval
         self.quess = quess
         self.bnd = bnd
-        if varinterval:
-            self._rule = None
-        else:
-            self._rule = rule
+        self._rule = rule
         self.liquid = liquid
         self._ab = None # alpha, beta
-        for instr in [self.dsd, self.pipv, self.pluvio]:
-            instr.case = self
         if autoshift:
             self.autoshift()
         if unbias:
@@ -154,38 +157,29 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             casetype = 'rain'
         else:
             casetype = 'snow'
-        dt_start, dt_end = self.dt_start_end()
+        t = self.time_range()
+        dt_start = t[0]
+        dt_end = t[-1]
         if self.varinterval:
-            sampling_label = 'adaptive'
+            sampling_label = 'varying intervals'
         else:
             sampling_label = self.rule
         return '%s case from %s to %s, %s' % (casetype, dt_start,
                                               dt_end, sampling_label)
 
     @property
-    def use_cache(self):
-        return self._use_cache
-
-    @use_cache.setter
-    def use_cache(self, use_cache):
-        self._use_cache = use_cache
-        for instr in [self.dsd, self.pipv, self.pluvio]:
-            instr.use_cache = use_cache
-
-    @property
     def varinterval(self):
         return self._varinterval
-
+        
     @varinterval.setter
     def varinterval(self, varinterval):
         self._varinterval = varinterval
         self.pluvio.varinterval = varinterval
-        self.reset()
 
     @property
     def rule(self):
-        if self.varinterval and self._rule is None:
-            self._rule = self.pluvio.grouper() # TODO: needs to be reset on changes for pluvio data
+        if self.varinterval:
+            return self.pluvio.grouper()
         return self._rule
 
     @rule.setter
@@ -238,19 +232,12 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             m = copy.deepcopy(self)
         for instr in [m.dsd, m.pipv, m.pluvio]:
             instr.between_datetime(dt_start, dt_end, inplace=True)
-            instr.case = m
         m.pluvio.bias = 0
         if autoshift:
             m.autoshift(inplace=True)
         if autobias:
             m.noprecip_bias(inplace=True)
-        m.reset()
         return m
-
-    def reset(self):
-        """Reset memory cache."""
-        if self.varinterval:
-            self.rule = None
 
     def intensity(self, params=None, simple=False):
         """Calculate precipitation intensity using given or saved parameters."""
@@ -283,7 +270,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """numerical integration over particle diameter"""
         dD = self.dsd.d_bin
         result = self.series_zeros()
-        for d in self.dsd.good_data().columns:
+        for d in self.dsd.data.columns:
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
 
@@ -307,16 +294,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def n_t(self):
         """total concentration"""
-        name = 'N_t'
-        def func():
-            nt = self.sum_over_d(self.n)
-            nt.name = name
-            return nt
-        return self.msger(name, func)
-
-    def cache_dir(self):
-        dt_start, dt_end = self.dt_start_end()
-        return super().cache_dir(dt_start, dt_end, self.pluvio.name)
+        return self.sum_over_d(self.n)
 
     def d_m(self):
         """mass weighted mean diameter"""
@@ -450,17 +428,12 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def density(self, pluvio_filter=True, pip_filter=False):
         """Calculates mean density estimate for each timeframe."""
-        name = 'density'
-        def func():
-            rho_r_pip = self.amount(params=[1], simple=True)
-            if pluvio_filter: #filter
-                rho_r_pip[self.pluvio.intensity() < 0.1] = np.nan
-            if pip_filter and self.ab is not None:
-                rho_r_pip[self.intensity() < 0.1] = np.nan
-            rho = self.pluvio.amount(rule=self.rule)/rho_r_pip
-            rho.name = name
-            return rho.replace(np.inf, np.nan)
-        return self.msger(name, func)
+        rho_r_pip = self.amount(params=[1], simple=True)
+        if pluvio_filter: #filter
+            rho_r_pip[self.pluvio.intensity() < 0.1] = np.nan
+        if pip_filter and self.ab is not None:
+            rho_r_pip[self.intensity() < 0.1] = np.nan
+        return self.pluvio.amount(rule=self.rule)/rho_r_pip
 
     def minimize(self, method='SLSQP', **kwargs):
         """Legacy method for determining alpha and beta."""
@@ -562,16 +535,14 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         rho = rho[selection]
         params = params[selection]
         a = params.apply(lambda p: p[0]).values
-        b = params.apply(lambda p: p[1]).values
-        if fig is None:
-            fig = plt.figure(dpi=120)
-        if ax is None:
-            ax = plt.gca()
+        b=params.apply(lambda p: p[1]).values
+        fig = plt.figure(dpi=120)
+        ax = plt.gca()
         if rhomin is None:
             vmin = rho.min()
         if rhomax is None:
             vmax = rho.max()
-        choppa = ax.scatter(a, b, c=rho.values, vmin=rhomin, vmax=rhomax,
+        choppa = ax.scatter(a,b,c=rho.values, vmin=rhomin, vmax=rhomax,
                             **kwargs)
         cb = fig.colorbar(choppa, label='bulk density')
         ax.set_xlabel('$a_u$', fontsize=15)
