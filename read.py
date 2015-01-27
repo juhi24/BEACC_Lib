@@ -288,7 +288,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     def good_data(self):
         data = copy.deepcopy(self.data)
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
-        swap_date2 = pd.datetime(2014, 8, 31, 8, 0, 0)  # TODO correct
+        swap_date2 = pd.datetime(2014, 8, 31, 8, 0, 0)  # TODO put correct switch date
         if self.data.index[-1] > swap_date and self.data.index[-1] < swap_date2:
             precip_cols = ['acc_rt', 'acc_nrt', 'acc_tot_nrt', 'bucket_rt',
                            'bucket_nrt']
