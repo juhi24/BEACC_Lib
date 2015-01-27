@@ -8,27 +8,46 @@ import matplotlib.pyplot as plt
 
 dtformat_default = '%d.%m. %H:%M'
 dtformat_snex = '%d %B %H UTC'
+dtformat_davide = '%d.%m.%y %H:%M'
 
-e = EventsCollection('cases/pip2015.csv', dtformat_snex)
-e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
+e = EventsCollection('cases/2015_test.csv', dtformat_davide)
+e.autoimport_data(autoshift=False, autobias=False, rule='5min', varinterval=True)
 
 basedir = '/home/jussitii/results/pip2015'
 
-plt.ion()
-#ax = plt.gca()
-#plt.figure(dpi=120)
+plt.close('all')
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.dsd.store_good_data() # improve performance by storing filtered dsd tables in memory
     c.pluvio.shift_periods = -6
-    c.reset() # reset on changing pluvio timeshift
+    c.reset() # reset memory cache after changing pluvio timeshift
 
-#fig = plt.figure()
-ax=plt.gca()
+plt.ion()
+fig = plt.figure(dpi=120)
+ax1 = plt.gca()
 
-markers = ['o', 's', '^', 'v', 'D', '*']
+e.plot_pairs(ax=ax1, c='density', sizecol='count', vmin=0, vmax=600,
+             query='density<600 & count>1000 & b>0', colorbar=True, 
+             xlim=[0.5,2.5])
+             
+fig = plt.figure(dpi=120)
+ax2 = plt.gca()
 
-#for i,c in enumerate(e.events.pluvio400):
-#    #c.pipv.find_fits(rule=c.rule)
-#    c.plot_d0_bv(countmin=1, rhomax=600, colorbar=False, edgecolors='none',
-#                 ax=ax, countscale=3, legend=True, marker=markers[i])
+e.plot_pairs(ax=ax2, x='D_0_gamma', y='density', sizecol='count', vmin=0, vmax=800,
+             query='density<600 & count>1000 & b>0', colorbar=False, xlim=[0,8], ylim=[0,600])
+                          
+             
+plt.tight_layout()
+
+brandes = read.PolFit(params=[178, -0.922])
+brandes.plot(ax=ax2)
+
+
+fig = plt.figure(dpi=120)
+ax3 = plt.gca()
+
+e.plot_pairs(ax=ax3, x='D_0_gamma', y='b',c='density', sizecol='count', vmin=0, vmax=800,
+             query='density<600 & count>1000 & b>0', colorbar=True)
+                          
+             
+plt.tight_layout()

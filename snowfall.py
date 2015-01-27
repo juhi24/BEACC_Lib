@@ -6,6 +6,7 @@ from datetime import datetime
 from scipy.optimize import minimize
 from scipy.special import gamma
 from glob import glob
+from itertools import cycle
 import matplotlib.pyplot as plt
 import copy
 import locale
@@ -45,6 +46,8 @@ def scatterplot(x, y, c=None, kind='scatter', **kwargs):
     return plotdata.plot(kind=kind, x=x.name, y=y.name, **kwargs)
 
 class MultiSeries:
+    """Provide calculated parameters as one DataFrame and use it for plotting.
+    """
     def __init__(self):
         pass
 
@@ -52,21 +55,34 @@ class MultiSeries:
         pass
 
     def plot_pairs(self, x='a', y='b', c=None, sizecol=None, scale=1,
-                   kind='scatter', pluvio=None, query=None, **kwargs):
+                   kind='scatter', grouped=True, pluvio=None, query=None,
+                   ax=None, colorbar=False, markers='os^vD*px+',
+                   edgecolors='none', **kwargs):
         sumkwargs = {}
+        if ax is None:
+            ax = plt.gca()
         if pluvio is not None:
             sumkwargs['pluvio'] = pluvio
         data = self.summary(**sumkwargs)
         if query is not None:
-            data.query(query)
+            data = data.query(query)
         if c is not None:
             kwargs['c'] = c
         if sizecol is not None:
             kwargs['s'] = scale*np.sqrt(data[sizecol])
-        return data.plot(x=x, y=y, kind=kind, **kwargs)
+        if grouped:
+            groups = data.groupby('case')
+            for (name, group), marker in zip(groups, cycle(markers)):
+                colorbar = groups.case.first().iloc[0] == name and colorbar
+                group.plot(ax=ax, x=x, y=y, marker=marker, kind=kind,
+                           label=name, colorbar=colorbar, edgecolors=edgecolors,
+                           **kwargs)
+            return ax
+        return data.plot(ax=ax, x=x, y=y, kind=kind, colorbar=colorbar,
+                         edgecolors=edgecolors, **kwargs)
 
 class EventsCollection(MultiSeries):
-    """Manage multiple events."""
+    """Manage multiple snow/rain events."""
     def __init__(self, csv, dtformat='%d %B %H UTC'):
         """Read event metadata from a csv file."""
         self.dtformat = dtformat
@@ -77,7 +93,7 @@ class EventsCollection(MultiSeries):
 
     def parse_datetime(self, dtstr):
         date = datetime.strptime(dtstr, self.dtformat)
-        date = date.replace(year=2014)
+        #date = date.replace(year=2014)
         return date
 
     def add_data(self, data, autoshift=True, autobias=True):
@@ -204,6 +220,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return m200, m400
 
     def dtstr(self, dtformat = '%b %d'):
+        """date string in simple format"""
         start, end = self.dt_start_end()
         dtstr = start.strftime(dtformat)
         if start.date() != end.date():
@@ -379,6 +396,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return self.msger(name, func)
 
     def partcount(self):
+        """particle count"""
         count = self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
         count.name = 'count'
         return count
@@ -463,6 +481,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return result
 
     def dt_start_end(self):
+        """case start and end time as Timestamp"""
         t = self.time_range()
         return (t[0], t[-1])
 
