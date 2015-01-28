@@ -513,7 +513,7 @@ class PipDSD(InstrumentData):
                                     index_col='datetime'))
                 else:
                     self.data = self.data.append(pd.read_csv(filename,
-                                    delim_whitespace=True, skiprows=8,header=3,
+                                    delim_whitespace=True, skiprows=8, header=3,
                                     parse_dates={'datetime':['hr_d', 'min_d']},
                                     date_parser=self.parse_datetime,
                                     index_col='datetime'))
@@ -575,6 +575,9 @@ class PipDSD(InstrumentData):
         if self.stored_good_data is not None:
             return self.stored_good_data
         gain_correction = 2
+        update_date = pd.datetime(2014, 11, 25, 8, 0, 0)
+        if self.data.index[-1] > update_date:
+            gain_correction = 1
         data = self.data
         if filter_large:
             data = self.filter_cat_and_dog(data=data, **kwargs)

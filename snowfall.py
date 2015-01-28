@@ -28,14 +28,14 @@ def batch_import(dtstr, datadir='../DATA'):
     #pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
     flag = False
-    for hr in range(0,24):
+    for hr in range(0, 24):
         pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2))))
         if len(pipv_files):
-            if flag :
+            if flag:
                 pipv.append_data(read.PipV(filenames=pipv_files))
             else:
                 pipv = read.PipV(filenames=pipv_files)
-                if(len(pipv.data.index)):
+                if len(pipv.data.index):
                     flag = True
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
@@ -229,7 +229,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
 
-    def dtstr(self, dtformat = '%b %d'):
+    def dtstr(self, dtformat='%b %d'):
         """date string in simple format"""
         start, end = self.dt_start_end()
         dtstr = start.strftime(dtformat)
