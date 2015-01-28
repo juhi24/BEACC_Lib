@@ -10,7 +10,7 @@ dtformat_default = '%d.%m. %H:%M'
 dtformat_snex = '%d %B %H UTC'
 dtformat_davide = '%d.%m.%y %H:%M'
 
-e = EventsCollection('cases/2015_test.csv', dtformat_davide)
+e = EventsCollection('cases/pip2015.csv', dtformat_snex)
 e.autoimport_data(autoshift=False, autobias=False, rule='5min', varinterval=True)
 
 basedir = '/home/jussitii/results/pip2015'
@@ -33,7 +33,16 @@ e.plot_pairs(ax=ax1, c='density', sizecol='count', vmin=0, vmax=600,
 fig = plt.figure(dpi=120)
 ax2 = plt.gca()
 
-e.plot_pairs(ax=ax2, x='D_0_gamma', y='density', sizecol='count', vmin=0, vmax=800,
+e.plot_pairs(ax=ax2, x='D_0', y='density', sizecol='count', vmin=0, vmax=800,
+             query='density<600 & count>1000 & b>0', colorbar=False, xlim=[0,8], ylim=[0,600])
+                          
+             
+plt.tight_layout()
+
+fig = plt.figure(dpi=120)
+ax4 = plt.gca()
+
+e.plot_pairs(ax=ax4, x='D_0_gamma', y='density', sizecol='count', vmin=0, vmax=800,
              query='density<600 & count>1000 & b>0', colorbar=False, xlim=[0,8], ylim=[0,600])
                           
              

@@ -93,7 +93,7 @@ class EventsCollection(MultiSeries):
 
     def parse_datetime(self, dtstr):
         date = datetime.strptime(dtstr, self.dtformat)
-        #date = date.replace(year=2014)
+        date = date.replace(year=2014)
         return date
 
     def add_data(self, data, autoshift=True, autobias=True):
