@@ -25,8 +25,18 @@ def batch_import(dtstr, datadir='../DATA'):
     pluvio400_files = glob(os.path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
-    pipv = read.PipV(pipv_files)
+    #pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
+    flag = False
+    for hr in range(0,24):
+        pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2))))
+        if len(pipv_files):
+            if flag :
+                pipv.append_data(read.PipV(filenames=pipv_files))
+            else:
+                pipv = read.PipV(filenames=pipv_files)
+                if(len(pipv.data.index)):
+                    flag = True
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
@@ -93,7 +103,7 @@ class EventsCollection(MultiSeries):
 
     def parse_datetime(self, dtstr):
         date = datetime.strptime(dtstr, self.dtformat)
-        date = date.replace(year=2014)
+        #date = date.replace(year=2014)
         return date
 
     def add_data(self, data, autoshift=True, autobias=True):

@@ -205,6 +205,13 @@ class InstrumentData(Cacher):
         self.set_span(dt_start, dt_end)
         self.storefilename = self.name + '.h5'
 
+    def append_data(self, appended):
+        #print(len(appended.data.index))
+        #print(self.data.dtypes)
+        #print(appended.data.dtypes)
+        if len(appended.data.index):
+            self.data = self.data.append(appended.data)
+
     def store_good_data(self, **kwargs):
         self.stored_good_data = self.good_data(**kwargs)
 
@@ -498,14 +505,22 @@ class PipDSD(InstrumentData):
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                self.data = self.data.append(pd.read_csv(filename,
-                                delim_whitespace=True, skiprows=8, header=3,
-                                parse_dates={'datetime':['hr_d', 'min_d']},
-                                date_parser=self.parse_datetime,
-                                index_col='datetime'))
+                if int(filename[-16:-8]) > 0: # TODO fixme
+                    self.data = self.data.append(pd.read_csv(filename,
+                                    engine='python', sep='\t', skiprows=8, skip_footer=1, header=3,
+                                    parse_dates={'datetime':['hr_d', 'min_d']},
+                                    date_parser=self.parse_datetime,
+                                    index_col='datetime'))
+                else:
+                    self.data = self.data.append(pd.read_csv(filename,
+                                    delim_whitespace=True, skiprows=8,header=3,
+                                    parse_dates={'datetime':['hr_d', 'min_d']},
+                                    date_parser=self.parse_datetime,
+                                    index_col='datetime'))
             #self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data, last sometimes nans
-            self.data.drop(['day_time', 'Num_d', 'Bin_cen', '0.125'], 1,
+            self.d_bin = float(linecache.getline(self.current_file, 11).split()[5])
+            self.data.drop(['day_time', 'Num_d', 'Bin_cen', self.data.columns.values[3]], 1,
                            inplace=True)
             self.data.columns = pd.Index([float(i) for i in self.data.columns])
             self.data.sort_index(axis=1)
@@ -582,17 +597,28 @@ class PipV(InstrumentData):
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                newdata = pd.read_csv(filename,
-                                      delim_whitespace=True, skiprows=8,
-                                      parse_dates={'datetime':['minute_p']},
-                                      date_parser=self.parse_datetime)
+                if int(filename[-23:-15]) > 0: # TODO fixme
+                    newdata = pd.read_csv(filename,
+                                          engine='python', sep='\t',
+                                          skipinitialspace=True, skiprows=8, skip_footer=1,
+                                          parse_dates={'datetime':['minute_p']},
+                                          date_parser=self.parse_datetime)
+                else:
+                    newdata = pd.read_csv(filename,
+                                          delim_whitespace=True, skiprows=8,
+                                          parse_dates={'datetime':['minute_p']},
+                                          date_parser=self.parse_datetime)
                 newdata.rename_axis(
                     {'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
                      'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
-                self.data = self.data.append(newdata)
-            self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
-            self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
-            self.data = self.data[self.data.vel_v.notnull()]
+                if len(newdata.index):
+                    self.data = self.data.append(newdata)
+                #print(filename)
+            #print(len(self.data.index))
+            if len(self.data.index):
+                self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
+                self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
+                self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)
 

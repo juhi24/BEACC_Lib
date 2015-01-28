@@ -6,12 +6,12 @@ from snowfall import *
 import numpy as np
 import matplotlib.pyplot as plt
 
-dtformat_default = '%d.%m. %H:%M'
-dtformat_snex = '%d %B %H UTC'
+dtformat_snex = '%Y %d %B %H UTC'
 dtformat_davide = '%d.%m.%y %H:%M'
 
-e = EventsCollection('cases/pip2015.csv', dtformat_snex)
-e.autoimport_data(autoshift=False, autobias=False, rule='5min', varinterval=True)
+e = EventsCollection('cases/2015.csv', dtformat_davide)
+e.autoimport_data(autoshift=False, autobias=False, rule='5min', 
+                  varinterval=True, datafile=['../DATA/test_winter1415.h5'])
 
 basedir = '/home/jussitii/results/pip2015'
 
@@ -26,7 +26,7 @@ plt.ion()
 fig = plt.figure(dpi=120)
 ax1 = plt.gca()
 
-e.plot_pairs(ax=ax1, c='density', sizecol='count', vmin=0, vmax=600,
+e.plot_pairs(ax=ax1, c='density', sizecol='count', vmin=0, vmax=200,
              query='density<600 & count>1000 & b>0', colorbar=True, 
              xlim=[0.5,2.5])
              
@@ -55,7 +55,7 @@ brandes.plot(ax=ax2)
 fig = plt.figure(dpi=120)
 ax3 = plt.gca()
 
-e.plot_pairs(ax=ax3, x='D_0_gamma', y='b',c='density', sizecol='count', vmin=0, vmax=800,
+e.plot_pairs(ax=ax3, x='D_0_gamma', y='b',c='density', sizecol='count', vmin=0, vmax=200,
              query='density<600 & count>1000 & b>0', colorbar=True)
                           
              
