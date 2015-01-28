@@ -66,7 +66,7 @@ class MultiSeries:
 
     def plot_pairs(self, x='a', y='b', c=None, sizecol=None, scale=1,
                    kind='scatter', grouped=True, pluvio=None, query=None,
-                   ax=None, colorbar=False, markers='os^vD*px+',
+                   ax=None, colorbar=False, markers='os^vD*p><',
                    edgecolors='none', **kwargs):
         sumkwargs = {}
         if ax is None:

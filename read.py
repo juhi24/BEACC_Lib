@@ -74,11 +74,12 @@ class Cacher:
 
 class Fit:
     """parent for different fit types"""
-    def __init__(self, params=None, name='fit'):
+    def __init__(self, x=None, y=None, sigma=None, params=None, name='fit'):
         self.params = params
         self.name = name
-        self.x = None
-        self.y = None
+        self.x = x
+        self.y = y
+        self.sigma = sigma
 
     def func(self, x, a=None):
         """Fit function. If no coefficients are given use stored ones."""
@@ -115,10 +116,21 @@ class Fit:
             cost += 1/sig**2*(y - self.func(x, *params))**2 + self.penalty(params)
         return cost
 
+    def find_fit(self, store_params=True, **kwargs):
+        selection = pd.DataFrame([self.x.notnull(), self.y.notnull()]).all()
+        x = self.x[selection]
+        y = self.y[selection]
+        if self.sigma is not None:
+            kwargs['sigma'] = self.sigma[selection]
+        params, cov = curve_fit(self.func, x, y, **kwargs)
+        if store_params:
+            self.params = params
+        return params, cov
+
 class ExpFit(Fit):
     """exponential fit of form a*(1-b*exp(-c*D))"""
-    def __init__(self, params=None):
-        super().__init__(params, name='expfit')
+    def __init__(self, params=None, **kwargs):
+        super().__init__(params=params, name='expfit', **kwargs)
         self.quess = (1., 1., 1.)
 
     def __repr__(self):
@@ -140,8 +152,8 @@ class ExpFit(Fit):
 
 class PolFit(Fit):
     """polynomial fit of form a*D**b"""
-    def __init__(self, params=None):
-        super().__init__(params, name='polfit')
+    def __init__(self, params=None, **kwargs):
+        super().__init__(params=params, name='polfit', **kwargs)
         self.quess = (1., 1.)
 
     def __repr__(self):
