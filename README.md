@@ -35,3 +35,17 @@ Getting started
 ---------------
 
 Files starting with `scr_` are example scripts.
+
+Authors
+-------
+
+Jussi Tiira <jussi.tiira@helsinki.fi>
+
+Contributions from Davide Ori and Kalle Nordig
+
+Full (almost) list of contributions can be viewed in the contributor tab in Github.
+
+Licensing
+---------
+
+This work is licensed under GNU General Public v3 license. See `LICENSE` for more info.
