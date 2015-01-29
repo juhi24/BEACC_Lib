@@ -1,4 +1,8 @@
-"""tools for reading and working with baecc data"""
+# -*- coding: utf-8 -*-
+"""
+tools for reading and working with baecc data
+@author: Jussi Tiira
+"""
 import time
 import os
 import matplotlib.pyplot as plt
@@ -10,8 +14,8 @@ import linecache
 import copy
 from scipy import stats
 from scipy.optimize import curve_fit, fmin, minimize
+from fit import *
 
-GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 CACHE_DIR = 'cache'
 MSGTLD = '.msg'
 
@@ -72,110 +76,18 @@ class Cacher:
     def store_path(self, *cache_dir_args):
         return os.path.join(self.cache_dir(*cache_dir_args), self.storefilename)
 
-class Fit:
-    """parent for different fit types"""
-    def __init__(self, x=None, y=None, sigma=None, params=None, name='fit',
-                 xname='D'):
-        self.params = params
-        self.name = name
-        self.x = x
-        self.y = y
-        self.sigma = sigma
-        self.xname = xname
+    def store_read(self, tablename, default_value=None, nocache_value=None):
+        if self.use_cache:
+            try:
+                with pd.HDFStore(self.store_path()) as store:
+                    return store.get(tablename)
+            except KeyError:
+                return default_value
+        return nocache_value
 
-    def func(self, x, a=None):
-        """Fit function. If no coefficients are given use stored ones."""
-        if a is None:
-            return self.func(x, *self.params)
-        pass
-
-    def penalty(self, params):
-        """penalty function used by the cost function"""
-        return 0
-
-    def plot(self, xmax=20, samples=1000, ax=None, label=None,
-             source_data=False, marker='ro', **kwargs):
-        """Plot fit curve and fitted data."""
-        if ax is None:
-            ax = plt.gca()
-        if self.params is None:
-            return ax
-        x = np.linspace(0, xmax, samples)
-        y = [self.func(xi, *self.params) for xi in x]
-        if label is None:
-            label = r'$' + str(self) + r'$'
-        ax.plot(x, y, label=label, linewidth=2)
-        if source_data:
-            ax.plot(self.x, self.y, marker, **kwargs)
-        return ax
-
-    def cost(self, params, xarr, yarr, sigarr):
-        """Cost function that can be used to find fit coefs by minimization."""
-        cost = 0
-        for i, x in enumerate(xarr):
-            y = yarr[i]
-            sig = sigarr[i]
-            cost += 1/sig**2*(y - self.func(x, *params))**2 + self.penalty(params)
-        return cost
-
-    def find_fit(self, store_params=True, **kwargs):
-        selection = pd.DataFrame([self.x.notnull(), self.y.notnull()]).all()
-        x = self.x[selection]
-        y = self.y[selection]
-        if self.sigma is not None:
-            kwargs['sigma'] = self.sigma[selection]
-        params, cov = curve_fit(self.func, x, y, **kwargs)
-        if store_params:
-            self.params = params
-        return params, cov
-
-class ExpFit(Fit):
-    """exponential fit of form a*(1-b*exp(-c*D))"""
-    def __init__(self, params=None, **kwargs):
-        super().__init__(params=params, name='expfit', **kwargs)
-        self.quess = (1., 1., 1.)
-
-    def __repr__(self):
-        if self.params is None:
-            paramstr = 'abc'
-        else:
-            paramstr = ['{0:.3f}'.format(p) for p in self.params]
-        s = '%s(1-%s\exp(-%s%s))' % (paramstr[0], paramstr[1], paramstr[2],
-                                     self.xname)
-        return s.replace('--', '+')
-
-    def func(self, x, a=None, b=None, c=None):
-        if a is None:
-            return self.func(x, *self.params)
-        return a*(1-b*np.exp(-c*x))
-
-    def penalty(self, params):
-        return 0
-        return 1000*(max(0, 0.1-params[1]) + max(0, 0.4-params[2]))
-
-class PolFit(Fit):
-    """polynomial fit of form a*D**b"""
-    def __init__(self, params=None, **kwargs):
-        super().__init__(params=params, name='polfit', **kwargs)
-        self.quess = (1., 1.)
-
-    def __repr__(self):
-        if self.params is None:
-            paramstr = 'ab'
-        else:
-            paramstr = ['{0:.3f}'.format(p) for p in self.params]
-        return '%s%s^{%s}' % (paramstr[0], self.xname, paramstr[1])
-
-    def func(self, x, a=None, b=None):
-        if a is None:
-            return self.func(x, *self.params)
-        return a*x**b
-
-    def penalty(self, params):
-        #return 0
-        return 1000*max(0, 0.2-params[1])
-
-gunn_kinzer = ExpFit(params=GUNN_KINZER)
+    def store_write(self, tablename, data):
+        with pd.HDFStore(self.store_path()) as store:
+                store[tablename] = data
 
 class PrecipMeasurer:
     """parent for classes with precipitation measurements
@@ -608,9 +520,9 @@ class PipV(InstrumentData):
         self.dmin = 0.375 # smallest diameter where data is good
         self._fits = pd.DataFrame()
         self.dbins = np.linspace(0.375, 25.875, num=206)
-        self.std = pd.DataFrame(columns=self.dbins)
+        self._std = pd.DataFrame(columns=self.dbins)
         # half width at fraction of maximum
-        self.hwfm = pd.DataFrame(columns=self.dbins)
+        self._hwfm = pd.DataFrame(columns=self.dbins)
         self._default_fit = PolFit()
         if self.data.empty:
             for filename in filenames:
@@ -653,21 +565,39 @@ class PipV(InstrumentData):
 
     @property
     def fits(self):
-        if self.use_cache:
-            try:
-                with pd.HDFStore(self.store_path()) as store:
-                    return store.get('fits')
-            except KeyError:
-                return pd.DataFrame()
-        return self._fits
+        return self.store_read('fits', default_value=pd.DataFrame(),
+                               nocache_value=self._fits)
 
     @fits.setter
     def fits(self, fits):
         if self.use_cache:
-            with pd.HDFStore(self.store_path()) as store:
-                store['fits'] = fits
+            self.store_write('fits', fits)
         else:
             self._fits = fits
+
+    @property
+    def std(self):
+        return self.store_read('std', default_value=pd.DataFrame(columns=self.dbins),
+                               nocache_value=self._std)
+
+    @std.setter
+    def std(self, std):
+        if self.use_cache:
+            self.store_write('std', std)
+        else:
+            self._std = std
+
+    @property
+    def hwfm(self):
+        return self.store_read('hwfm', default_value=pd.DataFrame(columns=self.dbins),
+                               nocache_value=self._hwfm)
+
+    @hwfm.setter
+    def hwfm(self, hwfm):
+        if self.use_cache:
+            self.store_write('hwfm', hwfm)
+        else:
+            self._hwfm = hwfm
 
     @property
     def default_fit(self):
@@ -786,6 +716,8 @@ class PipV(InstrumentData):
                 HWfracM.resize(self.dbins.size, refcheck=False)
                 self.std = self.std.append(pd.DataFrame(pd.Series(std, index=self.dbins, name=name)).T)
                 self.hwfm = self.hwfm.append(pd.DataFrame(pd.Series(HWfracM, index=self.dbins, name=name)).T)
+                for df in [self.std, self.hwfm]:
+                    df.index.name = 'datetime'
         else:
             print('Could not apply filter.')
         if kde:
@@ -810,14 +742,16 @@ class PipV(InstrumentData):
         if use_curve_fit:
             params, pcov = curve_fit(fit.func, d, v, **sigargs)
         else:
-            result = minimize(fit.cost, fit.quess, method='Nelder-Mead', args=(d, v, sig))
+            result = minimize(fit.cost, fit.quess, method='Nelder-Mead',
+                              args=(d, v, sig))
             params = result.x
         fit.params = params
         fit.x = d
         fit.y = v
         return fit
 
-    def find_fits(self, rule, varinterval=True, draw_plots=False, empty_on_fail=True, **kwargs):
+    def find_fits(self, rule, varinterval=True, draw_plots=False,
+                  empty_on_fail=True, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         names = []
         fits = []
@@ -931,7 +865,7 @@ class PipV(InstrumentData):
         else:
             data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax,
                       alpha=0.2, color='black', label='pip raw', **kwargs)
-        #gunn_kinzer.plot(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
+        #fit.gunn_kinzer.plot(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
         if ymax is None:
             ymax = data.vel_v.max() + margin
         ax.axis([0, xmax, 0, ymax])
@@ -1007,7 +941,8 @@ class PIPpart(InstrumentData):
                 newdata = pd.read_csv(filename, delim_whitespace=True,
                                       skiprows=[0, 1, 2, 3, 4, 5, 6, 7, 9],
                                       index_col='datetime',
-                                      parse_dates={'datetime':['Year', 'Month', 'Day', 'Hr', 'Min', 'Sec']},
+                                      parse_dates={'datetime':['Year', 'Month',
+                                      'Day', 'Hr', 'Min', 'Sec']},
                                       date_parser=datetime.datetime,
                                       dtype=dtype)
                 self.data = self.data.append(newdata)
