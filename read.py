@@ -74,12 +74,14 @@ class Cacher:
 
 class Fit:
     """parent for different fit types"""
-    def __init__(self, x=None, y=None, sigma=None, params=None, name='fit'):
+    def __init__(self, x=None, y=None, sigma=None, params=None, name='fit',
+                 xname='D'):
         self.params = params
         self.name = name
         self.x = x
         self.y = y
         self.sigma = sigma
+        self.xname = xname
 
     def func(self, x, a=None):
         """Fit function. If no coefficients are given use stored ones."""
@@ -138,7 +140,8 @@ class ExpFit(Fit):
             paramstr = 'abc'
         else:
             paramstr = ['{0:.3f}'.format(p) for p in self.params]
-        s = '%s(1-%s\exp(-%sD))' % (paramstr[0], paramstr[1], paramstr[2])
+        s = '%s(1-%s\exp(-%s%s))' % (paramstr[0], paramstr[1], paramstr[2],
+                                     self.xname)
         return s.replace('--', '+')
 
     def func(self, x, a=None, b=None, c=None):
@@ -161,7 +164,7 @@ class PolFit(Fit):
             paramstr = 'ab'
         else:
             paramstr = ['{0:.3f}'.format(p) for p in self.params]
-        return '%sD^{%s}' % (paramstr[0], paramstr[1])
+        return '%s%s^{%s}' % (paramstr[0], self.xname, paramstr[1])
 
     def func(self, x, a=None, b=None):
         if a is None:
