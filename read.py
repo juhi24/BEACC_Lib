@@ -714,10 +714,12 @@ class PipV(InstrumentData):
             if name is not None:
                 std.resize(self.dbins.size, refcheck=False)
                 HWfracM.resize(self.dbins.size, refcheck=False)
-                self.std = self.std.append(pd.DataFrame(pd.Series(std, index=self.dbins, name=name)).T)
-                self.hwfm = self.hwfm.append(pd.DataFrame(pd.Series(HWfracM, index=self.dbins, name=name)).T)
-                for df in [self.std, self.hwfm]:
+                std = self.std.append(pd.DataFrame(pd.Series(std, index=self.dbins, name=name)).T)
+                hwfm = self.hwfm.append(pd.DataFrame(pd.Series(HWfracM, index=self.dbins, name=name)).T)
+                for df in [std, hwfm]:
                     df.index.name = 'datetime'
+                self.std = std
+                self.hwfm = hwfm
         else:
             print('Could not apply filter.')
         if kde:
