@@ -5,6 +5,7 @@
 from snowfall import *
 import numpy as np
 import matplotlib.pyplot as plt
+from os import path
 
 dtformat_snex = '%Y %d %B %H UTC'
 dtformat_davide = '%d.%m.%y %H:%M'
@@ -16,15 +17,22 @@ e.autoimport_data(autoshift=False, autobias=False, rule='5min',
 basedir = '/home/jussitii/results/pip2015'
 
 plt.close('all')
+plt.ioff()
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.dsd.store_good_data() # improve performance by storing filtered dsd tables in memory
-    c.pluvio.shift_periods = -6
+    c.pluvio.shift_periods = -5
     c.reset() # reset memory cache after changing pluvio timeshift
-    plt.figure()
-    c.density().plot(ylim=[0,600])
-
-plt.ion()
+    
+for c in e.events.pluvio200.values:
+    fig = plt.figure(dpi=100)
+    ax = c.density().plot(ylim=[0,600], style='.', title=c.dtstr())
+    ax.set_ylabel('bulk density [kg/m^3]')
+    plt.savefig(path.join(basedir,'rho_'+c.dtstr().replace(' ','')+'.eps'))
+    dtstr = datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H')
+    savedir = os.path.join(basedir, 'velplots', dtstr[0:8], c.pluvio.name)
+    ensure_dir(savedir)
+    c.pipv.plots(save=True, savedir=savedir, suffix='.eps', rule=c.rule, ymax=3)
 
 #fig1 = plt.figure(dpi=120)
 #ax1 = e.plot_pairs(c='density', sizecol='count', vmin=0, vmax=300,
