@@ -24,6 +24,7 @@ def datenum2datetime(matlab_datenum):
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days=366)
 
 def msg_io(msgpath, func, **kwargs):
+    """Read data from msgpack. If not available, calculate and store."""
     if os.path.exists(msgpath):
         data = pd.read_msgpack(msgpath)
     else:
@@ -32,6 +33,7 @@ def msg_io(msgpath, func, **kwargs):
     return data
 
 def ensure_dir(directory):
+    """Make sure the directory exists. If not, create it."""
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -55,14 +57,14 @@ class Cacher:
         self.storefilename = storefilename
 
     def msger(self, name, func, *cache_dir_args, **kwargs):
+        """Read from msgpack if caching is in use."""
         if self.use_cache:
             msgpath = os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
-            data = msg_io(msgpath, func, **kwargs)
-        else:
-            data = func(**kwargs)
-        return data
+            return msg_io(msgpath, func, **kwargs)
+        return func(**kwargs)
 
     def cache_dir(self, dt_start, dt_end, *extra_dir_names):
+        """Return full path to cache directory."""
         dtstrformat = '%Y%m%d%H%M'
         dtstr = dt_start.strftime(dtstrformat) + '-' + dt_end.strftime(dtstrformat)
         cache_dir = os.path.join(CACHE_DIR, dtstr, *extra_dir_names)
@@ -74,9 +76,11 @@ class Cacher:
         return os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
 
     def store_path(self, *cache_dir_args):
+        """Return full path to hdf store file."""
         return os.path.join(self.cache_dir(*cache_dir_args), self.storefilename)
 
     def store_read(self, tablename, default_value=None, nocache_value=None):
+        """Read from hdf store if using caching."""
         if self.use_cache:
             try:
                 with pd.HDFStore(self.store_path()) as store:
@@ -86,6 +90,7 @@ class Cacher:
         return nocache_value
 
     def store_write(self, tablename, data):
+        """Write data to hdf store."""
         with pd.HDFStore(self.store_path()) as store:
                 store[tablename] = data
 
@@ -140,6 +145,7 @@ class InstrumentData(Cacher):
             self.data = self.data.append(appended.data)
 
     def store_good_data(self, **kwargs):
+        """Store good data to memory (to bypass recalculation of filters)."""
         self.stored_good_data = self.good_data(**kwargs)
 
     def parse_datetime(self):
@@ -166,6 +172,7 @@ class InstrumentData(Cacher):
         return instr
 
     def set_span(self, dt_start, dt_end):
+        """Limit data to given time interval."""
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
         self.data = self.data[dt_start:dt_end]
@@ -710,16 +717,14 @@ class PipV(InstrumentData):
             kde = False
             use_curve_fit = False
         elif filter_outliers:
-            data, std, HWfracM = self.filter_outlier(data=data, frac=frac)
+            data, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac)
             if name is not None:
-                std.resize(self.dbins.size, refcheck=False)
+                stdarr.resize(self.dbins.size, refcheck=False)
                 HWfracM.resize(self.dbins.size, refcheck=False)
-                std = self.std.append(pd.DataFrame(pd.Series(std, index=self.dbins, name=name)).T)
-                hwfm = self.hwfm.append(pd.DataFrame(pd.Series(HWfracM, index=self.dbins, name=name)).T)
+                std = pd.DataFrame(pd.Series(stdarr, index=self.dbins, name=name)).T
+                hwfm = pd.DataFrame(pd.Series(HWfracM, index=self.dbins, name=name)).T
                 for df in [std, hwfm]:
                     df.index.name = 'datetime'
-                self.std = std
-                self.hwfm = hwfm
         else:
             print('Could not apply filter.')
         if kde:
@@ -750,33 +755,42 @@ class PipV(InstrumentData):
         fit.params = params
         fit.x = d
         fit.y = v
-        return fit
+        return fit, std, hwfm
 
     def find_fits(self, rule, varinterval=True, draw_plots=False,
                   empty_on_fail=True, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         names = []
         fits = []
+        stds = []
+        hwfms = []
         for name, group in self.grouped(rule=rule, varinterval=varinterval):
             try:
-                newfit = copy.deepcopy(self.find_fit(data=group, name=name,
-                                                     **kwargs))
+                newfit, std, hwfm = self.find_fit(data=group, name=name, **kwargs)
             except RuntimeError as err:
                 print('%s: %s' % (name, err))
                 print('Particle count: %s' % group.vel_v.count())
                 if len(fits) == 0 or empty_on_fail:
                     print('Using an empty fit')
                     newfit = self.default_fit
+                    std = np.nan
+                    hwfm = np.nan
                 else:
                     print('Using fit from previous time step.')
                     newfit = fits[-1]
+                    std = stds[-1]
+                    hwfm = hwfms[-1]
             fits.append(newfit)
             names.append(name)
+            stds.append(std)
+            hwfms.append(hwfm)
             if draw_plots:
                 f, ax = plt.subplots()
                 self.plot_kde(data=group, ax=ax)
                 self.plot(data=group, hexbin=False, ax=ax)
                 plt.show()
+        self.std = pd.concat(stds)
+        self.hwfm = pd.concat(hwfms)
         if varinterval:
             timestamps = names
         else:
@@ -840,7 +854,7 @@ class PipV(InstrumentData):
 
     def plot_fit(self, tstep=None, **kwargs):
         if tstep is None:
-            fits = [self.find_fit()]
+            fits = [self.find_fit()[0]]
         else:
             fits = self.fits.loc[tstep].values
         for fit in fits:
