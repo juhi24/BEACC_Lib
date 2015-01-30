@@ -4,7 +4,9 @@ curve fitting tools
 @author: Jussi Tiira
 """
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 

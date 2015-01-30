@@ -23,7 +23,7 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.dsd.store_good_data() # improve performance by storing filtered dsd tables in memory
     c.pluvio.shift_periods = -5
     c.reset() # reset memory cache after changing pluvio timeshift
-    
+
 for c in e.events.pluvio200.values:
     fig = plt.figure(dpi=100)
     ax = c.density().plot(ylim=[0,600], style='.', title=c.dtstr())

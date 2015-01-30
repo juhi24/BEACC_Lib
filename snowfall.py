@@ -55,6 +55,16 @@ def scatterplot(x, y, c=None, kind='scatter', **kwargs):
         kwargs['c'] = c
     return plotdata.plot(kind=kind, x=x.name, y=y.name, **kwargs)
 
+def combine_datasets(*datasets):
+    eventslist = []
+    for e in datasets:
+        eventslist.append(e.events)
+    combined = copy.deepcopy(datasets[0])
+    combined.events = pd.concat(eventslist)
+    combined.events.sort(columns='start', inplace=True)
+    combined.events.reset_index(inplace=True)
+    return combined
+
 class MultiSeries:
     """Provide calculated parameters as one DataFrame and use it for plotting.
     """
@@ -67,13 +77,13 @@ class MultiSeries:
     def plot_pairs(self, x='a', y='b', c=None, sizecol=None, scale=1,
                    kind='scatter', grouped=True, pluvio=None, query=None,
                    ax=None, colorbar=False, markers='os^vD*p><',
-                   edgecolors='none', **kwargs):
+                   edgecolors='none', dtformat='%Y %b %d', **kwargs):
         sumkwargs = {}
         if ax is None:
             ax = plt.gca()
         if pluvio is not None:
             sumkwargs['pluvio'] = pluvio
-        data = self.summary(**sumkwargs)
+        data = self.summary(dtformat=dtformat, **sumkwargs)
         if query is not None:
             data = data.query(query)
         if c is not None:
@@ -127,10 +137,10 @@ class EventsCollection(MultiSeries):
             self.add_data(d, autoshift=autoshift, autobias=autobias)
         return
 
-    def summary(self, pluvio='pluvio200', **kwargs):
+    def summary(self, pluvio='pluvio200', dtformat='%Y %b %d', **kwargs):
         sumlist = []
         for c in self.events[pluvio]:
-            sumlist.append(c.summary())
+            sumlist.append(c.summary(dtformat=dtformat))
         return pd.concat(sumlist, **kwargs)
 
 class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
