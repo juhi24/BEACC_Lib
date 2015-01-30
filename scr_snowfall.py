@@ -7,11 +7,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 
-def init_dataset(e, shift=-6):
+plt.close('all')
+plt.ioff()
+
+def init_dataset(e, basedir='..', shift=-6):
     for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
         c.dsd.store_good_data() # improve performance by storing filtered dsd tables in memory
         c.pluvio.shift_periods = shift
         c.reset() # reset memory cache after changing pluvio timeshift
+        dtstr = datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H')
+        savedir = path.join(basedir, dtstr[0:8], c.pluvio.name)
+        read.ensure_dir(savedir)
+        fig1 = plt.figure(dpi=100)
+        ax1 = plt.gca()
+        c.density().plot(ax=ax1, ylim=[0,600], style='.', title=c.dtstr())
+        ax1.set_ylabel('bulk density [kg/m^3]')
+        fig1.savefig(path.join(savedir, 'rho.eps'))
+        fig2 = plt.figure(dpi=100)
+        ax2 = plt.gca()
+        c.pipv.fit_params().plot(ax=ax2)
+        plt.legend()
+        fig2.savefig(path.join(savedir, 'ab.eps'))
+        c.summary().drop('case',axis=1).to_csv(path.join(savedir,'summary.csv'))
+        c.pluvio.tdelta().to_csv(path.join(savedir, 'timedelta.csv'))
+        plt.close('all')
 
 dtformat_snex = '%Y %d %B %H UTC'
 dtformat_davide = '%d.%m.%y %H:%M'
@@ -24,31 +43,9 @@ w14 = EventsCollection('cases/pip2015.csv', dtformat_snex)
 w14.autoimport_data(autoshift=False, autobias=False, rule='5min',
                     varinterval=True, datafile=['../DATA/baecc.h5'])
 
-init_dataset(w14, shift=-6)
-init_dataset(w1415, shift=-5)
-
 basedir = '/home/jussitii/results/pip2015'
 
-plt.close('all')
-plt.ioff()
+init_dataset(w14, basedir=basedir, shift=-6)
+init_dataset(w1415, basedir=basedir, shift=-5)
 
-e = combine_datasets(w14, w1415)
-#del w1415
-#del w14
-
-fig4 = plt.figure(dpi=120)
-ax4 = w1415.plot_pairs(c='k', x='D_0_gamma', y='density', sizecol='count', scale=0.5,
-             query='density<600 & count>1000 & b>0', colorbar=False, xlim=[0,6], ylim=[0,500])
-w14.plot_pairs(ax=ax4, c='m', x='D_0_gamma', y='density', sizecol='count', scale=0.5,
-             query='density<600 & count>1000 & b>0', colorbar=False, xlim=[0,6], ylim=[0,500])
-plt.tight_layout()
-
-brandes = read.PolFit(params=[178, -0.922])
-brandes.plot(ax=ax4, label='Brandes et al.')
-
-s = e.summary()
-rho_d0 = read.PolFit(x=s.D_0_gamma, y=s.density, sigma=1/s['count'], xname='D_0')
-rho_d0.find_fit()
-rho_d0.plot(ax=ax4)
-
-plt.legend()
+#e = combine_datasets(w14, w1415)

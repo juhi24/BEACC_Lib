@@ -625,6 +625,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                                       self.d_0(), self.n_t(), casename,
                                       self.pipv.fit_params(), self.d_m(),
                                       self.d_max(), self.d_0_gamma())
+        data.index.name = 'datetime'
         return data.sort_index(axis=1)
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
