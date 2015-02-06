@@ -16,13 +16,14 @@ plt.rc('axes', titlesize='medium')
 
 plt.close('all')
 
-e = EventsCollection('cases/cases_of_interest.csv', '%d.%m. %H:%M')
-e.autoimport_data(autoshift=False, rule='6min')
+dtformat_default_year = '%d.%m.%y %H:%M'
+
+e = EventsCollection('cases/test2.csv', dtformat_default_year)
+e.autoimport_data(autoshift=False, rule='6min',datafile=['../DATA/new_winter.h5'])
 
 for c in e.events.pluvio200.values:
-    c.pipv.find_fits(rule='6min')
-    c.pipv.plots(save=True, suffix='.eps', grid=False, xmax=4, ymax=3, xticks=[0,1,2,3,4], yticks=[0,1,2,3],
-              colorbar=False, hexsize=8)
+    c.pipv.find_fits(rule=c.rule)
+    c.pipv.plots(save=True,rule=c.rule, suffix='.png', grid=False, xmax=10, ymax=3, xticks=[0,1,2,3,4,5,6,7,8,9,10], yticks=[0,1,2,3],colorbar=False, hexsize=8,savedir='../to_davide/')
           
 f = plt.figure(dpi=175, figsize=(1,3))
 ax = f.add_axes([0.05,0.05,0.3,0.9])

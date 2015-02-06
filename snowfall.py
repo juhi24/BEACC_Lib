@@ -29,7 +29,7 @@ def batch_import(dtstr, datadir='../DATA'):
     dsd = read.PipDSD(dsd_files)
     flag = False
     for hr in range(0, 24):
-        pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2))))
+        pipv_files = glob(os.path.join(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2))))
         if len(pipv_files):
             if flag:
                 pipv.append_data(read.PipV(filenames=pipv_files))
