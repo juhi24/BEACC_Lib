@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 import read
-from datetime import datetime
+from datetime import datetime, timedelta
 from scipy.optimize import minimize
 from scipy.special import gamma
 from glob import glob
@@ -16,6 +16,10 @@ locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 TAU = 2*np.pi
 RHO_W = 1000
+
+def daterange(start_date, end_date):
+    for n in range(int ((end_date - start_date).days)):
+        yield start_date + timedelta(n)
 
 def batch_import(dtstr, datadir='../DATA'):
     """Read ASCII data according to a datestring pattern."""
