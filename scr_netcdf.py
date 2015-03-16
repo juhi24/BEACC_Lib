@@ -25,8 +25,14 @@ cphone = '+358294150866'
 comment = 'Instrument located on the BAECC measurement field.'
 version = 'PIP_rev_1308a'
 
-date_start = date(2014, 2, 1)
-date_end = date(2014, 9, 12)
+date_start = date(2014, 2, 21)
+#date_end = date(2014, 9, 12)
+date_end = date(2014, 2, 22)
 
 for day in daterange(date_start, date_end):
     dtstr = datetime.strftime(day, '%Y%m%d')
+    print(dtstr)
+    pipv_files = datafilelist(pipv_subpath % dtstr)
+    dsd_files = datafilelist(dsd_subpath % dtstr)
+    dsd = read.PipDSD(dsd_files)
+    pipv = read.PipV(pipv_files)

@@ -524,7 +524,7 @@ class PipV(InstrumentData):
         print('Reading PIP particle velocity data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
-        self.dmin = 0.375 # smallest diameter where data is good
+        self.dmin = 0.375 # shortest diameter where data is good
         self._fits = pd.DataFrame()
         self.dbins = np.linspace(0.375, 25.875, num=206)
         self._std = pd.DataFrame(columns=self.dbins)
@@ -548,13 +548,15 @@ class PipV(InstrumentData):
                 newdata.rename_axis(
                     {'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
                      'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
+                
+                newdata.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
+                g = newdata.groupby(level=['datetime', 'Part_ID'])
+                newdata = g.mean()
                 if len(newdata.index):
                     self.data = self.data.append(newdata)
                 #print(filename)
             #print(len(self.data.index))
             if len(self.data.index):
-                self.data.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
-                self.data = self.data.groupby(level=['datetime', 'Part_ID']).mean()
                 self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
         self.finish_init(dt_start, dt_end)

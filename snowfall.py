@@ -30,22 +30,23 @@ def daterange(start_date, end_date):
     for n in range(int ((end_date - start_date).days)):
         yield start_date + timedelta(n)
         
-def datafilelist(datadir, subpath):
+def datafilelist(subpath, datadir = data_dir):
     return glob(os.path.join(datadir, subpath))
 
 def batch_import(dtstr, datadir=data_dir):
     """Read ASCII data according to a datestring pattern."""
-    pipv_files = datafilelist(datadir, pipv_subpath % dtstr)
-    dsd_files = datafilelist(datadir, dsd_subpath % dtstr)
-    pluvio200_files = datafilelist(datadir, p200_subpath % dtstr)
-    pluvio400_files = datafilelist(datadir, p400_subpath % dtstr)
+    pipv_files = datafilelist(pipv_subpath % dtstr, datadir=datadir)
+    dsd_files = datafilelist(dsd_subpath % dtstr, datadir=datadir)
+    pluvio200_files = datafilelist(p200_subpath % dtstr, datadir=datadir)
+    pluvio400_files = datafilelist(p400_subpath % dtstr, datadir=datadir)
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     #pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
     flag = False
     for hr in range(0, 24):
-        pipv_files = datafilelist(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2)))
+        pipv_files = datafilelist('PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2)),
+                                  datadir=datadir)
         if len(pipv_files):
             if flag:
                 pipv.append_data(read.PipV(filenames=pipv_files))
