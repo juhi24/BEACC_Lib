@@ -12,6 +12,15 @@ import copy
 import locale
 import os
 
+# CONFIG default paths
+data_dir = '../DATA'
+h5file = 'baecc.h5'
+h5path = os.path.join(data_dir, h5file)
+pipv_subpath = 'PIP/a_Velocity_Tables/004%s/*2.dat'
+dsd_subpath = 'PIP/a_DSD_Tables/004%s_a_d.dat'
+p200_subpath = 'Pluvio200/pluvio200_??_%s*.txt'
+p400_subpath = 'Pluvio400/pluvio400_??_%s*.txt'
+
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 TAU = 2*np.pi
@@ -20,20 +29,23 @@ RHO_W = 1000
 def daterange(start_date, end_date):
     for n in range(int ((end_date - start_date).days)):
         yield start_date + timedelta(n)
+        
+def datafilelist(datadir, subpath):
+    return glob(os.path.join(datadir, subpath))
 
-def batch_import(dtstr, datadir='../DATA'):
+def batch_import(dtstr, datadir=data_dir):
     """Read ASCII data according to a datestring pattern."""
-    pipv_files = glob(os.path.join(datadir, 'PIP/a_Velocity_Tables/004%s/*2.dat' % dtstr))
-    dsd_files = glob(os.path.join(datadir, 'PIP/a_DSD_Tables/004%s_a_d.dat' % dtstr))
-    pluvio200_files = glob(os.path.join(datadir, 'Pluvio200/pluvio200_??_%s*.txt' % dtstr))
-    pluvio400_files = glob(os.path.join(datadir, 'Pluvio400/pluvio400_??_%s*.txt' % dtstr))
+    pipv_files = datafilelist(datadir, pipv_subpath % dtstr)
+    dsd_files = datafilelist(datadir, dsd_subpath % dtstr)
+    pluvio200_files = datafilelist(datadir, p200_subpath % dtstr)
+    pluvio400_files = datafilelist(datadir, p400_subpath % dtstr)
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     #pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
     flag = False
     for hr in range(0, 24):
-        pipv_files = glob(path.join(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2))))
+        pipv_files = datafilelist(datadir, 'PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2)))
         if len(pipv_files):
             if flag:
                 pipv.append_data(read.PipV(filenames=pipv_files))
@@ -44,7 +56,7 @@ def batch_import(dtstr, datadir='../DATA'):
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
-def batch_create_hdf(datadir='../DATA', outname='baecc.h5',
+def batch_create_hdf(datadir=data_dir, outname=h5file,
                      dtstr='20140[2-3]??'):
     """Read ASCII data and export to hdf."""
     instrdict = batch_import(dtstr, datadir)
@@ -129,7 +141,7 @@ class EventsCollection(MultiSeries):
                                                autobias=autobias))
         self.events[data.pluvio.name] = cases
 
-    def autoimport_data(self, datafile=['../DATA/baecc.h5'],
+    def autoimport_data(self, datafile=[h5path],
                         autoshift=False, autobias=False, **casekwargs):
         """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=3)
@@ -228,7 +240,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         self._ab = ab
 
     @classmethod
-    def from_hdf(cls, dt_start, dt_end, filenames=['../DATA/baecc.h5'],
+    def from_hdf(cls, dt_start, dt_end, filenames=[h5path],
                  **kwargs):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
