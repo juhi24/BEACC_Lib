@@ -27,9 +27,9 @@ cphone = '+358294150866'
 comment = 'Instrument located on the BAECC measurement field.'
 version = 'PIP_rev_1308a'
 
-date_start = date(2014, 2, 3)
+date_start = date(2014, 2, 4)
 #date_end = date(2014, 9, 12)
-date_end = date(2014, 2, 4)
+date_end = date(2014, 2, 5)
 
 for day in daterange(date_start, date_end):
     dtstr = datetime.strftime(day, '%Y%m%d')
@@ -56,12 +56,15 @@ for day in daterange(date_start, date_end):
     vtime_v.description = 'Time stamp of the particles observed falling in a minute interval of the fall velocity data'
     vtime_v.units = 'yyyy-mm-dd HH:MM:00'
     
+    
     dvel = nc.createDimension('time_velocity')
     vvel = nc.createVariable('Velocity', 'f4', 'time_velocity')
     vvel.description = 'Fall velocity of the particle. The observation has more than two video frames.'
     vvel.units = 'm/s'
+    vvel[:] = pipv.data.vel_v.values
     
     vsize_v = nc.createVariable('Particle_size_velocity', 'f4', 'time_velocity')
     vsize_v.description = 'The area-equivalent diameter of particle of fall velocity data.'
     vsize_v.units = 'mm'
+    vsize_v[:] = pipv.data.Wad_Dia.values
     nc.close()
