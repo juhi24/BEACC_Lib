@@ -451,13 +451,18 @@ class PipDSD(InstrumentData):
                                     parse_dates={'datetime':['hr_d', 'min_d']},
                                     date_parser=self.parse_datetime,
                                     index_col='datetime'))
+            avg = pd.read_csv(filename, delim_whitespace=True, skiprows=8,
+                                   nrows=1, header=None).drop([0, 1, 2, 3, 4], axis=1)
             #self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data, last sometimes nans
             self.d_bin = float(linecache.getline(self.current_file, 11).split()[5])
-            self.data.drop(['day_time', 'Num_d', 'Bin_cen', self.data.columns.values[3]], 1,
+            self.data.drop(['day_time', 'Num_d', 'Bin_cen'], 1,
                            inplace=True)
             self.data.columns = pd.Index([float(i) for i in self.data.columns])
             self.data.sort_index(axis=1)
+            avg.columns = self.data.columns
+            self.avg = avg.T[0]
+            self.avg.name = 'dsd_avg'
         self.data.drop_duplicates(inplace=True)
         self.data = self.data.resample('1min').fillna(0)
         self.finish_init(dt_start, dt_end)
@@ -468,6 +473,9 @@ class PipDSD(InstrumentData):
         d = datetime.date(*datearr)
         t = datetime.time(int(hh), int(mm))
         return datetime.datetime.combine(d, t)
+
+    def bin_cen(self):
+        return self.good_data().columns.values
 
     def n(self, d, rule=None, varinterval=True):
         if varinterval:
@@ -515,7 +523,9 @@ class PipDSD(InstrumentData):
         data = self.data
         if filter_large:
             data = self.filter_cat_and_dog(data=data, **kwargs)
-        return gain_correction*data
+        bin_cen = self.data.columns.values
+        too_small = bin_cen[bin_cen < 0.3]
+        return gain_correction*data.drop(too_small, 1)
 
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""

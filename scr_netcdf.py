@@ -6,65 +6,88 @@ from snowfall import *
 import numpy as np
 from os import path
 from glob import glob
-from netCDF4 import Dataset
+import netCDF4 as cdf
 from datetime import datetime, date
 
 resultspath = '../results/netcdf'
-instr_prefix = 'PIP_004_'
+identifier = 'PIP_004'
+instr_prefix = identifier + '_'
 ext = '.cdf'
-
-title = 'BAECC 2014 PIP Particle Imaging Package'
-subject = 'particle size distribution, fall velocity'
-desc = 'Data set includes daily measurements of particle size distribution and fall velocity observed by video camera with high frame rate.'
-lang = 'en'
-place = 'projection=wgs84 north=61.8436892 east=24.28776892 name=Hyytiälä elevation=150 zunits=m'
-dtype = 'netCDF4'
-creator = 'Matti Leskinen'
-owner = 'University of Helsinki, Department of Physics, Division of Atmospheric Sciences'
-contributor = 'Annakaisa von Lerber'
-cemail = 'dmitri.moisseev@helsinki.fi'
-cphone = '+358294150866'
-comment = 'Instrument located on the BAECC measurement field.'
-version = 'PIP_rev_1308a'
 
 date_start = date(2014, 2, 4)
 #date_end = date(2014, 9, 12)
 date_end = date(2014, 2, 5)
 
+def handle_empty(data, column):
+    if data.empty:
+        return np.array([])
+    return data[column].values
+
 for day in daterange(date_start, date_end):
-    dtstr = datetime.strftime(day, '%Y%m%d')
+    dtstr = day.strftime('%Y%m%d')
+    datestring = day.strftime('%Y-%m-%dT%H:%M:%S')
     print(dtstr)
     out_filepath = path.join(resultspath, instr_prefix + dtstr + ext)
     pipv_files = datafilelist(pipv_subpath % dtstr)
     dsd_files = datafilelist(dsd_subpath % dtstr)
+    pipv_is_empty = len(pipv_files) < 1
     dsd = read.PipDSD(dsd_files)
     pipv = read.PipV(pipv_files)
+    dsd.data.drop_duplicates(inplace=True)
     
-    nc = Dataset(out_filepath, 'w', format='NETCDF4')
+    nc = cdf.Dataset(out_filepath, 'w', format='NETCDF4')
+    nc.Title = 'BAECC 2014 PIP Particle Imaging Package'
+    nc.setncattr('Title.lan', 'eng')
+    nc.Subject = 'particle size distribution, fall velocity'
+    nc.Description = 'Data set includes daily measurements of particle size distribution and fall velocity observed by video camera with high frame rate.'
+    nc.Language = 'eng'
+    nc.Identifier = identifier
+    nc.Modified = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    nc.TemporalCoverage = 'start=%s; stop=%s UTC' % (datestring, datestring)
+    nc.SpatialCoverage = 'projection=wgs84 north=61.8436892 east=24.28776892 name=Hyytiälä elevation=150 zunits=m'
+    nc.Type = 'netCDF4'
+    nc.Creator = 'Matti Leskinen'
+    nc.Owner = 'University of Helsinki, Department of Physics, Division of Atmospheric Sciences'
+    nc.Contributor = 'Annakaisa von Lerber'
+    nc.setncattr('Contact.email', 'dmitri.moisseev@helsinki.fi')
+    nc.setncattr('Contact.phone', '+358294150866')
+    nc.setncattr('Contact.type', 'person')
+    nc.setncattr('Project.funder', 'DoE ARM/NASA')
+    nc.setncattr('Project.name', 'BAECC SNEX')
+    nc.setncattr('Project.homepage', 'http://www.arm.gov/campaigns/amf2014baecc')
+    nc.setncattr('Rights.category', 'licensed')
+    nc.setncattr('Rights.declaration', 'https://creativecommons.org/licenses/by/4.0/')
+    nc.setncattr('Measurement.comment', 'Instrument located on the BAECC measurement field.')
+    nc.SoftwareVersion = 'PIP_rev_1308a'
+    
+    dtime = nc.createDimension('time', None)
+    vtime = nc.createVariable('time', str, 'time')
+    vtime.description = 'Timestamp of the PIP in a minute interval'
+    vtime.units = 'yyyy-mm-dd HH:MM:00'
+    vtime.stringFormat = 'UTC'
+    vtime[:] = dsd.data.index.to_datetime().map(str).astype(str)
     
     dbinsize = nc.createDimension('bin size', 105)
-    vsize = nc.createVariable('Particle_size', 'f8', 'bin size')
-    vsize.description = 'Particle bin center of an area-equivalent diameter'
-    vsize.units = 'mm'
+    vbins = nc.createVariable('particle_size', 'f8', 'bin size')
+    vbins.description = 'Particle bin center of an area-equivalent diameter'
+    vbins.units = 'mm'
+    vbins[:] = dsd.data.columns.values 
     
-    dtime = nc.createDimension('time', 18)
-    vtime = nc.createVariable('Time', str, 'time')
-    vtime.description = 'Timestamp of the PIP in a minute interval'
-    vtime.units = 'UTC'
-    
-    vtime_v = nc.createVariable('Time_velocity', str, 'time')
+    vtime_v = nc.createVariable('time_velocity', str, 'time')
     vtime_v.description = 'Time stamp of the particles observed falling in a minute interval of the fall velocity data'
     vtime_v.units = 'yyyy-mm-dd HH:MM:00'
+    vtime_v.stringFormat = 'UTC'
+    vtime_v[:] = pipv.data.index.to_datetime().map(str).astype(str)
     
-    
-    dvel = nc.createDimension('time_velocity')
-    vvel = nc.createVariable('Velocity', 'f4', 'time_velocity')
+    dvel = nc.createDimension('time velocity')
+    vvel = nc.createVariable('velocity', 'f4', 'time velocity')
     vvel.description = 'Fall velocity of the particle. The observation has more than two video frames.'
     vvel.units = 'm/s'
-    vvel[:] = pipv.data.vel_v.values
+    vvel[:] = handle_empty(pipv.data, 'vel_v')
     
-    vsize_v = nc.createVariable('Particle_size_velocity', 'f4', 'time_velocity')
+    vsize_v = nc.createVariable('particle_size_velocity', 'f4', 'time velocity')
     vsize_v.description = 'The area-equivalent diameter of particle of fall velocity data.'
     vsize_v.units = 'mm'
-    vsize_v[:] = pipv.data.Wad_Dia.values
+    vsize_v[:] = handle_empty(pipv.data, 'Wad_Dia')
     nc.close()
+    
