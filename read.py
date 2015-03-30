@@ -287,7 +287,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             t_end = 6
         else:
             t_end = 5
-        return datetime.datetime(*t[:t_end])
+        return datetime.datetime(*t[:t_end], tzinfo=datetime.timezone.utc)
 
     def good_data(self):
         if self.stored_good_data is not None:
@@ -472,7 +472,7 @@ class PipDSD(InstrumentData):
         datearr = [int(x) for x in dateline.split()]
         d = datetime.date(*datearr)
         t = datetime.time(int(hh), int(mm))
-        return datetime.datetime.combine(d, t)
+        return datetime.datetime.combine(d, t).replace(tzinfo=datetime.timezone.utc)
 
     def bin_cen(self):
         return self.good_data().columns.values
@@ -663,7 +663,8 @@ class PipV(InstrumentData):
         mo = int(datestr[7:9])
         dd = int(datestr[9:11])
         hh = int(datestr[11:13])
-        return datetime.datetime(yr, mo, dd, hh, int(mm))
+        return datetime.datetime(yr, mo, dd, hh, int(mm),
+                                 tzinfo=datetime.timezone.utc)
 
     def good_data(self):
         if self.stored_good_data is not None:

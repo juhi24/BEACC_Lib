@@ -14,6 +14,8 @@ identifier = 'PIP_004'
 instr_prefix = identifier + '_'
 ext = '.cdf'
 
+timeunits = 'seconds since 1970-01-01 00:00:00 UTC'
+
 date_start = date(2014, 2, 4)
 #date_end = date(2014, 9, 12)
 date_end = date(2014, 2, 5)
@@ -61,23 +63,21 @@ for day in daterange(date_start, date_end):
     nc.SoftwareVersion = 'PIP_rev_1308a'
     
     dtime = nc.createDimension('time', None)
-    vtime = nc.createVariable('time', str, 'time')
-    vtime.description = 'Timestamp of the PIP in a minute interval'
-    vtime.units = 'yyyy-mm-dd HH:MM:00'
-    vtime.stringFormat = 'UTC'
-    vtime[:] = dsd.data.index.to_datetime().map(str).astype(str)
+    vtime = nc.createVariable('time', 'i4', 'time')
+    vtime.description = 'POSIX timestamp of the PIP in a minute interval'
+    vtime.units = timeunits
+    vtime[:] = dsd.data.index.astype(datetime).map(datetime.timestamp).astype(int)
     
     dbinsize = nc.createDimension('bin size', 105)
-    vbins = nc.createVariable('particle_size', 'f8', 'bin size')
+    vbins = nc.createVariable('particle_size', 'f4', 'bin size')
     vbins.description = 'Particle bin center of an area-equivalent diameter'
     vbins.units = 'mm'
     vbins[:] = dsd.data.columns.values 
     
-    vtime_v = nc.createVariable('time_velocity', str, 'time')
-    vtime_v.description = 'Time stamp of the particles observed falling in a minute interval of the fall velocity data'
-    vtime_v.units = 'yyyy-mm-dd HH:MM:00'
-    vtime_v.stringFormat = 'UTC'
-    vtime_v[:] = pipv.data.index.to_datetime().map(str).astype(str)
+    vtime_v = nc.createVariable('time_velocity', 'i4', 'time')
+    vtime_v.description = 'POSIX timestamp of the particles observed falling in a minute interval of the fall velocity data'
+    vtime_v.units = timeunits
+    vtime_v[:] = pipv.data.index.astype(datetime).map(datetime.timestamp).astype(int)
     
     dvel = nc.createDimension('time velocity')
     vvel = nc.createVariable('velocity', 'f4', 'time velocity')
