@@ -62,24 +62,29 @@ for day in daterange(date_start, date_end):
     nc.setncattr('Measurement.comment', 'Instrument located on the BAECC measurement field.')
     nc.SoftwareVersion = 'PIP_rev_1308a'
     
-    dtime = nc.createDimension('time', None)
+    dtime = nc.createDimension('time', dsd.data.index.values.size) # TODO
     vtime = nc.createVariable('time', 'i4', 'time')
     vtime.description = 'POSIX timestamp of the PIP in a minute interval'
     vtime.units = timeunits
     vtime[:] = dsd.data.index.astype(datetime).map(datetime.timestamp).astype(int)
     
-    dbinsize = nc.createDimension('bin size', 105)
+    dbinsize = nc.createDimension('bin size', dsd.data.columns.values.size)
     vbins = nc.createVariable('particle_size', 'f4', 'bin size')
     vbins.description = 'Particle bin center of an area-equivalent diameter'
     vbins.units = 'mm'
     vbins[:] = dsd.data.columns.values 
     
-    vtime_v = nc.createVariable('time_velocity', 'i4', 'time')
+    vdsd = nc.createVariable('psd', 'f4', ('bin size', 'time'))
+    vdsd.description = 'Particle size distribution of the minutes with more than 10 particles observed'
+    vdsd.units = 'm^-3mm^-1'
+    vdsd[:] = 2*dsd.data.values
+    
+    dvtime = nc.createDimension('time velocity', pipv.data.index.values.size) # TODO
+    vtime_v = nc.createVariable('time_velocity', 'i4', 'time velocity')
     vtime_v.description = 'POSIX timestamp of the particles observed falling in a minute interval of the fall velocity data'
     vtime_v.units = timeunits
     vtime_v[:] = pipv.data.index.astype(datetime).map(datetime.timestamp).astype(int)
     
-    dvel = nc.createDimension('time velocity')
     vvel = nc.createVariable('velocity', 'f4', 'time velocity')
     vvel.description = 'Fall velocity of the particle. The observation has more than two video frames.'
     vvel.units = 'm/s'
