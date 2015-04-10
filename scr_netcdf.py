@@ -62,7 +62,7 @@ for day in daterange(date_start, date_end):
     nc.setncattr('Measurement.comment', 'Instrument located on the BAECC measurement field.')
     nc.SoftwareVersion = 'PIP_rev_1308a'
     
-    dtime = nc.createDimension('time', dsd.data.index.values.size) # TODO
+    dtime = nc.createDimension('time', dsd.data.index.values.size)
     vtime = nc.createVariable('time', 'i4', 'time')
     vtime.description = 'POSIX timestamp of the PIP in a minute interval'
     vtime.units = timeunits
@@ -74,12 +74,12 @@ for day in daterange(date_start, date_end):
     vbins.units = 'mm'
     vbins[:] = dsd.data.columns.values 
     
-    vdsd = nc.createVariable('psd', 'f4', ('bin size', 'time'))
+    vdsd = nc.createVariable('psd', 'f4', ('time', 'bin size'))
     vdsd.description = 'Particle size distribution of the minutes with more than 10 particles observed'
     vdsd.units = 'm^-3mm^-1'
     vdsd[:] = 2*dsd.data.values
     
-    dvtime = nc.createDimension('time velocity', pipv.data.index.values.size) # TODO
+    dvtime = nc.createDimension('time velocity', pipv.data.index.values.size)
     vtime_v = nc.createVariable('time_velocity', 'i4', 'time velocity')
     vtime_v.description = 'POSIX timestamp of the particles observed falling in a minute interval of the fall velocity data'
     vtime_v.units = timeunits
