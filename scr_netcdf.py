@@ -7,13 +7,14 @@ import numpy as np
 from os import path
 from glob import glob
 import netCDF4 as cdf
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 resultspath = '../results/netcdf'
 identifier = 'PIP_004'
 instr_prefix = identifier + '_'
 ext = '.cdf'
 
+dtformat = '%Y-%m-%dT%H:%M:%S'
 timeunits = 'seconds since 1970-01-01 00:00:00 UTC'
 
 date_start = date(2014, 2, 4)
@@ -27,7 +28,6 @@ def handle_empty(data, column):
 
 for day in daterange(date_start, date_end):
     dtstr = day.strftime('%Y%m%d')
-    datestring = day.strftime('%Y-%m-%dT%H:%M:%S')
     print(dtstr)
     out_filepath = path.join(resultspath, instr_prefix + dtstr + ext)
     pipv_files = datafilelist(pipv_subpath % dtstr)
@@ -44,8 +44,8 @@ for day in daterange(date_start, date_end):
     nc.Description = 'Data set includes daily measurements of particle size distribution and fall velocity observed by video camera with high frame rate.'
     nc.Language = 'eng'
     nc.Identifier = identifier
-    nc.Modified = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-    nc.TemporalCoverage = 'start=%s; stop=%s UTC' % (datestring, datestring)
+    nc.Modified = datetime.utcnow().strftime(dtformat + 'Z')
+    nc.TemporalCoverage = 'start=%s; stop=%s UTC' % (day.strftime(dtformat), (day + timedelta(days=1)).strftime(dtformat))
     nc.SpatialCoverage = 'projection=wgs84 north=61.8436892 east=24.28776892 name=Hyytiälä elevation=150 zunits=m'
     nc.Type = 'netCDF4'
     nc.Creator = 'Matti Leskinen'
