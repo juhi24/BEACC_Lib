@@ -207,6 +207,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.col_suffix = 'nrt'
         self.use_bucket = False
         self._varinterval = True
+        self.n_combined_intervals = 2
         self.amount_col = 'acc_' + self.col_suffix
         self.bucket_col = 'bucket_' + self.col_suffix
         if self.data.empty:
@@ -355,7 +356,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         if not self.varinterval:
             return self.constinterval_amount(shift=shift, **bucketkwargs)
         am = self.good_data()[self.amount_col]
-        am = am[am > 0]
+        n = self.n_combined_intervals
+        am = pd.stats.moments.rolling_sum(am[am > 0],window=n).iloc[n-1::n]
         if shift:
             am = am.tshift(periods=self.shift_periods, freq=self.shift_freq)
         if crop:
@@ -422,7 +424,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         ticks = self.good_data()[self.amount_col].astype(bool)
         if shift:
             ticks = ticks.tshift(periods=self.shift_periods, freq=self.shift_freq)
-        dtgroups = pd.Series(ticks.index[ticks], index=ticks.index[ticks]).reindex(ticks.index).bfill()[self.dt_start():self.dt_end()]
+        ticktime = self.amount().index
+        dtgroups = pd.Series(ticktime, index=ticktime).reindex(ticks.index).bfill()[self.dt_start():self.dt_end()]
         #numgroups = ticks.astype(int).cumsum().shift(1).fillna(0)[self.dt_start():self.dt_end()]
         dtgroups.name = 'group'
         last_index = self.tdelta().index[-1]

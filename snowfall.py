@@ -221,7 +221,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     @property
     def rule(self):
-        if self.varinterval and self._rule is None:
+        if self.varinterval: #and self._rule is None:
             self._rule = self.pluvio.grouper() # TODO: needs to be reset on changes for pluvio data
         return self._rule
 

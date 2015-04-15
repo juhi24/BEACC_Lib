@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import os
 
 dtformat_default = '%d.%m. %H:%M'
-dtformat_snex = '%d %B %H UTC'
+dtformat_snex = '%Y %d %B %H UTC'
 
 e = EventsCollection('cases/pip2015.csv', dtformat_snex)
 e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
