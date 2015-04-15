@@ -442,7 +442,7 @@ class PipDSD(InstrumentData):
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                if int(filename[-16:-8]) > 0: # TODO fixme
+                if int(filename[-16:-8]) > 20140831: # TODO fixme
                     self.data = self.data.append(pd.read_csv(filename,
                                     engine='python', sep='\t', skiprows=8, skip_footer=1, header=3,
                                     parse_dates={'datetime':['hr_d', 'min_d']},
@@ -547,7 +547,7 @@ class PipV(InstrumentData):
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                if int(filename[-23:-15]) > 0: # TODO fixme
+                if int(filename[-23:-15]) > 20140831: # TODO fixme
                     newdata = pd.read_csv(filename,
                                           engine='python', sep='\t',
                                           skipinitialspace=True, skiprows=8, skip_footer=1,
