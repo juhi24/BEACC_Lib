@@ -723,6 +723,8 @@ class PipV(InstrumentData):
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
                  name=None, **kwargs):
         """Find and store a fit for either raw data or kde."""
+        std = pd.DataFrame()
+        hwfm = pd.DataFrame()
         if data is None:
             data = self.good_data()
         if fit is None:
