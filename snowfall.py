@@ -185,6 +185,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             self.autoshift()
         if unbias:
             self.noprecip_bias()
+        read.Cacher.__init__(self)
 
     def __repr__(self):
         if self.liquid:
@@ -669,6 +670,11 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             print('Pluvio timeshift set to %s*%s.'
                   % (str(self.pluvio.shift_periods), self.pluvio.shift_freq))
         return periods
+
+    def clear_cache(self):
+        xtra = glob(os.path.join(self.cache_dir(), '*' + read.MSGTLD))
+        xtra.extend(glob(os.path.join(self.cache_dir(), '*.h5')))
+        super().clear_cache(extra_files=xtra)
 
 class Snow2:
     """UNTESTED.

@@ -94,6 +94,16 @@ class Cacher:
         with pd.HDFStore(self.store_path()) as store:
                 store[tablename] = data
 
+    def clear_cache(self, *cache_dir_args, extra_files=None):
+        store = self.store_path(*cache_dir_args)
+        filelist = []
+        if os.path.exists(store):
+            filelist.append(store)
+        if extra_files is not None:
+            filelist.extend(extra_files)
+        for f in filelist:
+            os.remove(f)
+
 class PrecipMeasurer:
     """parent for classes with precipitation measurements
     Either amount or acc (or both) methods should be overridden."""
@@ -135,7 +145,7 @@ class InstrumentData(Cacher):
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
         self.set_span(dt_start, dt_end)
-        self.storefilename = self.name + '.h5'
+        Cacher.__init__(self, storefilename=self.name + '.h5')
 
     def append_data(self, appended):
         #print(len(appended.data.index))
@@ -207,7 +217,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.col_suffix = 'nrt'
         self.use_bucket = False
         self._varinterval = True
-        self.n_combined_intervals = 2
+        self.n_combined_intervals = 1
         self.amount_col = 'acc_' + self.col_suffix
         self.bucket_col = 'bucket_' + self.col_suffix
         if self.data.empty:
