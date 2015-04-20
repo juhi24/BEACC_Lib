@@ -675,6 +675,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         xtra = glob(os.path.join(self.cache_dir(), '*' + read.MSGTLD))
         xtra.extend(glob(os.path.join(self.cache_dir(), '*.h5')))
         super().clear_cache(extra_files=xtra)
+        self.reset()
 
 class Snow2:
     """UNTESTED.

@@ -739,8 +739,8 @@ class PipV(InstrumentData):
             data = self.good_data()
         if fit is None:
             fit = self.default_fit
-        print(data.count()[0])
-        if data.count()[0] < 5 and (use_curve_fit or kde):
+        partcount = data.count()[0]
+        if partcount < 5 and (use_curve_fit or kde):
             print('Too few particles.')
             kde = False
             use_curve_fit = False
@@ -783,7 +783,8 @@ class PipV(InstrumentData):
         fit.params = params
         fit.x = d
         fit.y = v
-        return fit, std, hwfm
+        print(str(fit) + ' (' + str(partcount) + ' particles)')
+        return copy.deepcopy(fit), std, hwfm
 
     def find_fits(self, rule, varinterval=True, draw_plots=False,
                   empty_on_fail=True, **kwargs):
