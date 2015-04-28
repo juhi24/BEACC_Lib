@@ -32,7 +32,7 @@ class Fit:
         return 0
 
     def plot(self, xmax=20, samples=1000, ax=None, label=None,
-             source_data=False, marker='ro', **kwargs):
+             source_data=False, marker='ro', linewidth=2, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
@@ -42,9 +42,9 @@ class Fit:
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
             label = r'$' + str(self) + r'$'
-        ax.plot(x, y, label=label, linewidth=2)
+        ax.plot(x, y, label=label, linewidth=linewidth, **kwargs)
         if source_data:
-            ax.plot(self.x, self.y, marker, **kwargs)
+            ax.plot(self.x, self.y, marker)
         return ax
 
     def cost(self, params, xarr, yarr, sigarr):
