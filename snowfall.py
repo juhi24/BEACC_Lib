@@ -95,6 +95,7 @@ class MultiSeries:
                    kind='scatter', grouped=True, pluvio=None, query=None,
                    ax=None, colorbar=False, markers='os^vD*p><',
                    edgecolors='none', dtformat='%Y %b %d', **kwargs):
+        """Easily plot parameters against each other."""
         sumkwargs = {}
         if ax is None:
             ax = plt.gca()
@@ -637,6 +638,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax, **kwargs)
 
     def summary(self, **kwargs):
+        """Return a DataFrame of combined numerical results."""
         casename = self.series_nans().fillna(self.dtstr(**kwargs))
         casename.name = 'case'
         data = read.merge_multiseries(self.partcount(), self.density(),
