@@ -659,6 +659,7 @@ class PipV(InstrumentData):
         """velocities according to fits for given diameter"""
         if emptyfit is None:
             emptyfit = self.default_fit
+        emptyfit = copy.deepcopy(emptyfit)
         if rule is None:
             rule = self.rule
         if self.fits.empty:
@@ -747,6 +748,7 @@ class PipV(InstrumentData):
             data = self.good_data()
         if fit is None:
             fit = self.default_fit
+        fit = copy.deepcopy(fit)
         partcount = data.count()[0]
         if partcount < 5 and (use_curve_fit or kde):
             print('Too few particles.')
@@ -784,6 +786,7 @@ class PipV(InstrumentData):
             sigargs = {}
         if use_curve_fit:
             params, pcov = curve_fit(fit.func, d, v, **sigargs)
+            perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
         else:
             result = minimize(fit.cost, fit.quess, method='Nelder-Mead',
                               args=(d, v, sig))
@@ -792,7 +795,7 @@ class PipV(InstrumentData):
         fit.x = d
         fit.y = v
         print(str(fit) + ' (' + str(partcount) + ' particles)')
-        return copy.deepcopy(fit), std, hwfm
+        return fit, std, hwfm
 
     def find_fits(self, rule, varinterval=True, draw_plots=False,
                   empty_on_fail=True, **kwargs):
@@ -817,6 +820,7 @@ class PipV(InstrumentData):
                     newfit = fits[-1]
                     std = stds[-1]
                     hwfm = hwfms[-1]
+            newfit = copy.deepcopy(newfit)
             fits.append(newfit)
             names.append(name)
             stds.append(std)
