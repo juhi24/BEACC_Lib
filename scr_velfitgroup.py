@@ -24,6 +24,7 @@ def normalize(density, rhomax=500):
         return 1
     return density/rhomax
 
+plt.ioff()
 plt.close('all')
 
 dtformat_default = '%d.%m. %H:%M'
@@ -35,16 +36,35 @@ e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True
 ax = plt.gca()
 cmap = mpl.cm.gnuplot
 norm = mpl.colors.Normalize(vmin=0,vmax=500)
-cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm)
+#cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm)
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.pluvio.shift_periods = -6
-    plt.figure()
+    #plt.figure()
     colorstr = c.density().apply(rangecolor)
     colorval = c.density().apply(normalize)
     colorstr.name = 'colorstr'
     colorval.name = 'colorval'
-    read.merge_multiseries(c.pipv.fits, colorstr, colorval).apply(lambda row: row.polfit.plot(color=cmap(row.colorval), linewidth=1, xmax=10), axis=1)
-    plt.title(str(c.dt_start_end()[0].date()))
-    plt.ylabel='fall velocity'
-    plt.xlabel='diameter'
+    merged = read.merge_multiseries(c.pipv.fits, colorstr, colorval, c.density())
+    #merged.apply(lambda row: row.polfit.plot(color=row.colorstr, linewidth=1, xmax=10), axis=1)
+    groups = merged.groupby(colorstr)
+    for name, group in groups:
+        plt.figure()
+        group.apply(lambda row: row.polfit.plot(linewidth=1, xmax=10, color=name, ), axis=1)
+        rho = group.density.mean()
+        if rho < 100:
+            rhorange = 'rho<100'
+        elif rho < 200:
+            rhorange = '100<rho<200'
+        elif rho < 300:
+            rhorange = '200<rho<300'
+        elif rho < 400:
+            rhorange = '300<rho<400'
+        else:
+            rhorange = 'rho>400'
+        dtstr = str(c.dt_start_end()[0].date())
+        plt.ylim((0,3))
+        plt.title('%s, %s (%s)' % (dtstr, rhorange, c.pluvio.name))
+        plt.ylabel('fall velocity')
+        plt.xlabel('diameter')
+        plt.savefig('../results/pip2015/velfitgroups/' + c.pluvio.name + '_' + dtstr + '_' + rhorange + '.eps')
