@@ -42,7 +42,7 @@ class Fit:
             if self.x is None:
                 xmax = 10
             else:
-                xmax = x.max()
+                xmax = self.x.max()
         x = np.linspace(0, xmax, samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:

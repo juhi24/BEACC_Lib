@@ -555,7 +555,7 @@ class PipV(InstrumentData):
         self.name = 'pip_vel'
         self.dmin = 0.375 # shortest diameter where data is good
         self._fits = pd.DataFrame()
-        self.dbins = np.linspace(0.375, 25.875, num=206)
+        self.dbins = np.linspace(self.dmin, 25.875, num=204) # num=511 --> binwidth 0.05
         self._std = pd.DataFrame(columns=self.dbins)
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
@@ -645,16 +645,6 @@ class PipV(InstrumentData):
     def default_fit(self, emptyfit):
         self._default_fit = emptyfit
 
-    def grids(self, data=None):
-        if data is None:
-            data = self.good_data()
-        d = data.Wad_Dia.values
-        v = data.vel_v.values
-        dmax = d.max()+20*self.binwidth
-        dbins = self.dbins[self.dbins < dmax]
-        num_vbins = round(len(self.dbins)/5)
-        return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
-
     def v(self, d, emptyfit=None, varinterval=True, rule=None):
         """velocities according to fits for given diameter"""
         if emptyfit is None:
@@ -712,6 +702,7 @@ class PipV(InstrumentData):
         std = []
         X, Y, Z = self.kde_grid(data)
         y = Y[:, 0]
+        x = X[0, :]
         for i in range(0, Z.shape[1]):
             z = Z[:, i]
             z_lim = z.max()*frac
@@ -881,6 +872,16 @@ class PipV(InstrumentData):
         v = data.vel_v.values
         values = np.vstack([d, v])
         return stats.gaussian_kde(values)
+
+    def grids(self, data=None):
+        if data is None:
+            data = self.good_data()
+        d = data.Wad_Dia.values
+        v = data.vel_v.values
+        dmax = d.max()+20*self.binwidth
+        dbins = self.dbins[self.dbins < dmax]
+        num_vbins = round(len(self.dbins)/5)
+        return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
 
     def kde_grid(self, data=None):
         """Calculate kernel-density estimate with given resolution."""
