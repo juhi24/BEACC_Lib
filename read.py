@@ -740,7 +740,7 @@ class PipV(InstrumentData):
 
     def find_fit(self, fit=None, data=None, kde=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
-                 name=None, **kwargs):
+                 name=None, try_flip=True, **kwargs):
         """Find and store a fit for either raw data or kde."""
         std = pd.DataFrame()
         hwfm = pd.DataFrame()
@@ -787,6 +787,14 @@ class PipV(InstrumentData):
         if use_curve_fit:
             params, pcov = curve_fit(fit.func, d, v, **sigargs)
             perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
+            if try_flip and not kde:
+                paramsi, pcovi = curve_fit(fit.func, v, d)
+                perri = np.sqrt(np.diag(pcovi))[::-1]
+                fiti = copy.deepcopy(fit)
+                # x = a*y**b
+                fiti.params = np.array([paramsi[0]**(-1/paramsi[1]), 1/paramsi[1]])
+                plt.figure()
+                fiti.plot(label='flipped ' + str(perri[1]))
         else:
             result = minimize(fit.cost, fit.quess, method='Nelder-Mead',
                               args=(d, v, sig))
@@ -794,6 +802,9 @@ class PipV(InstrumentData):
         fit.params = params
         fit.x = d
         fit.y = v
+        ax = fit.plot(label='original ' + str(perr[1]))
+        self.plot(data=data, ymax=3)
+        plt.legend()
         print(str(fit) + ' (' + str(partcount) + ' particles)')
         return fit, std, hwfm
 
