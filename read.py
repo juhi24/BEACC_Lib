@@ -95,6 +95,7 @@ class Cacher:
                 store[tablename] = data
 
     def clear_cache(self, *cache_dir_args, extra_files=None):
+        """Remove cache files used by the Cacher object."""
         store = self.store_path(*cache_dir_args)
         filelist = []
         if os.path.exists(store):
@@ -423,14 +424,17 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return bias_acc_filled
 
     def tdelta(self):
+        """Return lengths of timesteps as Series of timedeltas."""
         a = self.amount(crop=False)
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
         longest_delta = pd.datetools.timedelta(hours=1)
         delta[delta > longest_delta] = longest_delta
         delta = pd.to_timedelta(delta)
+        delta.name = 'tdelta'
         return delta[self.dt_start():self.dt_end()].fillna(longest_delta)
 
     def grouper(self, shift=True):
+        """data group names (timestamp) for each data timestamp"""
         ticks = self.good_data()[self.amount_col].astype(bool)
         if shift:
             ticks = ticks.tshift(periods=self.shift_periods, freq=self.shift_freq)
@@ -488,9 +492,11 @@ class PipDSD(InstrumentData):
         return datetime.datetime.combine(d, t).replace(tzinfo=datetime.timezone.utc)
 
     def bin_cen(self):
+        """Return array of bin centers."""
         return self.good_data().columns.values
 
     def n(self, d, rule=None, varinterval=True):
+        """number concentrations for given diameter"""
         if varinterval:
             grp = self.grouped(rule=rule, varinterval=varinterval, col=d)
             n = grp.mean()
@@ -651,6 +657,7 @@ class PipV(InstrumentData):
         return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
 
     def v(self, d, emptyfit=None, varinterval=True, rule=None):
+        """velocities according to fits for given diameter"""
         if emptyfit is None:
             emptyfit = self.default_fit
         if rule is None:
@@ -699,6 +706,7 @@ class PipV(InstrumentData):
         return data.query(vcond)
 
     def filter_outlier(self, data=None, frac=0.5):
+        """Filter outliers using KDE"""
         filtered = pd.DataFrame()
         HWfracM = []
         std = []
@@ -836,6 +844,7 @@ class PipV(InstrumentData):
         return self.fits
 
     def fit_params(self, fit_type=None):
+        """Return DataFrame of fit parameters."""
         if fit_type is None:
             fit_type = self.default_fit.name
         letter = 'abcdef'
@@ -893,6 +902,7 @@ class PipV(InstrumentData):
     def plot(self, data=None, hexbin=True, ax=None, xmax=None, ymax=None,
              show_particle_count=False, colormap='gray_r', ygrid=True,
              hexsize=12, **kwargs):
+        """Plot velocity data."""
         if ax is None:
             ax = plt.gca()
         if data is None:
