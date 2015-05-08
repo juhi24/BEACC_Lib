@@ -588,7 +588,8 @@ class PipV(InstrumentData):
     def rule(self):
         if self.fits.empty:
             return None
-        return self.fits.index.freq.freqstr
+        #return self.fits.index.freq.freqstr
+        return self.fits.index.freqstr
 
     @property
     def binwidth(self):

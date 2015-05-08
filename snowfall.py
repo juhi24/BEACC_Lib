@@ -329,11 +329,20 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """(mm/h)/(m/s)*kg/mg / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
         return 3.6/RHO_W*alpha*d**beta*self.v(d)*self.n(d)
+        #dBin = self.dsd.d_bin
+        #av = self.pipv.fit_params()['a']
+        #bv = self.pipv.fit_params()['b']
+        #return 3.6/RHO_W*alpha*self.n(d)*av/(dBin*(bv+beta+1))*((d+dBin*0.5)**(bv+beta+1)-(d-dBin*0.5)**(bv+beta+1))
 
     def r_rho(self, d, rho):
         """(mm/h)/(m/s)*m**3/mm**3 * kg/m**3 / (kg/m**3) * mm**3 * m/s * 1/(mm*m**3)
         """
         return 3.6e-3*TAU/12*rho/RHO_W*d**3*self.v(d)*self.n(d)
+        #self.v(d)
+        #dBin = self.dsd.d_bin
+        #av = self.pipv.fit_params()['a']
+        #bv = self.pipv.fit_params()['b']
+        #return 3.6e-3*TAU/12*rho/RHO_W*self.n(d)*av/(dBin*(bv+4))*((d+dBin*0.5)**(bv+4)-(d-dBin*0.5)**(bv+4))
 
     def v(self, d):
         """velocity wrapper"""
@@ -373,6 +382,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             dd = pd.Series(idxd)
             dD = self.dsd.d_bin
             d3n = lambda d: d**3*self.n(d)*dD
+            #d3n = lambda d: dD*self.n(d)*((d+dD*0.5)**4.0-(d-dD*0.5)**4.0)/(dD*4.0)
             cumvol = dd.apply(d3n).cumsum().T
             cumvol.columns = idxd
             sumvol = cumvol.iloc[:, -1]
@@ -398,6 +408,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def n_moment(self, n):
         moment = lambda d: d**n*self.n(d)
+        #dD = self.dsd.d_bin
+        #moment = lambda d: self.n(d)*((d+dD*0.5)**(n+1.0)-(d-dD*0.5)**(n+1.0))/(dD*(n+1.0))
         nth_mo = self.sum_over_d(moment)
         nth_mo.name = 'M' + str(n)
         return nth_mo
@@ -499,6 +511,39 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             rho.name = name
             return rho.replace(np.inf, np.nan)
         return self.msger(name, func)
+        
+    def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False):
+        """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
+        name = "reflectivity"
+        constant = 0.2/(0.93*917*917)
+        density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
+        Z = 10.0*np.log10(constant*density*density*self.n_moment(6))
+        Z.name = name
+        return Z
+
+    def volume_avg_density(self, density_size, pluvio_filter=True, pip_filter=False):
+        """Calculate volume averaged bulk density for the given density size realation"""
+        name = "rho3"
+        def density_func(d):
+            return density_size(d)*self.n(d)    # I am experimenting with precise integration leaved d**3
+        def mom3(d):
+            return ((d+0.5*self.dsd.d_bin)**4-(d-0.5*self.dsd.d_bin)**4)*self.n(d)/(self.dsd.d_bin*4)
+        density = self.sum_over_d(density_func)/self.sum_over_d(mom3)
+        density[density.isnull()] = 0
+        density.name = name
+        return density
+
+    def reflectivity_avg_density(self, density_size, pluvio_filter=True, pip_filter=False):
+        """Calculate volume averaged bulk density for the given density size realation"""
+        name = "rho6"
+        def density_func(d):
+            return density_size(d)*self.n(d) # I am experimenting with precise integration leaved d**6 and squares
+        def mom6(d):
+            return ((d+0.5*self.dsd.d_bin)**7-(d-0.5*self.dsd.d_bin)**7)*self.n(d)/(self.dsd.d_bin*7)
+        density = self.sum_over_d(density_func)/self.sum_over_d(mom6)
+        density.name = name
+        density[density.isnull()] = 0
+        return np.sqrt(density)
 
     def minimize(self, method='SLSQP', **kwargs):
         """Legacy method for determining alpha and beta."""
@@ -642,7 +687,12 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         data = read.merge_multiseries(self.partcount(), self.density(),
                                       self.d_0(), self.n_t(), casename,
                                       self.pipv.fit_params(), self.d_m(),
-                                      self.d_max(), self.d_0_gamma())
+                                      self.d_max(), self.d_0_gamma(),
+                                      self.amount(params=[100],simple=True),
+                                      self.pluvio.amount(rule=self.rule),
+                                      self.eta(),self.mu(),self.lam(),self.n_0(),
+                                      self.n_moment(0),self.n_moment(1),
+                                      self.n_moment(2),self.Z_rayleigh_Xband())
         data.index.name = 'datetime'
         return data.sort_index(axis=1)
 
