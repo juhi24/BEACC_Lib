@@ -50,6 +50,41 @@ def merge_multiseries(s1, s2, *series, **kwargs):
             s_all = merge_series(s_all, s, **kwargs)
     return s_all
 
+def kde(x, y):
+    values = np.vstack((x,y))
+    return stats.gaussian_kde(values)
+
+def filter_outlier(X, Y, Z, data, xwidth, xname='x', yname='y', frac=0.5):
+    filtered = pd.DataFrame()
+    HWfracM = []
+    std = []
+    x = X[0, :]
+    y = Y[:, 0]
+    for i in range(0, Z.shape[1]):
+        z = Z[:, i]
+        z_lim = z.max()*frac
+        y_fltr = y[z > z_lim] # FWHM when frac=0.5
+        if y_fltr.size == 0:
+            continue
+        ymin = y_fltr[0]
+        ymax = y_fltr[-1]
+        HWfracM.append(0.5*(ymax-ymin))
+        bin_data = bindata(x[i], xwidth, data, ymin=ymin, ymax=ymax, 
+                           xname=xname, yname=yname)
+        std.append(bin_data[yname].std())
+        filtered = filtered.append(bin_data)
+    # return filtered data, stds and half width at frac*kde_max
+    return filtered, np.array(std), np.array(HWfracM)
+
+def bindata(x, xwidth, data, ymin=None, ymax=None, xname='x', yname='y'):
+    """Return data that falls into given x bin."""
+    xmin = x-0.5*xwidth
+    xmax = x+0.5*xwidth
+    cond = '%s > %s and %s < %s' % (xname, xmin, xname, xmax)
+    if ymin is not None and ymax is not None:
+        cond += ' and %s > %s and %s < %s' % (yname, ymin, yname, ymax)
+    return data.query(cond)
+
 class Cacher:
     """common methods to use msg cache"""
     def __init__(self, use_cache=True, storefilename='store.h5'):
@@ -682,43 +717,15 @@ class PipV(InstrumentData):
             return self.stored_good_data
         return self.data[self.data.Wad_Dia > self.dmin]
 
-    def dbin(self, d, binwidth=None, data=None, vmin=None, vmax=None):
-        """Return data that falls into given size bin."""
+    def filter_outlier(self, data, frac=0.5, binwidth=None):
+        """Filter outliers using KDE"""
         if binwidth is None:
             binwidth = self.binwidth
         if data is None:
             data = self.good_data()
-        dmin = d-0.5*binwidth
-        dmax = d+0.5*binwidth
-        vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (dmin, dmax)
-        if vmin is not None and vmax is not None:
-            vcond += ' and vel_v > %s and vel_v < %s' % (vmin, vmax)
-        return data.query(vcond)
-
-    def filter_outlier(self, data=None, frac=0.5):
-        """Filter outliers using KDE"""
-        filtered = pd.DataFrame()
-        HWfracM = []
-        std = []
-        X, Y, Z = self.kde_grid(data)
-        y = Y[:, 0]
-        x = X[0, :]
-        for i in range(0, Z.shape[1]):
-            z = Z[:, i]
-            z_lim = z.max()*frac
-            y_fltr = y[z > z_lim] # FWHM when frac=0.5
-            if y_fltr.size == 0:
-                continue
-            vmin = y_fltr[0]
-            vmax = y_fltr[-1]
-            HWfracM.append(0.5*(vmax-vmin))
-            d = X[0, i]
-            bin_data = self.dbin(d=d, data=data, vmin=vmin, vmax=vmax)
-            std.append(bin_data.vel_v.std())
-            filtered = filtered.append(bin_data)
-        # return filtered data, stds and half width at frac*kde_max
-        return filtered, np.array(std), np.array(HWfracM)
-
+        return filter_outlier(*self.kde_grid(data), data, binwidth, 
+                              xmame='Wad_Dia', yname='vel_v', frac=frac)
+        
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
         vdata = self.good_data()
@@ -766,22 +773,25 @@ class PipV(InstrumentData):
             d = d[d < dcut]
             v = v[d < dcut]
         if kde:
-            num = np.array([self.dbin(diam, self.binwidth,
-                                      data=data).vel_v.count() for diam in d])
+            num = np.array([bindata(diam, self.binwidth, data=data,
+                                    xname='Wad_Diam', yname='vel_v').vel_v.count() for diam in d])
             d = d[num > bin_num_min]
             v = v[num > bin_num_min]
-            sig = [self.dbin(diam, self.binwidth, data=data).vel_v.sem() for diam in d]
+            sig = [self.dbin(diam, self.binwidth, data=data, xname='Wad_Diam', 
+                             yname='vel_v').vel_v.sem() for diam in d]
             sigargs = {'sigma': sig, 'absolute_sigma': True}
         else:
             sig = np.ones(d.size)
             sigargs = {}
+        fit.x = d
+        fit.y = v
         if use_curve_fit:
-            params, pcov = curve_fit(fit.func, d, v, **sigargs)
+            params, pcov = fit.find_fit()
             perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
             if try_flip and not kde:
-                paramsi, pcovi = curve_fit(fit.func, v, d)
-                perri = np.sqrt(np.diag(pcovi))[::-1]
                 fiti = copy.deepcopy(fit)
+                paramsi, pcovi = fiti.find_fit()
+                perri = np.sqrt(np.diag(pcovi))[::-1]
                 # x = a*y**b
                 fiti.params = np.array([paramsi[0]**(-1/paramsi[1]), 1/paramsi[1]])
                 plt.figure()
@@ -789,10 +799,7 @@ class PipV(InstrumentData):
         else:
             result = minimize(fit.cost, fit.quess, method='Nelder-Mead',
                               args=(d, v, sig))
-            params = result.x
-        fit.params = params
-        fit.x = d
-        fit.y = v
+            fit.params = result.x
         ax = fit.plot(label='original ' + str(perr[1]))
         self.plot(data=data, ymax=3)
         plt.legend()
@@ -870,8 +877,7 @@ class PipV(InstrumentData):
             data = self.good_data()
         d = data.Wad_Dia.values
         v = data.vel_v.values
-        values = np.vstack([d, v])
-        return stats.gaussian_kde(values)
+        return kde(values)
 
     def grids(self, data=None):
         if data is None:
