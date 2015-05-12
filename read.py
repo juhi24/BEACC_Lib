@@ -723,8 +723,8 @@ class PipV(InstrumentData):
             binwidth = self.binwidth
         if data is None:
             data = self.good_data()
-        return filter_outlier(*self.kde_grid(data), data, binwidth, 
-                              xmame='Wad_Dia', yname='vel_v', frac=frac)
+        return filter_outlier(*self.kde_grid(data), data=data, xwidth=binwidth, 
+                              xname='Wad_Dia', yname='vel_v', frac=frac)
         
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
@@ -877,7 +877,7 @@ class PipV(InstrumentData):
             data = self.good_data()
         d = data.Wad_Dia.values
         v = data.vel_v.values
-        return kde(values)
+        return kde(d, v)
 
     def grids(self, data=None):
         if data is None:
