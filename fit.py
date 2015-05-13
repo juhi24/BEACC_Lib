@@ -62,12 +62,11 @@ class Fit:
         return cost
 
     def find_fit(self, store_params=True, **kwargs):
-        selection = pd.DataFrame([self.x.notnull(), self.y.notnull()]).all()
-        x = self.x[selection]
-        y = self.y[selection]
+        if self.x is None or self.y is None:
+            return
         if self.sigma is not None:
-            kwargs['sigma'] = self.sigma[selection]
-        params, cov = curve_fit(self.func, x, y, **kwargs)
+            kwargs['sigma'] = self.sigma
+        params, cov = curve_fit(self.func, self.x, self.y, **kwargs)
         if store_params:
             self.params = params
         return params, cov

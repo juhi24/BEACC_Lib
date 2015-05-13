@@ -54,12 +54,14 @@ def kde(x, y):
     values = np.vstack((x,y))
     return stats.gaussian_kde(values)
 
-def filter_outlier(X, Y, Z, data, xwidth, xname='x', yname='y', frac=0.5):
+def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
     filtered = pd.DataFrame()
     HWfracM = []
     std = []
     x = X[0, :]
     y = Y[:, 0]
+    xwidth = (x[-1]-x[0])/len(x)
+    print('width: ' + str(xwidth))
     for i in range(0, Z.shape[1]):
         z = Z[:, i]
         z_lim = z.max()*frac
@@ -717,13 +719,15 @@ class PipV(InstrumentData):
             return self.stored_good_data
         return self.data[self.data.Wad_Dia > self.dmin]
 
-    def filter_outlier(self, data, frac=0.5, binwidth=None):
+    def filter_outlier(self, data, frac=0.5, flip=False):
         """Filter outliers using KDE"""
-        if binwidth is None:
-            binwidth = self.binwidth
         if data is None:
             data = self.good_data()
-        return filter_outlier(*self.kde_grid(data), data=data, xwidth=binwidth, 
+        if flip:
+            X, Y, Z = self.kde_grid(data)
+            return filter_outlier(Y.T, X.T, Z.T, data, xname='vel_v',
+                                  frac=frac, yname='Wad_Dia')
+        return filter_outlier(*self.kde_grid(data), data=data, 
                               xname='Wad_Dia', yname='vel_v', frac=frac)
         
     def frac_larger(self, d):
@@ -790,6 +794,10 @@ class PipV(InstrumentData):
             perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
             if try_flip and not kde:
                 fiti = copy.deepcopy(fit)
+                datai, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac,
+                                                             flip=True)
+                fiti.x = datai.vel_v.values
+                fiti.y = datai.Wad_Dia.values
                 paramsi, pcovi = fiti.find_fit()
                 perri = np.sqrt(np.diag(pcovi))[::-1]
                 # x = a*y**b
