@@ -16,6 +16,7 @@ from scipy import stats
 from scipy.optimize import curve_fit, fmin, minimize
 from fit import *
 
+RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
 MSGTLD = '.msg'
 
@@ -36,6 +37,7 @@ def ensure_dir(directory):
     """Make sure the directory exists. If not, create it."""
     if not os.path.exists(directory):
         os.makedirs(directory)
+    return directory
 
 def merge_series(s1, s2, **kwargs):
     """Merge pandas Series and/or DataFrames on index"""
@@ -60,8 +62,7 @@ def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
     std = []
     x = X[0, :]
     y = Y[:, 0]
-    xwidth = (x[-1]-x[0])/len(x)
-    print('width: ' + str(xwidth))
+    xwidth = (x[-1]-x[0])/len(x) # TODO: check if correct
     for i in range(0, Z.shape[1]):
         z = Z[:, i]
         z_lim = z.max()*frac
@@ -620,8 +621,6 @@ class PipV(InstrumentData):
                 newdata = g.mean()
                 if len(newdata.index):
                     self.data = self.data.append(newdata)
-                #print(filename)
-            #print(len(self.data.index))
             if len(self.data.index):
                 self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
@@ -742,12 +741,14 @@ class PipV(InstrumentData):
 
     def find_fit(self, fit=None, data=None, kde=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
-                 name=None, try_flip=True, **kwargs):
+                 name=None, try_flip=True, plot_flip=False, **kwargs):
         """Find and store a fit for either raw data or kde."""
+        # TODO: clean this mess
         std = pd.DataFrame()
         hwfm = pd.DataFrame()
         if data is None:
             data = self.good_data()
+        origdata = copy.deepcopy(data)
         if fit is None:
             fit = self.default_fit
         fit = copy.deepcopy(fit)
@@ -794,25 +795,43 @@ class PipV(InstrumentData):
             perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
             if try_flip and not kde:
                 fiti = copy.deepcopy(fit)
-                datai, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac,
+                datai, stdarri, HWfracMi = self.filter_outlier(data=data, frac=frac,
                                                              flip=True)
                 fiti.x = datai.vel_v.values
                 fiti.y = datai.Wad_Dia.values
                 paramsi, pcovi = fiti.find_fit()
-                perri = np.sqrt(np.diag(pcovi))[::-1]
+                perri = np.sqrt(np.diag(pcovi))[::-1] # flipped back to d, v
                 # x = a*y**b
                 fiti.params = np.array([paramsi[0]**(-1/paramsi[1]), 1/paramsi[1]])
-                plt.figure()
-                fiti.plot(label='flipped ' + str(perri[1]))
+                if plot_flip:
+                    f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12,6))
+                    for ax in axarr:
+                        fiti.plot(ax=ax, label='flipped %.4f' % perri[1])
         else:
             result = minimize(fit.cost, fit.quess, method='Nelder-Mead',
                               args=(d, v, sig))
             fit.params = result.x
-        ax = fit.plot(label='original ' + str(perr[1]))
-        self.plot(data=data, ymax=3)
-        plt.legend()
-        print(str(fit) + ' (' + str(partcount) + ' particles)')
-        return fit, std, hwfm
+        if plot_flip:
+            filterstr = ['D-binned filter', 'v-binned filter', 'unfiltered']
+            for ax in axarr:
+                fit.plot(ax=ax, label='original %.4f' % perr[1])
+            self.plot(ax=axarr[0], data=data, ymax=3)
+            self.plot(ax=axarr[1], data=datai, ymax=3)
+            self.plot(ax=axarr[2], data=origdata, ymax=3)
+            for i, ax in enumerate(axarr):
+                ax.set_title(ax.get_title() + ', ' + filterstr[i])
+            plt.legend()
+            f.tight_layout()
+            fname = data.index[-1].strftime(os.path.join('%Y%m%d', '%H%M.eps'))
+            f.savefig(os.path.join(ensure_dir(os.path.join(RESULTS_DIR, 'pip2015', 'fitcomparison')), fname))
+        fitstr = 'standard'
+        fitout = fit
+        if use_curve_fit:
+            if perr[1] > perri[1]:
+                fitout = fiti
+                fitstr = 'flipped'
+        print(fitstr + ' fit: ' + str(fitout) + ' (' + str(partcount) + ' particles)')
+        return fitout, std, hwfm # TODO: wrong std, hwfm when flipped
 
     def find_fits(self, rule, varinterval=True, draw_plots=False,
                   empty_on_fail=True, **kwargs):

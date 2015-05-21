@@ -10,9 +10,15 @@ from os import path
 dtformat_default = '%d.%m. %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 
-e = EventsCollection('cases/dualfit.csv', dtformat_snex)
+e = EventsCollection('cases/pip2015.csv', dtformat_snex)
 e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
+
+plt.close('all')
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.pluvio.shift_periods = -6
     c.pluvio.n_combined_intervals = 2
+    plt.figure()
+    c.density().plot(label=c.pluvio.name)
+
+plt.legend()
