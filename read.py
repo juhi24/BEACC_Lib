@@ -741,7 +741,7 @@ class PipV(InstrumentData):
 
     def find_fit(self, fit=None, data=None, kde=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
-                 name=None, try_flip=True, plot_flip=False, **kwargs):
+                 name=None, try_flip=True, plot_flip=True, **kwargs):
         """Find and store a fit for either raw data or kde."""
         # TODO: clean this mess
         std = pd.DataFrame()
@@ -811,7 +811,7 @@ class PipV(InstrumentData):
             result = minimize(fit.cost, fit.quess, method='Nelder-Mead',
                               args=(d, v, sig))
             fit.params = result.x
-        if plot_flip:
+        if plot_flip and use_curve_fit:
             filterstr = ['D-binned filter', 'v-binned filter', 'unfiltered']
             for ax in axarr:
                 fit.plot(ax=ax, label='original %.4f' % perr[1])
@@ -822,8 +822,9 @@ class PipV(InstrumentData):
                 ax.set_title(ax.get_title() + ', ' + filterstr[i])
             plt.legend()
             f.tight_layout()
-            fname = data.index[-1].strftime(os.path.join('%Y%m%d', '%H%M.eps'))
-            f.savefig(os.path.join(ensure_dir(os.path.join(RESULTS_DIR, 'pip2015', 'fitcomparison')), fname))
+            fname = data.index[-1].strftime('%H%M.eps')
+            datedir = data.index[-1].strftime('%Y%m%d')
+            f.savefig(os.path.join(ensure_dir(os.path.join(RESULTS_DIR, 'pip2015', 'fitcomparison', datedir)), fname))
         fitstr = 'standard'
         fitout = fit
         if use_curve_fit:
