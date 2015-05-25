@@ -19,4 +19,4 @@ plt.ioff()
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.pluvio.shift_periods = -6
     c.pluvio.n_combined_intervals = 2
-    c.density()
+    #c.density()
