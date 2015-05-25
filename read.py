@@ -13,7 +13,7 @@ import numpy as np
 import linecache
 import copy
 from scipy import stats
-from scipy.optimize import curve_fit, fmin, minimize
+from scipy.optimize import fmin, minimize
 from fit import *
 
 RESULTS_DIR = '../results'
