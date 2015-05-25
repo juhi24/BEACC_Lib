@@ -31,13 +31,18 @@ class Fit:
         """penalty function used by the cost function"""
         return 0
 
-    def plot(self, xmax=20, samples=1000, ax=None, label=None,
+    def plot(self, xmax=None, samples=1000, ax=None, label=None,
              source_data=False, marker='ro', linewidth=2, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
         if self.params is None:
             return ax
+        if xmax is None:
+            if self.x is None:
+                xmax = 10
+            else:
+                xmax = self.x.max()
         x = np.linspace(0, xmax, samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
@@ -57,12 +62,11 @@ class Fit:
         return cost
 
     def find_fit(self, store_params=True, **kwargs):
-        selection = pd.DataFrame([self.x.notnull(), self.y.notnull()]).all()
-        x = self.x[selection]
-        y = self.y[selection]
+        if self.x is None or self.y is None:
+            return
         if self.sigma is not None:
-            kwargs['sigma'] = self.sigma[selection]
-        params, cov = curve_fit(self.func, x, y, **kwargs)
+            kwargs['sigma'] = self.sigma
+        params, cov = curve_fit(self.func, self.x, self.y, **kwargs)
         if store_params:
             self.params = params
         return params, cov

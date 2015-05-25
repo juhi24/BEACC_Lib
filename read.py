@@ -13,9 +13,10 @@ import numpy as np
 import linecache
 import copy
 from scipy import stats
-from scipy.optimize import curve_fit, fmin, minimize
+from scipy.optimize import fmin, minimize
 from fit import *
 
+RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
 MSGTLD = '.msg'
 
@@ -36,6 +37,7 @@ def ensure_dir(directory):
     """Make sure the directory exists. If not, create it."""
     if not os.path.exists(directory):
         os.makedirs(directory)
+    return directory
 
 def merge_series(s1, s2, **kwargs):
     """Merge pandas Series and/or DataFrames on index"""
@@ -49,6 +51,42 @@ def merge_multiseries(s1, s2, *series, **kwargs):
         for s in series:
             s_all = merge_series(s_all, s, **kwargs)
     return s_all
+
+def kde(x, y):
+    values = np.vstack((x,y))
+    return stats.gaussian_kde(values)
+
+def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
+    filtered = pd.DataFrame()
+    HWfracM = []
+    std = []
+    x = X[0, :]
+    y = Y[:, 0]
+    xwidth = (x[-1]-x[0])/len(x) # TODO: check if correct
+    for i in range(0, Z.shape[1]):
+        z = Z[:, i]
+        z_lim = z.max()*frac
+        y_fltr = y[z > z_lim] # FWHM when frac=0.5
+        if y_fltr.size == 0:
+            continue
+        ymin = y_fltr[0]
+        ymax = y_fltr[-1]
+        HWfracM.append(0.5*(ymax-ymin))
+        bin_data = bindata(x[i], xwidth, data, ymin=ymin, ymax=ymax, 
+                           xname=xname, yname=yname)
+        std.append(bin_data[yname].std())
+        filtered = filtered.append(bin_data)
+    # return filtered data, stds and half width at frac*kde_max
+    return filtered, np.array(std), np.array(HWfracM)
+
+def bindata(x, xwidth, data, ymin=None, ymax=None, xname='x', yname='y'):
+    """Return data that falls into given x bin."""
+    xmin = x-0.5*xwidth
+    xmax = x+0.5*xwidth
+    cond = '%s > %s and %s < %s' % (xname, xmin, xname, xmax)
+    if ymin is not None and ymax is not None:
+        cond += ' and %s > %s and %s < %s' % (yname, ymin, yname, ymax)
+    return data.query(cond)
 
 class Cacher:
     """common methods to use msg cache"""
@@ -555,7 +593,7 @@ class PipV(InstrumentData):
         self.name = 'pip_vel'
         self.dmin = 0.375 # shortest diameter where data is good
         self._fits = pd.DataFrame()
-        self.dbins = np.linspace(0.375, 25.875, num=206)
+        self.dbins = np.linspace(self.dmin, 25.875, num=204) # num=511 --> binwidth 0.05
         self._std = pd.DataFrame(columns=self.dbins)
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
@@ -583,8 +621,6 @@ class PipV(InstrumentData):
                 newdata = g.mean()
                 if len(newdata.index):
                     self.data = self.data.append(newdata)
-                #print(filename)
-            #print(len(self.data.index))
             if len(self.data.index):
                 self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
@@ -646,20 +682,11 @@ class PipV(InstrumentData):
     def default_fit(self, emptyfit):
         self._default_fit = emptyfit
 
-    def grids(self, data=None):
-        if data is None:
-            data = self.good_data()
-        d = data.Wad_Dia.values
-        v = data.vel_v.values
-        dmax = d.max()+20*self.binwidth
-        dbins = self.dbins[self.dbins < dmax]
-        num_vbins = round(len(self.dbins)/5)
-        return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
-
     def v(self, d, emptyfit=None, varinterval=True, rule=None):
         """velocities according to fits for given diameter"""
         if emptyfit is None:
             emptyfit = self.default_fit
+        emptyfit = copy.deepcopy(emptyfit)
         if rule is None:
             rule = self.rule
         if self.fits.empty:
@@ -692,42 +719,17 @@ class PipV(InstrumentData):
             return self.stored_good_data
         return self.data[self.data.Wad_Dia > self.dmin]
 
-    def dbin(self, d, binwidth=None, data=None, vmin=None, vmax=None):
-        """Return data that falls into given size bin."""
-        if binwidth is None:
-            binwidth = self.binwidth
+    def filter_outlier(self, data, frac=0.5, flip=False):
+        """Filter outliers using KDE"""
         if data is None:
             data = self.good_data()
-        dmin = d-0.5*binwidth
-        dmax = d+0.5*binwidth
-        vcond = 'Wad_Dia > %s and Wad_Dia < %s' % (dmin, dmax)
-        if vmin is not None and vmax is not None:
-            vcond += ' and vel_v > %s and vel_v < %s' % (vmin, vmax)
-        return data.query(vcond)
-
-    def filter_outlier(self, data=None, frac=0.5):
-        """Filter outliers using KDE"""
-        filtered = pd.DataFrame()
-        HWfracM = []
-        std = []
-        X, Y, Z = self.kde_grid(data)
-        y = Y[:, 0]
-        for i in range(0, Z.shape[1]):
-            z = Z[:, i]
-            z_lim = z.max()*frac
-            y_fltr = y[z > z_lim] # FWHM when frac=0.5
-            if y_fltr.size == 0:
-                continue
-            vmin = y_fltr[0]
-            vmax = y_fltr[-1]
-            HWfracM.append(0.5*(vmax-vmin))
-            d = X[0, i]
-            bin_data = self.dbin(d=d, data=data, vmin=vmin, vmax=vmax)
-            std.append(bin_data.vel_v.std())
-            filtered = filtered.append(bin_data)
-        # return filtered data, stds and half width at frac*kde_max
-        return filtered, np.array(std), np.array(HWfracM)
-
+        if flip:
+            X, Y, Z = self.kde_grid(data)
+            return filter_outlier(Y.T, X.T, Z.T, data, xname='vel_v',
+                                  frac=frac, yname='Wad_Dia')
+        return filter_outlier(*self.kde_grid(data), data=data, 
+                              xname='Wad_Dia', yname='vel_v', frac=frac)
+        
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
         vdata = self.good_data()
@@ -740,14 +742,17 @@ class PipV(InstrumentData):
 
     def find_fit(self, fit=None, data=None, kde=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
-                 name=None, **kwargs):
+                 name=None, try_flip=True, plot_flip=True, **kwargs):
         """Find and store a fit for either raw data or kde."""
+        # TODO: clean this mess
         std = pd.DataFrame()
         hwfm = pd.DataFrame()
         if data is None:
             data = self.good_data()
+        origdata = copy.deepcopy(data)
         if fit is None:
             fit = self.default_fit
+        fit = copy.deepcopy(fit)
         partcount = data.count()[0]
         if partcount < 5 and (use_curve_fit or kde):
             print('Too few particles.')
@@ -774,26 +779,61 @@ class PipV(InstrumentData):
             d = d[d < dcut]
             v = v[d < dcut]
         if kde:
-            num = np.array([self.dbin(diam, self.binwidth,
-                                      data=data).vel_v.count() for diam in d])
+            num = np.array([bindata(diam, self.binwidth, data=data,
+                                    xname='Wad_Diam', yname='vel_v').vel_v.count() for diam in d])
             d = d[num > bin_num_min]
             v = v[num > bin_num_min]
-            sig = [self.dbin(diam, self.binwidth, data=data).vel_v.sem() for diam in d]
+            sig = [self.dbin(diam, self.binwidth, data=data, xname='Wad_Diam', 
+                             yname='vel_v').vel_v.sem() for diam in d]
             sigargs = {'sigma': sig, 'absolute_sigma': True}
         else:
             sig = np.ones(d.size)
             sigargs = {}
+        fit.x = d
+        fit.y = v
         if use_curve_fit:
-            params, pcov = curve_fit(fit.func, d, v, **sigargs)
+            params, pcov = fit.find_fit()
+            perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
+            if try_flip and not kde:
+                fiti = copy.deepcopy(fit)
+                datai, stdarri, HWfracMi = self.filter_outlier(data=data, frac=frac,
+                                                             flip=True)
+                fiti.x = datai.vel_v.values
+                fiti.y = datai.Wad_Dia.values
+                paramsi, pcovi = fiti.find_fit()
+                perri = np.sqrt(np.diag(pcovi))[::-1] # flipped back to d, v
+                # x = a*y**b
+                fiti.params = np.array([paramsi[0]**(-1/paramsi[1]), 1/paramsi[1]])
+                if plot_flip:
+                    f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12,6))
+                    for ax in axarr:
+                        fiti.plot(ax=ax, label='flipped %.4f' % perri[1])
         else:
             result = minimize(fit.cost, fit.quess, method='Nelder-Mead',
                               args=(d, v, sig))
-            params = result.x
-        fit.params = params
-        fit.x = d
-        fit.y = v
-        print(str(fit) + ' (' + str(partcount) + ' particles)')
-        return copy.deepcopy(fit), std, hwfm
+            fit.params = result.x
+        if plot_flip and use_curve_fit:
+            filterstr = ['D-binned filter', 'v-binned filter', 'unfiltered']
+            for ax in axarr:
+                fit.plot(ax=ax, label='original %.4f' % perr[1])
+            self.plot(ax=axarr[0], data=data, ymax=3)
+            self.plot(ax=axarr[1], data=datai, ymax=3)
+            self.plot(ax=axarr[2], data=origdata, ymax=3)
+            for i, ax in enumerate(axarr):
+                ax.set_title(ax.get_title() + ', ' + filterstr[i])
+            plt.legend()
+            f.tight_layout()
+            fname = data.index[-1].strftime('%H%M.eps')
+            datedir = data.index[-1].strftime('%Y%m%d')
+            f.savefig(os.path.join(ensure_dir(os.path.join(RESULTS_DIR, 'pip2015', 'fitcomparison', datedir)), fname))
+        fitstr = 'standard'
+        fitout = fit
+        if use_curve_fit:
+            if perr[1] > perri[1]:
+                fitout = fiti
+                fitstr = 'flipped'
+        print(fitstr + ' fit: ' + str(fitout) + ' (' + str(partcount) + ' particles)')
+        return fitout, std, hwfm # TODO: wrong std, hwfm when flipped
 
     def find_fits(self, rule, varinterval=True, draw_plots=False,
                   empty_on_fail=True, **kwargs):
@@ -818,6 +858,7 @@ class PipV(InstrumentData):
                     newfit = fits[-1]
                     std = stds[-1]
                     hwfm = hwfms[-1]
+            newfit = copy.deepcopy(newfit)
             fits.append(newfit)
             names.append(name)
             stds.append(std)
@@ -865,8 +906,17 @@ class PipV(InstrumentData):
             data = self.good_data()
         d = data.Wad_Dia.values
         v = data.vel_v.values
-        values = np.vstack([d, v])
-        return stats.gaussian_kde(values)
+        return kde(d, v)
+
+    def grids(self, data=None):
+        if data is None:
+            data = self.good_data()
+        d = data.Wad_Dia.values
+        v = data.vel_v.values
+        dmax = d.max()+20*self.binwidth
+        dbins = self.dbins[self.dbins < dmax]
+        num_vbins = round(len(self.dbins)/5)
+        return np.meshgrid(dbins, np.linspace(v.min(), v.max(), num_vbins))
 
     def kde_grid(self, data=None):
         """Calculate kernel-density estimate with given resolution."""
