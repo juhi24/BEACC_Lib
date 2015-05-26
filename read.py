@@ -829,7 +829,7 @@ class PipV(InstrumentData):
             f.savefig(os.path.join(ensure_dir(os.path.join(RESULTS_DIR, 'pip2015', 'fitcomparison', datedir)), fname))
         fitstr = 'standard'
         fitout = fit
-        if use_curve_fit:
+        if use_curve_fit and try_flip:
             if perr[1] > perri[1]:
                 fitout = fiti
                 fitstr = 'flipped'

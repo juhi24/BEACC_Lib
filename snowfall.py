@@ -499,7 +499,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """Wrapper for const_lsq to calculate least square particle density"""
         return self.const_lsq(c=[1], simple=True)
 
-    def density(self, pluvio_filter=True, pip_filter=False):
+    def density(self, pluvio_filter=True, pip_filter=False, rhomax=None):
         """Calculates mean density estimate for each timeframe."""
         name = 'density'
         def func():
@@ -510,6 +510,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 rho_r_pip[self.intensity() < 0.1] = np.nan
             rho = self.pluvio.amount(rule=self.rule)/rho_r_pip
             rho.name = name
+            if rhomax is not None:
+                rho[rho>rhomax] = np.nan
             return rho.replace(np.inf, np.nan)
         return self.msger(name, func)
         
