@@ -598,6 +598,7 @@ class PipV(InstrumentData):
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
         self._default_fit = PolFit()
+        self.use_flip = True
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
@@ -742,7 +743,7 @@ class PipV(InstrumentData):
 
     def find_fit(self, fit=None, data=None, kde=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
-                 name=None, try_flip=True, plot_flip=True, **kwargs):
+                 name=None, try_flip=True, plot_flip=False, **kwargs):
         """Find and store a fit for either raw data or kde."""
         # TODO: clean this mess
         std = pd.DataFrame()
@@ -844,7 +845,9 @@ class PipV(InstrumentData):
         hwfms = []
         for name, group in self.grouped(rule=rule, varinterval=varinterval):
             try:
-                newfit, std, hwfm = self.find_fit(data=group, name=name, **kwargs)
+                newfit, std, hwfm = self.find_fit(data=group, name=name,
+                                                  try_flip=self.use_flip,
+                                                  **kwargs)
             except RuntimeError as err:
                 print('%s: %s' % (name, err))
                 print('Particle count: %s' % group.vel_v.count())
