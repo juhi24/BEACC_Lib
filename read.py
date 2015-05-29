@@ -804,6 +804,7 @@ class PipV(InstrumentData):
                 paramsi, pcovi = fiti.find_fit()
                 perri = np.sqrt(np.diag(pcovi))[::-1] # flipped back to d, v
                 # x = a*y**b
+                # TODO: fit type neutrality
                 fiti.params = np.array([paramsi[0]**(-1/paramsi[1]), 1/paramsi[1]])
                 if plot_flip:
                     f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12,6))
@@ -830,7 +831,7 @@ class PipV(InstrumentData):
         fitstr = 'standard'
         fitout = fit
         if use_curve_fit and try_flip:
-            if perr[1] > perri[1]:
+            if perr[1] > perri[1] and fiti.is_good():
                 fitout = fiti
                 fitstr = 'flipped'
         print(fitstr + ' fit: ' + str(fitout) + ' (' + str(partcount) + ' particles)')

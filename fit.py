@@ -71,6 +71,9 @@ class Fit:
             self.params = params
         return params, cov
 
+    def is_good(self):
+        return True
+
 class ExpFit(Fit):
     """exponential fit of form a*(1-b*exp(-c*D))"""
     def __init__(self, params=None, **kwargs):
@@ -116,5 +119,12 @@ class PolFit(Fit):
     def penalty(self, params):
         #return 0
         return 1000*max(0, 0.2-params[1])
+
+    def is_good(self):
+        a = self.params[0]
+        b = self.params[1]
+        if (a < 0) or (b < 0) or (b > 1):
+            return False
+        return True
 
 gunn_kinzer = ExpFit(params=GUNN_KINZER)
