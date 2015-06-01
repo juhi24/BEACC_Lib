@@ -31,7 +31,7 @@ class Fit:
         """penalty function used by the cost function"""
         return 0
 
-    def plot(self, xmax=None, samples=1000, ax=None, label=None,
+    def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
              source_data=False, marker='ro', linewidth=2, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
@@ -43,7 +43,12 @@ class Fit:
                 xmax = 10
             else:
                 xmax = self.x.max()
-        x = np.linspace(0, xmax, samples)
+        if xmin is None:
+            if self.x is None:
+                xmin = 0
+            else:
+                xmin = self.x.min()
+        x = np.linspace(xmin, xmax, samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
             label = r'$' + str(self) + r'$'

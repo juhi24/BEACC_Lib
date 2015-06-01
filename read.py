@@ -803,8 +803,8 @@ class PipV(InstrumentData):
                 fiti.y = datai.Wad_Dia.values
                 paramsi, pcovi = fiti.find_fit()
                 perri = np.sqrt(np.diag(pcovi))[::-1] # flipped back to d, v
-                # x = a*y**b
                 # TODO: fit type neutrality
+                # x = a*y**b
                 fiti.params = np.array([paramsi[0]**(-1/paramsi[1]), 1/paramsi[1]])
                 if plot_flip:
                     f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12,6))
@@ -1038,7 +1038,7 @@ class PipV(InstrumentData):
             f.savefig(os.path.join(savedir, fname))
         return axarr
 
-class PIPpart(InstrumentData):
+class PipPart(InstrumentData):
     """PIP particle tables"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
         print('Reading PIP particle data...')
