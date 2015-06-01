@@ -53,8 +53,9 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     #merged.apply(lambda row: row.polfit.plot(color=row.colorstr, linewidth=1, xmax=10), axis=1)
     groups = merged.groupby(colorstr)
     for name, group in groups:
-        plt.figure()
-        group.apply(lambda row: row.polfit.plot(linewidth=1, xmax=10, color=name, ), axis=1)
+        fig, ax = plt.subplots()
+        group.apply(lambda row: row.polfit.plot(ax=ax, linewidth=1, color=name), axis=1)
+        ax.set_xlim([0, 10])
         rhorange = rho_range_str(group.density.mean())
         dtstr = str(c.dt_start_end()[0].date())
         plt.ylim((0,3))
