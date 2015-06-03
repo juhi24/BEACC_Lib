@@ -23,16 +23,16 @@ def rho_range_str(rho, rholimits=[150, 300]):
             return '%srho<%s' % (rhomin, rhomax)
     return 'rho>%s' % rhomax
 
-def rho_range_index(rho, rholimits=[150, 300]):
-    for i, rhomax in enumerate(rholimits):
-        if rho < rhomax:
+def segment_index(val, limits=[150, 300]):
+    for i, maxval in enumerate(limits):
+        if val < maxval:
             return i
     return i+1
 
-def normalize(density, rhomax=500):
-    if density>rhomax:
+def normalize(val, maxval=500):
+    if val>maxval:
         return 1
-    return density/rhomax
+    return val/maxval
 
 plt.ioff()
 plt.close('all')
@@ -64,7 +64,7 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.pluvio.shift_periods = -6
     if combined:
         fig = plt.figure()
-    colorstr = c.density().apply(rangecolor)
+    colorstr = c.density().apply(rangecolor, rholimits=rholimits)
     colorval = c.density().apply(normalize)
     colorstr.name = 'colorstr'
     colorval.name = 'colorval'
@@ -77,8 +77,8 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     for name, group in groups:
         rho = group.density.mean()
         alpha = 1
-        i = rho_range_index(rho)
-        rhorange = rho_range_str(rho)
+        i = segment_index(rho, limits=rholimits)
+        rhorange = rho_range_str(rho, rholimits=rholimits)
         if not subplots:
             if combined:
                 ax = plt.gca()
