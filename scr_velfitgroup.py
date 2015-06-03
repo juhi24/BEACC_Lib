@@ -8,13 +8,13 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from os import path
 
-def rangecolor(rho, rholimits=[150,300], colors=['r','b','g','c','m']):
+def rangecolor(rho, rholimits=[150, 300], colors=['r', 'b', 'c', 'g', 'm']):
     for i, rhomax in enumerate(rholimits):
         if rho < rhomax:
             return colors[i]
     return colors[i+1]
 
-def rho_range_str(rho, rholimits=[150,300]):
+def rho_range_str(rho, rholimits=[150, 300]):
     rhomax_old = ''
     for rhomax in rholimits:
         rhomin = rhomax_old
@@ -22,6 +22,12 @@ def rho_range_str(rho, rholimits=[150,300]):
         if rho < rhomax:
             return '%srho<%s' % (rhomin, rhomax)
     return 'rho>%s' % rhomax
+
+def rho_range_index(rho, rholimits=[150, 300]):
+    for i, rhomax in enumerate(rholimits):
+        if rho < rhomax:
+            return i
+    return i+1
 
 def normalize(density, rhomax=500):
     if density>rhomax:
@@ -37,14 +43,27 @@ dtformat_snex = '%Y %d %B %H UTC'
 e = EventsCollection('cases/pip2015.csv', dtformat_snex)
 e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
 
-ax = plt.gca()
-cmap = mpl.cm.gnuplot
-norm = mpl.colors.Normalize(vmin=0,vmax=500)
+#ax = plt.gca()
+#cmap = mpl.cm.gnuplot
+#norm = mpl.colors.Normalize(vmin=0,vmax=500)
 #cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm)
+
+rholimits = [150, 300]
+combined = False
+subplots = True
+outpath = '../results/pip2015/velfitgroups2/'
+extra = ''
+subpath = ''
+if subplots:
+    subpath = 'subplots/'
+    combined = False
+elif combined:
+    subpath = 'combined/'
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.pluvio.shift_periods = -6
-    #plt.figure()
+    if combined:
+        fig = plt.figure()
     colorstr = c.density().apply(rangecolor)
     colorval = c.density().apply(normalize)
     colorstr.name = 'colorstr'
@@ -52,14 +71,38 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     merged = read.merge_multiseries(c.pipv.fits, colorstr, colorval, c.density())
     #merged.apply(lambda row: row.polfit.plot(color=row.colorstr, linewidth=1, xmax=10), axis=1)
     groups = merged.groupby(colorstr)
+    if subplots:
+        fig, axarr = plt.subplots(ncols=len(rholimits)+1, figsize=(22,6),
+                                  sharex='all', sharey='all')
     for name, group in groups:
-        fig, ax = plt.subplots()
-        group.apply(lambda row: row.polfit.plot(ax=ax, linewidth=1, color=name), axis=1)
+        rho = group.density.mean()
+        alpha = 1
+        i = rho_range_index(rho)
+        rhorange = rho_range_str(rho)
+        if not subplots:
+            if combined:
+                ax = plt.gca()
+                alpha = 0.2
+            else:
+                fig, ax = plt.subplots()
+                extra = '_' + rhorange
+        else:
+            ax = axarr[i]
+        group.apply(lambda row: row.polfit.plot(ax=ax, linewidth=0.5, color=name, alpha=alpha), axis=1)
         ax.set_xlim([0, 10])
-        rhorange = rho_range_str(group.density.mean())
         dtstr = str(c.dt_start_end()[0].date())
-        plt.ylim((0,3))
-        plt.title('%s, %s (%s)' % (dtstr, rhorange, c.pluvio.name))
-        plt.ylabel('fall velocity')
-        plt.xlabel('equivalent diameter')
-        plt.savefig(read.ensure_dir('../results/pip2015/velfitgroups2/') + c.pluvio.name + '_' + dtstr + '_' + rhorange + '.eps')
+        ax.set_ylim((0,3))
+        ax.set_title('%s, %s (%s)' % (dtstr, rhorange, c.pluvio.name))
+        if not (subplots and i>0):
+            ax.set_ylabel('fall velocity')
+        ax.set_xlabel('equivalent diameter')
+        ax.grid(axis='y')
+        if subplots:
+            fig.subplots_adjust(hspace=0)
+            plt.setp([a.get_yticklabels() for a in fig.axes[1:]], visible=False)
+        elif not combined:
+            plt.savefig(read.ensure_dir(outpath + subpath) + c.pluvio.name + '_' + dtstr + extra + '.eps')
+    if subplots:
+            fig.subplots_adjust(wspace=0)
+            plt.setp([a.get_yticklabels() for a in fig.axes[1:]], visible=False)
+    plt.savefig(read.ensure_dir(outpath + subpath) + c.pluvio.name + '_' + dtstr + extra + '.eps')
