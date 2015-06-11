@@ -15,6 +15,7 @@ import copy
 from scipy import stats
 from scipy.optimize import fmin, minimize
 from fit import *
+from pytmatrix import tmatrix_aux as aux
 
 RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
@@ -1057,3 +1058,89 @@ class PipPart(InstrumentData):
                                       dtype=dtype)
                 self.data = self.data.append(newdata)
             self.finish_init(dt_start, dt_end)
+
+RHO_0 = 1.225 # sea level air density, from http://www.aviation.ch/tools-atmosphere.asp
+RHO_H = 1.218 # density at 56 m, same source
+RHO_W = 1000.0
+
+# Disdrometer sampling area, from 
+# "RAINDROP SIZE DISTRIBUTION OVER NORTHEASTERN COAST OF BRAZIL"
+DSD_A = 0.0050 
+
+TAU = 2*np.pi
+
+def ar(d):
+    return 1/aux.dsr_thurai_2007(d)
+
+class DSD(InstrumentData):
+    def __init__(self, data=None, binwidth=None, bin_v=None):
+        self.data = data
+        self.binwidth = binwidth
+        self.bin_v = pd.Series(bin_v, index=data.columns.values)
+
+    def plot(self, img=True, **kwargs):
+        """Plot particle size distribution over time."""
+        if img:
+            plt.matshow(self.good_data(**kwargs).transpose(), norm=LogNorm(),
+                        origin='lower', vmin=0.00001)
+        else:
+            plt.pcolor(self.good_data(**kwargs).transpose(), norm=LogNorm(),
+                       vmin=0.00001)
+        plt.colorbar()
+        plt.title('DSD')
+        plt.xlabel('time (UTC) BROKEN')
+        plt.ylabel('D (mm) BROKEN')
+    
+    def binwidth_df(self):
+        return pd.DataFrame(data=self.binwidth, index=self.bin_cen()).T
+        
+    def good_data(self):
+        return self.data
+        
+    def intensity(self):
+        return self.sum_over_d(self.rr)
+
+    def v(self, d):
+        return self.bin_v[self.bin_select(d)]
+        
+    def n(self, d):
+        return self.good_data()[d]
+    
+    def bin_cen(self):
+        return self.good_data().columns.values
+        
+    def bin_lower(self):
+        return self.bin_cen() - 0.5*self.binwidth
+        
+    def bin_upper(self):
+        return self.bin_lower() + self.binwidth
+        
+    def bin_edge(self):
+        return np.append(self.bin_lower(), self.bin_upper()[-1])
+    
+    def bin_edge_df(self):
+        edge = pd.DataFrame(data=[self.bin_lower(), self.bin_upper()]).T
+        edge.columns = ['lower', 'upper']
+        edge.index = self.bin_cen()
+        return edge
+        
+    def bin_select(self, d):
+        for i, edge in self.bin_edge_df().iterrows():
+            if d > edge.lower and d < edge.upper:
+                return edge.name
+        return
+        
+    def series_zeros(self):
+        s = self.data[self.data.columns[0]]*0
+        s.name = 'series'
+        return s
+        
+    def sum_over_d(self, func, **kwargs):
+        dD = self.binwidth
+        result = self.series_zeros()
+        for d in self.bin_cen():
+            result = result.add(func(d, **kwargs)*dD[d], fill_value=0)
+        return result
+        
+    def rr(self, d):
+        return 3.6e-3*TAU/12*(ar(d)*d)**2*1/ar(d)*d*self.v(d)*self.n(d)
