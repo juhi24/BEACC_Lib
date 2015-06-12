@@ -653,13 +653,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             fig = plt.figure(dpi=120)
         if ax is None:
             ax = plt.gca()
-        if rhomin is None:
-            vmin = rho.min()
-        if rhomax is None:
-            vmax = rho.max()
         choppa = ax.scatter(a, b, c=rho.values, vmin=rhomin, vmax=rhomax,
                             **kwargs)
-        cb = fig.colorbar(choppa, label='bulk density')
+        fig.colorbar(choppa, label='bulk density')
         ax.set_xlabel('$a_u$', fontsize=15)
         ax.set_ylabel('$b_u$', fontsize=15)
         return ax
@@ -673,7 +669,6 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         rho = rho[selection]
         params = params[selection]
         d0 = self.d_0_gamma()[selection]
-        a = params.apply(lambda p: p[0])
         b = params.apply(lambda p: p[1])
         b.name = 'b'
         if count_as_size:
