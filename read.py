@@ -788,10 +788,8 @@ class PipV(InstrumentData):
             v = v[num > bin_num_min]
             sig = [self.dbin(diam, self.binwidth, data=data, xname='Wad_Diam', 
                              yname='vel_v').vel_v.sem() for diam in d]
-            sigargs = {'sigma': sig, 'absolute_sigma': True}
         else:
             sig = np.ones(d.size)
-            sigargs = {}
         fit.x = d
         fit.y = v
         if use_curve_fit:
