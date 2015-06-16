@@ -237,7 +237,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                                     'supply voltage',
                                     'ice rim temperature']
             col_abbr = ['datestr',
-                        'i_rt',
+                        'group',#'i_rt',
                         'acc_rt',
                         'acc_nrt',
                         'acc_tot_nrt',
@@ -258,7 +258,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                             parse_dates={'datetime':['datestr']},
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
-            self.data.drop(['i_rt'], 1, inplace=True) # crap format
+            #self.data.drop(['i_rt'], 1, inplace=True) # crap format
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
         self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
