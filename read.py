@@ -277,7 +277,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                                     'supply voltage',
                                     'ice rim temperature']
             col_abbr = ['datestr',
-                        'group',#'i_rt',
+                        'group',#'i_rt', #don't know why, but needs this column to be exsisting before
                         'acc_rt',
                         'acc_nrt',
                         'acc_tot_nrt',
@@ -302,6 +302,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
         self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
+        #print(self.data.values)
 
     @property
     def varinterval(self):
@@ -502,6 +503,7 @@ class PipDSD(InstrumentData):
                                     parse_dates={'datetime':['hr_d', 'min_d']},
                                     date_parser=self.parse_datetime,
                                     index_col='datetime'))
+                    self.data=self.data.astype(float)
                 else:
                     self.data = self.data.append(pd.read_csv(filename,
                                     delim_whitespace=True, skiprows=8, header=3,
