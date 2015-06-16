@@ -31,14 +31,24 @@ class Fit:
         """penalty function used by the cost function"""
         return 0
 
-    def plot(self, xmax=20, samples=1000, ax=None, label=None,
+    def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
              source_data=False, marker='ro', linewidth=2, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
         if self.params is None:
             return ax
-        x = np.linspace(0, xmax, samples)
+        if xmax is None:
+            if self.x is None:
+                xmax = 10
+            else:
+                xmax = self.x.max()
+        if xmin is None:
+            if self.x is None:
+                xmin = 0
+            else:
+                xmin = self.x.min()
+        x = np.linspace(xmin, xmax, samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
             label = r'$' + str(self) + r'$'
@@ -57,15 +67,17 @@ class Fit:
         return cost
 
     def find_fit(self, store_params=True, **kwargs):
-        selection = pd.DataFrame([self.x.notnull(), self.y.notnull()]).all()
-        x = self.x[selection]
-        y = self.y[selection]
+        if self.x is None or self.y is None:
+            return
         if self.sigma is not None:
-            kwargs['sigma'] = self.sigma[selection]
-        params, cov = curve_fit(self.func, x, y, **kwargs)
+            kwargs['sigma'] = self.sigma
+        params, cov = curve_fit(self.func, self.x, self.y, **kwargs)
         if store_params:
             self.params = params
         return params, cov
+
+    def is_good(self):
+        return True
 
 class ExpFit(Fit):
     """exponential fit of form a*(1-b*exp(-c*D))"""
@@ -112,5 +124,12 @@ class PolFit(Fit):
     def penalty(self, params):
         #return 0
         return 1000*max(0, 0.2-params[1])
+
+    def is_good(self):
+        a = self.params[0]
+        b = self.params[1]
+        if (a < 0) or (b < 0) or (b > 1):
+            return False
+        return True
 
 gunn_kinzer = ExpFit(params=GUNN_KINZER)
