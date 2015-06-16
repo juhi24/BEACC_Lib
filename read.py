@@ -188,12 +188,12 @@ class InstrumentData(Cacher):
         self.set_span(dt_start, dt_end)
         Cacher.__init__(self, storefilename=self.name + '.h5')
 
-    def append_data(self, appended):
-        #print(len(appended.data.index))
-        #print(self.data.dtypes)
-        #print(appended.data.dtypes)
-        if len(appended.data.index):
-            self.data = self.data.append(appended.data)
+#    def append_data(self, appended):
+#        #print(len(appended.data.index))
+#        #print(self.data.dtypes)
+#        #print(appended.data.dtypes)
+#        if len(appended.data.index):
+#            self.data = self.data.append(appended.data)
 
     def store_good_data(self, **kwargs):
         """Store good data to memory (to bypass recalculation of filters)."""
@@ -521,7 +521,8 @@ class PipDSD(InstrumentData):
             self.avg = avg.T[0]
             self.avg.name = 'dsd_avg'
         self.data.drop_duplicates(inplace=True)
-        self.data = self.data.resample('1min').fillna(0)
+        #self.data = self.data.resample('1min').fillna(0)
+        self.data = self.data.fillna(0)
         self.finish_init(dt_start, dt_end)
 
     def parse_datetime(self, hh, mm):
@@ -607,23 +608,24 @@ class PipV(InstrumentData):
                 if int(filename[-23:-15]) > 20140831: # TODO fixme
                     newdata = pd.read_csv(filename,
                                           engine='python', sep='\t',
-                                          skipinitialspace=True, skiprows=8, skip_footer=1,
+                                          skipinitialspace=True, skiprows=8, skip_footer = 1,
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime)
+                    newdata = newdata[newdata['RecNum']>-99]
                 else:
                     newdata = pd.read_csv(filename,
                                           delim_whitespace=True, skiprows=8,
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime)
-                newdata.rename_axis(
-                    {'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
+                    newdata = newdata[newdata['RecNum']>-99]
+                if not newdata.empty:
+                    newdata.rename_axis({'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
                      'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
-                
-                newdata.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
-                g = newdata.groupby(level=['datetime', 'Part_ID'])
-                newdata = g.mean()
-                if len(newdata.index):
-                    self.data = self.data.append(newdata)
+                    newdata.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
+                    g = newdata.groupby(level=['datetime', 'Part_ID'])
+                    newdata = g.mean()
+                    if not newdata.empty:
+                        self.data = self.data.append(newdata)
             if len(self.data.index):
                 self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
