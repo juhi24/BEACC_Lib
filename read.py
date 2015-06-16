@@ -188,13 +188,6 @@ class InstrumentData(Cacher):
         self.set_span(dt_start, dt_end)
         Cacher.__init__(self, storefilename=self.name + '.h5')
 
-#    def append_data(self, appended):
-#        #print(len(appended.data.index))
-#        #print(self.data.dtypes)
-#        #print(appended.data.dtypes)
-#        if len(appended.data.index):
-#            self.data = self.data.append(appended.data)
-
     def store_good_data(self, **kwargs):
         """Store good data to memory (to bypass recalculation of filters)."""
         self.stored_good_data = self.good_data(**kwargs)
@@ -302,7 +295,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
         self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
-        #print(self.data.values)
+        self.data['heating'] = self.data.astype(float) # sometimes this are interpreted as int
+        self.data['status'] = self.data.astype(float) # sometimes this are interpreted as int
 
     @property
     def varinterval(self):
@@ -503,7 +497,6 @@ class PipDSD(InstrumentData):
                                     parse_dates={'datetime':['hr_d', 'min_d']},
                                     date_parser=self.parse_datetime,
                                     index_col='datetime'))
-                    self.data=self.data.astype(float)
                 else:
                     self.data = self.data.append(pd.read_csv(filename,
                                     delim_whitespace=True, skiprows=8, header=3,
@@ -522,6 +515,7 @@ class PipDSD(InstrumentData):
             avg.columns = self.data.columns
             self.avg = avg.T[0]
             self.avg.name = 'dsd_avg'
+            self.data = self.data.astype(float)
         self.data.drop_duplicates(inplace=True)
         #self.data = self.data.resample('1min').fillna(0)
         self.data = self.data.fillna(0)

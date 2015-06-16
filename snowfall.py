@@ -43,17 +43,6 @@ def batch_import(dtstr, datadir=data_dir):
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
-#    flag = False
-#    for hr in range(0, 24):
-#        pipv_files = datafilelist('PIP/a_Velocity_Tables/004%s/004%s%s*2.dat' % (dtstr, dtstr, str(hr).zfill(2)),
-#                                  datadir=datadir)
-#        if len(pipv_files):
-#            if flag:
-#                pipv.append_data(read.PipV(filenames=pipv_files))
-#            else:
-#                pipv = read.PipV(filenames=pipv_files)
-#                if len(pipv.data.index):
-#                    flag = True
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
@@ -62,9 +51,7 @@ def batch_create_hdf(datadir=data_dir, outname=h5file,
     """Read ASCII data and export to hdf."""
     instrdict = batch_import(dtstr, datadir)
     hdf_file = os.path.join(datadir, outname)
-    print(dtstr)
     for key in instrdict:
-        print(key)
         instrdict[key].to_hdf(filename=hdf_file)
 
 def scatterplot(x, y, c=None, kind='scatter', **kwargs):
