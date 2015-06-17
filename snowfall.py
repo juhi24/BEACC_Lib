@@ -43,6 +43,7 @@ def batch_import(dtstr, datadir=data_dir):
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
+    print(pipv.data.dtypes)
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
@@ -119,6 +120,7 @@ class EventsCollection(MultiSeries):
         self.events.start += pd.datetools.timedelta(seconds=1)
 
     def parse_datetime(self, dtstr):
+        #date = datetime.strptime(dtstr+'+0000', self.dtformat+'%z')
         date = datetime.strptime(dtstr, self.dtformat)
         #date = date.replace(year=2014)
         return date
@@ -138,6 +140,8 @@ class EventsCollection(MultiSeries):
         timemargin = pd.datetools.timedelta(hours=3)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
+        print(dt_start)
+        print(dt_end)
         data = Case.from_hdf(dt_start, dt_end, autoshift=False,
                              filenames=datafile, **casekwargs)
         for d in data:
@@ -353,6 +357,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def cache_dir(self):
         dt_start, dt_end = self.dt_start_end()
+        print(dt_start,dt_end)
         return super().cache_dir(dt_start, dt_end, self.pluvio.name)
 
     def d_m(self):
@@ -558,6 +563,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def dt_start_end(self):
         """case start and end time as Timestamp"""
         t = self.time_range()
+        print(t)
         return (t[0], t[-1])
 
     def time_range(self):
