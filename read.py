@@ -100,22 +100,14 @@ class Cacher:
         """Read from msgpack if caching is in use."""
         print('msger', name)
         if self.use_cache:
-            print('use cache')
-            print(cache_dir_args)
-            print(self.cache_dir(*cache_dir_args))
-            print('msgpath')
             msgpath = os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
-            print(msgpath)
             return msg_io(msgpath, func, **kwargs)
         return func(**kwargs)
 
     def cache_dir(self, dt_start, dt_end, *extra_dir_names):
         """Return full path to cache directory."""
-        print(dt_start)
         dtstrformat = '%Y%m%d%H%M'
-        print(dt_end)
         dtstr = dt_start.strftime(dtstrformat) + '-' + dt_end.strftime(dtstrformat)
-        print(dtstr)
         cache_dir = os.path.join(CACHE_DIR, dtstr, *extra_dir_names)
         ensure_dir(cache_dir)
         return cache_dir
