@@ -12,7 +12,7 @@ import copy
 import locale
 import os
 
-from pytmatrix import tmatrix, psd, refractive, orientation
+from pytmatrix import tmatrix, psd, refractive, orientation, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
 # CONFIG default paths
@@ -549,19 +549,25 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """Calculate radar reflectivity at requested wavelength wl [mm] using T-matrix"""
         name = switch_wl(wl) + "reflTM"
         density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
+        Zserie = pd.Series(density)
         dBin = self.dsd.d_bin
-        edges = np.append([dBin],self.dsd.data.columns.values+0.5*dBin)
+        edges = self.dsd.data.columns.values+0.5*dBin
         PSDvalues = self.dsd.good_data()
         for item in density.iteritems():
             ref=refractive.mi(wl,0.001*item[1])
-            flake = tmatrix.Scatterer(wavelength=wl, m=ref, axis_ratio=1.0/1.0)
-            flake.psd_integrator = psd.PSDIntegrator()
-            flake.psd_integrator.D_max = 28.0
-            flake.psd = psd.BinnedPSD(bin_edges=edges.tolist(),bin_psd=PSDvalues.loc[item[0]])
-            flake.psd_integrator.init_scatter_table(flake)
-            Z = 10.0*np.log10(radar.refl(flake))
-            print(Z)
-#        return 
+            if np.isfinite(ref):
+                flake = tmatrix.Scatterer(wavelength=wl, m=ref, axis_ratio=1.0/1.0)
+                flake.psd_integrator = psd.PSDIntegrator()
+                flake.psd_integrator.D_max = 28.0
+                flake.psd = psd.BinnedPSD(bin_edges=edges,bin_psd=PSDvalues.loc[item[0]].values)
+                flake.psd_integrator.init_scatter_table(flake)
+                Z = 10.0*np.log10(radar.refl(flake))
+            else:
+                Z = np.nan
+            print(item[0],Z)
+            Zserie.loc[item[0]] = Z
+        Zserie.name = name
+        return Zserie
 
     def minimize(self, method='SLSQP', **kwargs):
         """Legacy method for determining alpha and beta."""
@@ -706,7 +712,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                                       self.pluvio.amount(rule=self.rule),
                                       self.eta(),self.mu(),self.lam(),self.n_0(),
                                       self.n_moment(0),self.n_moment(1),
-                                      self.n_moment(2),self.Z_rayleigh_Xband())
+                                      self.n_moment(2),self.Z_rayleigh_Xband(),
+                                      self.tmatrix(tm_aux.wl_C))
         data.index.name = 'datetime'
         return data.sort_index(axis=1)
 
