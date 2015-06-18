@@ -519,8 +519,7 @@ class PipDSD(InstrumentData):
             self.avg.name = 'dsd_avg'
             self.data = self.data.astype(float)
         self.data.drop_duplicates(inplace=True)
-        #self.data = self.data.resample('1min').fillna(0)
-        self.data = self.data.fillna(0)
+        self.data = self.data.resample('1min').fillna(0)
         self.finish_init(dt_start, dt_end)
 
     def parse_datetime(self, hh, mm):
