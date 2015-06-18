@@ -12,6 +12,9 @@ import copy
 import locale
 import os
 
+from pytmatrix import tmatrix, psd, refractive, orientation
+from pytmatrix import tmatrix_aux as tm_aux
+
 # CONFIG default paths
 data_dir = '../DATA'
 h5file = 'baecc.h5'
@@ -25,6 +28,10 @@ locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 TAU = 2*np.pi
 RHO_W = 1000
+
+def switch_wl(x):
+    return {tm_aux.wl_C : "C", tm_aux.wl_X : "X", tm_aux.wl_Ku : "Ku",
+            tm_aux.wl_Ka : "Ka",tm_aux.wl_W : "W"}.get(x,str(x))
 
 def daterange(start_date, end_date):
     for n in range(int ((end_date - start_date).days)):
@@ -43,7 +50,6 @@ def batch_import(dtstr, datadir=data_dir):
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
-    print(pipv.data.dtypes)
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
@@ -140,8 +146,6 @@ class EventsCollection(MultiSeries):
         timemargin = pd.datetools.timedelta(hours=3)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
-        print(dt_start)
-        print(dt_end)
         data = Case.from_hdf(dt_start, dt_end, autoshift=False,
                              filenames=datafile, **casekwargs)
         for d in data:
@@ -357,7 +361,6 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def cache_dir(self):
         dt_start, dt_end = self.dt_start_end()
-        print(dt_start,dt_end)
         return super().cache_dir(dt_start, dt_end, self.pluvio.name)
 
     def d_m(self):
@@ -511,7 +514,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         
     def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False):
         """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
-        name = "reflectivity"
+        name = "reflXray"
         constant = 0.2/(0.93*917*917)
         density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
         Z = 10.0*np.log10(constant*density*density*self.n_moment(6))
@@ -541,6 +544,24 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         density.name = name
         density[density.isnull()] = 0
         return np.sqrt(density)
+        
+    def tmatrix(self, wl, pluvio_filter=True, pip_filter=False):
+        """Calculate radar reflectivity at requested wavelength wl [mm] using T-matrix"""
+        name = switch_wl(wl) + "reflTM"
+        density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
+        dBin = self.dsd.d_bin
+        edges = np.append([dBin],self.dsd.data.columns.values+0.5*dBin)
+        PSDvalues = self.dsd.good_data()
+        for item in density.iteritems():
+            ref=refractive.mi(wl,0.001*item[1])
+            flake = tmatrix.Scatterer(wavelength=wl, m=ref, axis_ratio=1.0/1.0)
+            flake.psd_integrator = psd.PSDIntegrator()
+            flake.psd_integrator.D_max = 28.0
+            flake.psd = psd.BinnedPSD(bin_edges=edges.tolist(),bin_psd=PSDvalues.loc[item[0]])
+            flake.psd_integrator.init_scatter_table(flake)
+            Z = 10.0*np.log10(radar.refl(flake))
+            print(Z)
+#        return 
 
     def minimize(self, method='SLSQP', **kwargs):
         """Legacy method for determining alpha and beta."""
@@ -563,7 +584,6 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def dt_start_end(self):
         """case start and end time as Timestamp"""
         t = self.time_range()
-        print(t)
         return (t[0], t[-1])
 
     def time_range(self):

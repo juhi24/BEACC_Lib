@@ -98,7 +98,6 @@ class Cacher:
 
     def msger(self, name, func, *cache_dir_args, **kwargs):
         """Read from msgpack if caching is in use."""
-        print('msger', name)
         if self.use_cache:
             msgpath = os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
             return msg_io(msgpath, func, **kwargs)
