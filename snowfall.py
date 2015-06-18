@@ -23,6 +23,7 @@ pipv_subpath = 'PIP/a_Velocity_Tables/004%s/*2.dat'
 dsd_subpath = 'PIP/a_DSD_Tables/004%s_a_d.dat'
 p200_subpath = 'Pluvio200/pluvio200_??_%s*.txt'
 p400_subpath = 'Pluvio400/pluvio400_??_%s*.txt'
+radar_subpath = 'Radar/%s/tmp%s*M1.a1.%s.*'
 
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
@@ -46,10 +47,18 @@ def batch_import(dtstr, datadir=data_dir):
     dsd_files = datafilelist(dsd_subpath % dtstr, datadir=datadir)
     pluvio200_files = datafilelist(p200_subpath % dtstr, datadir=datadir)
     pluvio400_files = datafilelist(p400_subpath % dtstr, datadir=datadir)
+    xsacr_files = datafilelist(radar_subpath % ('XSACR','xsacr',dtstr), datadir=datadir)
+    kasacr_files = datafilelist(radar_subpath % ('KASACR','kasacr',dtstr), datadir=datadir)
+    kazr_files = datafilelist(radar_subpath % ('KAZR','kazrge',dtstr), datadir=datadir)
+    mwacr_files = datafilelist(radar_subpath % ('MWACR','mwacr',dtstr), datadir=datadir)
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
+    xsacr = read.Radar(xsacr_files)
+    kasacr = read.Radar(kasacr_files)
+    kazr = read.Radar(kazr_files)
+    mwacr = read.Radar(mwacr_files)
     return {'vel': pipv, 'dsd': dsd,
             'pluvio200': pluvio200, 'pluvio400': pluvio400}
 
@@ -564,7 +573,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 Z = 10.0*np.log10(radar.refl(flake))
             else:
                 Z = np.nan
-            print(item[0],Z)
+            print(ref,item[0],Z)
             Zserie.loc[item[0]] = Z
         Zserie.name = name
         return Zserie
@@ -713,7 +722,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                                       self.eta(),self.mu(),self.lam(),self.n_0(),
                                       self.n_moment(0),self.n_moment(1),
                                       self.n_moment(2),self.Z_rayleigh_Xband(),
-                                      self.tmatrix(tm_aux.wl_X))
+                                      self.tmatrix(wl))
         data.index.name = 'datetime'
         return data.sort_index(axis=1)
 

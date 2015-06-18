@@ -238,6 +238,17 @@ class InstrumentData(Cacher):
         dt_start, dt_end = self.case.dt_start_end()
         return super().cache_dir(dt_start, dt_end, self.case.pluvio.name)
 
+class Radar(InstrumentData):
+    """Radar reflectivity at lowest level"""
+    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
+        """Create vertical pointing Radar object using data from various radar modes"""
+        print('Reading Radar data...')
+        InstrumentData.__init__(self,filenames,**kwargs)
+        if self.data.empty:
+            self.name = (os.path.basename(os.path.dirname(self.filenames[0])))
+            for filename in filenames:
+                print(filename)
+
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
