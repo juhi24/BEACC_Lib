@@ -713,7 +713,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                                       self.eta(),self.mu(),self.lam(),self.n_0(),
                                       self.n_moment(0),self.n_moment(1),
                                       self.n_moment(2),self.Z_rayleigh_Xband(),
-                                      self.tmatrix(tm_aux.wl_C))
+                                      self.tmatrix(tm_aux.wl_X))
         data.index.name = 'datetime'
         return data.sort_index(axis=1)
 
