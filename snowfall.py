@@ -511,6 +511,14 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 rho[rho>rhomax] = np.nan
             return rho.replace(np.inf, np.nan)
         return self.msger(name, func)
+
+    def data_in_density_range(self, data, rhomin, rhomax):
+        outdata = read.merge_series(data, self.density())
+        return outdata.query('%s < density < %s' % (rhomin, rhomax))
+
+    def vfit_density_range(self, rhomin, rhomax):
+        data = self.data_in_density_range(self.pipv.good_data(), rhomin, rhomax)
+        return self.pipv.find_fit(data=data)
         
     def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False):
         """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
