@@ -1083,16 +1083,33 @@ class DSD(InstrumentData):
 
     def plot(self, img=True, **kwargs):
         """Plot particle size distribution over time."""
+        data = self.good_data(drop_empty=False, **kwargs)
         if img:
-            plt.matshow(self.good_data(**kwargs).transpose(), norm=LogNorm(),
-                        origin='lower', vmin=0.00001)
+            plt.matshow(data.transpose(),
+                        norm=LogNorm(), origin='lower', vmin=0.00001)
+            plt.axis()
+            plt.colorbar()
+            plt.title('DSD')
+            plt.xlabel('time (UTC) BROKEN')
+            plt.ylabel('D (mm) BROKEN')
         else:
-            plt.pcolor(self.good_data(**kwargs).transpose(), norm=LogNorm(),
-                       vmin=0.00001)
-        plt.colorbar()
-        plt.title('DSD')
-        plt.xlabel('time (UTC) BROKEN')
-        plt.ylabel('D (mm) BROKEN')
+            #plt.pcolor(self.good_data(drop_empty=False, **kwargs).transpose(),
+            #           norm=LogNorm(), vmin=0.00001)
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(data.index.values, data.columns.values, 
+                                 data.T.values, norm=LogNorm(), vmin=0.0001)
+            cb = fig.colorbar(mesh, ax=ax)
+            cb.set_label('number concentration (mm^-1 m^-3)')
+            ax.axis('tight')
+            fig.autofmt_xdate()
+            ax.set_title('DSD')
+            ax.set_xlabel('time')
+            ax.set_ylabel('diameter (mm)')
+
+    def plot_R(self):
+        ax = self.intensity().plot()
+        ax.set_xlabel('time')
+        ax.set_ylabel('rainrate (mm/h)')
 
     def binwidth_df(self):
         return pd.DataFrame(data=self.binwidth, index=self.bin_cen()).T
@@ -1104,7 +1121,9 @@ class DSD(InstrumentData):
         return data
 
     def intensity(self):
-        return self.sum_over_d(self.rr)
+        r = self.sum_over_d(self.rr)
+        r.name = 'R'
+        return r
 
     def v(self, d):
         return self.bin_v[self.bin_select(d)]
