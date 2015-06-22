@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 import linecache
 import copy
-from scipy import stats
+from scipy import stats, io
 from scipy.optimize import fmin, minimize
 from fit import *
 #from pytmatrix import tmatrix_aux as aux
@@ -248,7 +248,51 @@ class Radar(InstrumentData):
             self.name = (os.path.basename(os.path.dirname(self.filenames[0])))
             for filename in filenames:
                 print(filename)
+                radardata = io.netcdf.netcdf_file(filename)
+                radarvariables = radardata.variables
+                if filename.endswith('.nc'):
+                    if 'RHI' in radardata.scan_name.decode():
+                        range_idx = 1
+                    if 'v' in radardata.scan_name.decode():
+                        range_idx = 0
+                    if 'reflectivity' in radarvariables.keys():
+                        reflectivity = radarvariables['reflectivity'].data[:,range_idx]*radarvariables['reflectivity'].scale_factor  + radarvariables['reflectivity'].add_offset
+                    if 'time' in radarvariables.keys():
+                        basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%dT%H:%M:%SZ')
+                        deltatime = pd.to_timedelta(radarvariables['time'].data,unit='s')
+                        time = basetime + deltatime # + time_lag
+                    if 'elevation' in radarvariables.keys():
+                        elevation = radarvariables['elevation'].data
+                    if 'range' in radarvariables.keys():
+                        rng = radarvariables['range'].data
+                    VP = np.abs(elevation-90.0) < 0.5
+                    tmpDF = pd.DataFrame(reflectivity[VP],index=time[VP],columns=['reflectivity'])
+                    self.data = self.data.append(tmpDF)
+                elif filename.endswith('.cdf'):
+                    print('KAZR MWACR')
+                    if 'reflectivity_copol' in radarvariables.keys():
+                        range_idx = 1
+                        reflectivity = radarvariables['reflectivity_copol'].data[:,range_idx]
+                    elif 'reflectivity' in radarvariables.keys():
+                        range_idx = 1
+                        reflectivity = radarvariables['reflectivity_copol'].data[:,range_idx]
+                    basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%dT%H:%M:%SZ')
+                    deltatime = pd.to_timedelta(radarvariables['time'].data,unit='s')
+                    time = basetime + deltatime # + time_lag
+        self.finish_init(dt_start, dt_end)
+        
+    def grouped(self, varinterval=True, rule=None, col=None): # TODO fix grouping
+        if rule is None:
+            rule = self.rule
+        if varinterval:
+            data = self.good_data()
+            if col is not None:
+                data = pd.DataFrame(data[col])
+            grpd_data = pd.merge(data, rule, left_index=True, right_index=True)
+            return grpd_data.groupby('group')
+        return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
 
+                    
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
