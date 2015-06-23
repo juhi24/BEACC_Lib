@@ -15,8 +15,8 @@ import copy
 from scipy import stats
 from scipy.optimize import fmin, minimize
 from fit import *
-from pytmatrix import tmatrix_aux as aux
-from pytmatrix import psd
+#from pytmatrix import tmatrix_aux as aux
+#from pytmatrix import psd
 
 RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
@@ -188,13 +188,6 @@ class InstrumentData(Cacher):
         self.set_span(dt_start, dt_end)
         Cacher.__init__(self, storefilename=self.name + '.h5')
 
-    def append_data(self, appended):
-        #print(len(appended.data.index))
-        #print(self.data.dtypes)
-        #print(appended.data.dtypes)
-        if len(appended.data.index):
-            self.data = self.data.append(appended.data)
-
     def store_good_data(self, **kwargs):
         """Store good data to memory (to bypass recalculation of filters)."""
         self.stored_good_data = self.good_data(**kwargs)
@@ -245,6 +238,17 @@ class InstrumentData(Cacher):
         dt_start, dt_end = self.case.dt_start_end()
         return super().cache_dir(dt_start, dt_end, self.case.pluvio.name)
 
+class Radar(InstrumentData):
+    """Radar reflectivity at lowest level"""
+    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
+        """Create vertical pointing Radar object using data from various radar modes"""
+        print('Reading Radar data...')
+        InstrumentData.__init__(self,filenames,**kwargs)
+        if self.data.empty:
+            self.name = (os.path.basename(os.path.dirname(self.filenames[0])))
+            for filename in filenames:
+                print(filename)
+
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -277,7 +281,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                                     'supply voltage',
                                     'ice rim temperature']
             col_abbr = ['datestr',
-                        'i_rt',
+                        'group',#'i_rt', #don't know why, but needs this column to be exsisting before
                         'acc_rt',
                         'acc_nrt',
                         'acc_tot_nrt',
@@ -298,10 +302,12 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                             parse_dates={'datetime':['datestr']},
                             date_parser=self.parse_datetime,
                             index_col='datetime'))
-            self.data.drop(['i_rt'], 1, inplace=True) # crap format
+            #self.data.drop(['i_rt'], 1, inplace=True) # crap format
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
         self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
+        self.data['heating'] = self.data.astype(float) # sometimes this are interpreted as int
+        self.data['status'] = self.data.astype(float) # sometimes this are interpreted as int
 
     @property
     def varinterval(self):
@@ -339,14 +345,15 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             t_end = 6
         else:
             t_end = 5
-        return datetime.datetime(*t[:t_end], tzinfo=datetime.timezone.utc)
+        #return datetime.datetime(*t[:t_end], tzinfo=datetime.timezone.utc)
+        return datetime.datetime(*t[:t_end])
 
     def good_data(self):
         if self.stored_good_data is not None:
             return self.stored_good_data
         data = copy.deepcopy(self.data)
-        swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)
-        swap_date2 = pd.datetime(2014, 8, 31, 8, 0, 0) # TODO put correct switch date
+        swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)#, tzinfo=datetime.timezone.utc)
+        swap_date2 = pd.datetime(2014, 8, 31, 8, 0, 0)#, tzinfo=datetime.timezone.utc ) # TODO put correct switch date
         if self.data.index[-1] > swap_date and self.data.index[-1] < swap_date2:
             precip_cols = ['acc_rt', 'acc_nrt', 'acc_tot_nrt', 'bucket_rt',
                            'bucket_nrt']
@@ -520,6 +527,7 @@ class PipDSD(InstrumentData):
             avg.columns = self.data.columns
             self.avg = avg.T[0]
             self.avg.name = 'dsd_avg'
+            self.data = self.data.astype(float)
         self.data.drop_duplicates(inplace=True)
         self.data = self.data.resample('1min').fillna(0)
         self.finish_init(dt_start, dt_end)
@@ -529,7 +537,7 @@ class PipDSD(InstrumentData):
         datearr = [int(x) for x in dateline.split()]
         d = datetime.date(*datearr)
         t = datetime.time(int(hh), int(mm))
-        return datetime.datetime.combine(d, t).replace(tzinfo=datetime.timezone.utc)
+        return datetime.datetime.combine(d, t)#.replace(tzinfo=datetime.timezone.utc)
 
     def bin_cen(self):
         """Return array of bin centers."""
@@ -607,26 +615,27 @@ class PipV(InstrumentData):
                 if int(filename[-23:-15]) > 20140831: # TODO fixme
                     newdata = pd.read_csv(filename,
                                           engine='python', sep='\t',
-                                          skipinitialspace=True, skiprows=8, skip_footer=1,
+                                          skipinitialspace=True, skiprows=8, skip_footer = 1,
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime)
+                    newdata = newdata[newdata['RecNum']>-99]
                 else:
                     newdata = pd.read_csv(filename,
                                           delim_whitespace=True, skiprows=8,
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime)
-                newdata.rename_axis(
-                    {'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
+                    newdata = newdata[newdata['RecNum']>-99]
+                if not newdata.empty:
+                    newdata.rename_axis({'vel_v_1':'vel_v', 'vel_h_1':'vel_h',
                      'vel_v_2':'vel_v', 'vel_h_2':'vel_h'}, axis=1, inplace=True)
-                
-                newdata.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
-                g = newdata.groupby(level=['datetime', 'Part_ID'])
-                newdata = g.mean()
-                if len(newdata.index):
+                    newdata.set_index(['datetime', 'Part_ID', 'RecNum'], inplace=True)
+                    g = newdata.groupby(level=['datetime', 'Part_ID'])
+                    newdata = g.mean()
                     self.data = self.data.append(newdata)
             if len(self.data.index):
                 self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)
+            self.data = self.data.astype(float)
         self.finish_init(dt_start, dt_end)
 
     @property
@@ -714,8 +723,8 @@ class PipV(InstrumentData):
         mo = int(datestr[7:9])
         dd = int(datestr[9:11])
         hh = int(datestr[11:13])
-        return datetime.datetime(yr, mo, dd, hh, int(mm),
-                                 tzinfo=datetime.timezone.utc)
+        return datetime.datetime(yr, mo, dd, hh, int(mm))#,
+                                 #tzinfo=datetime.timezone.utc)
 
     def good_data(self):
         if self.stored_good_data is not None:
@@ -1058,129 +1067,111 @@ class PipPart(InstrumentData):
                 self.data = self.data.append(newdata)
             self.finish_init(dt_start, dt_end)
 
-RHO_0 = 1.225 # sea level air density, from http://www.aviation.ch/tools-atmosphere.asp
-RHO_H = 1.218 # density at 56 m, same source
-RHO_W = 1000.0
 
-# Disdrometer sampling area, from 
-# "RAINDROP SIZE DISTRIBUTION OVER NORTHEASTERN COAST OF BRAZIL"
-DSD_A = 0.0050 
-
-TAU = 2*np.pi
-
-def ar(d):
-    return 1/aux.dsr_thurai_2007(d)
-    
-def drop_zeros_rows(df):
-    return df[(df.T != 0).any()]
-
-class DSD(InstrumentData):
-    def __init__(self, data=None, binwidth=None, bin_v=None):
-        self.data = data.resample('1min').fillna(0)
-        self.binwidth = binwidth
-        self.bin_v = pd.Series(bin_v, index=data.columns.values)
-        self.drop_empty = True
-
-    def plot(self, img=True, **kwargs):
-        """Plot particle size distribution over time."""
-        data = self.good_data(drop_empty=False, **kwargs)
-        if img:
-            plt.matshow(data.transpose(),
-                        norm=LogNorm(), origin='lower', vmin=0.00001)
-            plt.axis()
-            plt.colorbar()
-            plt.title('DSD')
-            plt.xlabel('time (UTC) BROKEN')
-            plt.ylabel('D (mm) BROKEN')
-        else:
-            #plt.pcolor(self.good_data(drop_empty=False, **kwargs).transpose(),
-            #           norm=LogNorm(), vmin=0.00001)
-            fig, ax = plt.subplots()
-            mesh = ax.pcolormesh(data.index.values, data.columns.values, 
-                                 data.T.values, norm=LogNorm(), vmin=0.0001)
-            cb = fig.colorbar(mesh, ax=ax)
-            cb.set_label('number concentration (mm^-1 m^-3)')
-            ax.axis('tight')
-            fig.autofmt_xdate()
-            ax.set_title('DSD')
-            ax.set_xlabel('time')
-            ax.set_ylabel('diameter (mm)')
-
-    def plot_R(self):
-        ax = self.intensity().plot()
-        ax.set_xlabel('time')
-        ax.set_ylabel('rainrate (mm/h)')
-
-    def binwidth_df(self):
-        return pd.DataFrame(data=self.binwidth, index=self.bin_cen()).T
-
-    def good_data(self, drop_empty=True):
-        data = self.data
-        if self.drop_empty and drop_empty:
-            data = drop_zeros_rows(data)
-        return data
-
-    def intensity(self):
-        r = self.sum_over_d(self.rr)
-        r.name = 'R'
-        return r
-
-    def v(self, d):
-        return self.bin_v[self.bin_select(d)]
-
-    def n(self, d):
-        return self.good_data()[d]
-
-    def bin_cen(self):
-        return self.good_data().columns.values
-
-    def bin_lower(self):
-        return self.bin_cen() - 0.5*self.binwidth
-
-    def bin_upper(self):
-        return self.bin_lower() + self.binwidth
-
-    def bin_edge(self):
-        return np.append(self.bin_lower(), self.bin_upper()[-1])
-
-    def bin_edge_df(self):
-        edge = pd.DataFrame(data=[self.bin_lower(), self.bin_upper()]).T
-        edge.columns = ['lower', 'upper']
-        edge.index = self.bin_cen()
-        return edge
-
-    def bin_select(self, d):
-        for i, edge in self.bin_edge_df().iterrows():
-            if d > edge.lower and d < edge.upper:
-                return edge.name
-        return
-
-    def series_zeros(self):
-        s = self.good_data()[self.good_data().columns[0]]*0
-        s.name = 'series'
-        return s
-
-    def sum_over_d(self, func, **kwargs):
-        dD = self.binwidth
-        result = self.series_zeros()
-        for d in self.bin_cen():
-            result = result.add(func(d, **kwargs)*dD[d], fill_value=0)
-        return result
-
-    def rr(self, d):
-        return 3.6e-3*TAU/12*(ar(d)*d)**2*1/ar(d)*d*self.v(d)*self.n(d)
-
-    def to_tm(self, data=None):
-        if data is None:
-            data = self.good_data().mean()
-        return psd.BinnedPSD(bin_edges=self.bin_edge(),
-                             bin_psd=data.values)
-
-    def to_tm_series(self, resample=None):
-        if resample is None:
-            data = self.good_data()
-        else:
-            data = self.good_data(drop_empty=False).resample(resample, how=np.mean,
-                                                             closed='right',
-                                                             label='right')
-        return data.apply(self.to_tm, axis=1)
+#RHO_0 = 1.225 # sea level air density, from http://www.aviation.ch/tools-atmosphere.asp
+#RHO_H = 1.218 # density at 56 m, same source
+#RHO_W = 1000.0
+#
+## Disdrometer sampling area, from 
+## "RAINDROP SIZE DISTRIBUTION OVER NORTHEASTERN COAST OF BRAZIL"
+#DSD_A = 0.0050 
+#
+#TAU = 2*np.pi
+#
+#def ar(d):
+#    return 1/aux.dsr_thurai_2007(d)
+#
+#def drop_zeros_rows(df):
+#    return df[(df.T != 0).any()]
+#
+#class DSD(InstrumentData):
+#    def __init__(self, data=None, binwidth=None, bin_v=None):
+#        self.data = data.resample('1min').fillna(0)
+#        self.binwidth = binwidth
+#        self.bin_v = pd.Series(bin_v, index=data.columns.values)
+#        self.drop_empty = True
+#
+#    def plot(self, img=True, **kwargs):
+#        """Plot particle size distribution over time."""
+#        if img:
+#            plt.matshow(self.good_data(**kwargs).transpose(), norm=LogNorm(),
+#                        origin='lower', vmin=0.00001)
+#        else:
+#            plt.pcolor(self.good_data(**kwargs).transpose(), norm=LogNorm(),
+#                       vmin=0.00001)
+#        plt.colorbar()
+#        plt.title('DSD')
+#        plt.xlabel('time (UTC) BROKEN')
+#        plt.ylabel('D (mm) BROKEN')
+#
+#    def binwidth_df(self):
+#        return pd.DataFrame(data=self.binwidth, index=self.bin_cen()).T
+#
+#    def good_data(self, drop_empty=True):
+#        data = self.data
+#        if self.drop_empty and drop_empty:
+#            data = drop_zeros_rows(data)
+#        return data
+#
+#    def intensity(self):
+#        return self.sum_over_d(self.rr)
+#
+#    def v(self, d):
+#        return self.bin_v[self.bin_select(d)]
+#
+#    def n(self, d):
+#        return self.good_data()[d]
+#
+#    def bin_cen(self):
+#        return self.good_data().columns.values
+#
+#    def bin_lower(self):
+#        return self.bin_cen() - 0.5*self.binwidth
+#
+#    def bin_upper(self):
+#        return self.bin_lower() + self.binwidth
+#
+#    def bin_edge(self):
+#        return np.append(self.bin_lower(), self.bin_upper()[-1])
+#
+#    def bin_edge_df(self):
+#        edge = pd.DataFrame(data=[self.bin_lower(), self.bin_upper()]).T
+#        edge.columns = ['lower', 'upper']
+#        edge.index = self.bin_cen()
+#        return edge
+#
+#    def bin_select(self, d):
+#        for i, edge in self.bin_edge_df().iterrows():
+#            if d > edge.lower and d < edge.upper:
+#                return edge.name
+#        return
+#
+#    def series_zeros(self):
+#        s = self.good_data()[self.good_data().columns[0]]*0
+#        s.name = 'series'
+#        return s
+#
+#    def sum_over_d(self, func, **kwargs):
+#        dD = self.binwidth
+#        result = self.series_zeros()
+#        for d in self.bin_cen():
+#            result = result.add(func(d, **kwargs)*dD[d], fill_value=0)
+#        return result
+#
+#    def rr(self, d):
+#        return 3.6e-3*TAU/12*(ar(d)*d)**2*1/ar(d)*d*self.v(d)*self.n(d)
+#
+#    def to_tm(self, data=None):
+#        if data is None:
+#            data = self.good_data().mean()
+#        return psd.BinnedPSD(bin_edges=self.bin_edge(),
+#                             bin_psd=data.values)
+#
+#    def to_tm_series(self, resample=None):
+#        if resample is None:
+#            data = self.good_data()
+#        else:
+#            data = self.good_data(drop_empty=False).resample(resample, how=np.mean,
+#                                                             closed='right',
+#                                                             label='right')
+#        return data.apply(self.to_tm, axis=1)

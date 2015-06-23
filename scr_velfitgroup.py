@@ -8,13 +8,13 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from os import path
 
-def rangecolor(rho, rholimits=[150, 300], colors=['r', 'b', 'c', 'g', 'm']):
+def rangecolor(rho, rholimits=(150, 300), colors=('r', 'b', 'c', 'g', 'm')):
     for i, rhomax in enumerate(rholimits):
         if rho < rhomax:
             return colors[i]
     return colors[i+1]
 
-def rho_range_str(rho, rholimits=[150, 300]):
+def rho_range_str(rho, rholimits=(150, 300)):
     rhomax_old = ''
     for rhomax in rholimits:
         rhomin = rhomax_old
@@ -23,7 +23,7 @@ def rho_range_str(rho, rholimits=[150, 300]):
             return '%srho<%s' % (rhomin, rhomax)
     return 'rho>%s' % rhomax
 
-def segment_index(val, limits=[150, 300]):
+def segment_index(val, limits=(150, 300)):
     for i, maxval in enumerate(limits):
         if val < maxval:
             return i
@@ -48,7 +48,7 @@ e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True
 #norm = mpl.colors.Normalize(vmin=0,vmax=500)
 #cb = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm)
 
-rholimits = [150, 300]
+rholimits = (150, 300)
 combined = False
 subplots = True
 outpath = '../results/pip2015/velfitgroups2/'
