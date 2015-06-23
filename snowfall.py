@@ -528,7 +528,18 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def vfit_density_range(self, rhomin, rhomax):
         data = self.data_in_density_range(self.pipv.good_data(), rhomin, rhomax)
         return self.pipv.find_fit(data=data)
-        
+
+    def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800)):
+        fig, ax = plt.subplots()
+        for i, rhomin in enumerate(rholimits[:-1]):
+            rhomax = rholimits[i+1]
+            self.vfit_density_range(rhomin, rhomax)[0].plot(ax=ax, label='%s-%s' % (rhomin, rhomax))
+        ax.set_title(self.dtstr())
+        ax.set_xlabel('equivalent diameter (mm)')
+        ax.set_ylabel('fall velocity (m/s)')
+        plt.legend()
+        return ax
+
     def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False):
         """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
         name = "reflXray"
