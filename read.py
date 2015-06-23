@@ -1129,6 +1129,7 @@ class PipPart(InstrumentData):
                 self.data = self.data.append(newdata)
             self.finish_init(dt_start, dt_end)
 
+
 #RHO_0 = 1.225 # sea level air density, from http://www.aviation.ch/tools-atmosphere.asp
 #RHO_H = 1.218 # density at 56 m, same source
 #RHO_W = 1000.0
@@ -1141,7 +1142,7 @@ class PipPart(InstrumentData):
 #
 #def ar(d):
 #    return 1/aux.dsr_thurai_2007(d)
-#    
+#
 #def drop_zeros_rows(df):
 #    return df[(df.T != 0).any()]
 #

@@ -3,6 +3,7 @@
 @author: Jussi Tiira
 """
 
+import pyart
 import read
 import numpy as np
 import pandas as pd
@@ -38,44 +39,68 @@ dsd_data.columns = dsd_D
 
 dsd = read.DSD(data=dsd_data, binwidth=dsd_dD, bin_v=dsd_v)
 
-sep1 = dsd.between_datetime('2012-09-01 08:00', '2012-09-2 00:00')
+sep1 = dsd.between_datetime('2012-09-01 10:30', '2012-09-1 23:00')
 
-#sep1.plot(img=False)
-drops = tmatrix.Scatterer(wavelength=aux.wl_C,m=ref.m_w_10C[aux.wl_C])
-drops.Kw_sqr = aux.K_w_sqr[aux.wl_C]
-drops.or_pdf = ori.gaussian_pdf(std=7.0)
-drops.orient = ori.orient_averaged_fixed
-drops.psd_integrator = psd.PSDIntegrator()
-drops.psd_integrator.D_max = 10.0
-drops.psd_integrator.axis_ratio_func = read.ar
+def tmatrix_stuffses(dsd):
+    drops = tmatrix.Scatterer(wavelength=aux.wl_C,m=ref.m_w_10C[aux.wl_C])
+    drops.Kw_sqr = aux.K_w_sqr[aux.wl_C]
+    drops.or_pdf = ori.gaussian_pdf(std=7.0)
+    drops.orient = ori.orient_averaged_fixed
+    drops.psd_integrator = psd.PSDIntegrator()
+    drops.psd_integrator.D_max = 10.0
+    drops.psd_integrator.axis_ratio_func = read.ar
+    
+    back = aux.geom_horiz_back
+    forw = aux.geom_horiz_forw
+    drops.psd_integrator.geometries = (back,forw)
+    
+    drops.psd_integrator.init_scatter_table(drops)
+    
+    psds = dsd.to_tm_series(resample=None)
+    
+    drops.set_geometry(back)
+    
+    zh = []
+    zv = []
+    zdr = []
+    rho_hv = []
+    ldr = []
+    
+    for tm_psd in psds:
+        drops.psd = tm_psd
+        zh.append(db(radar.refl(drops)))
+        zv.append(db(radar.refl(drops,False)))
+        zdr.append(db(radar.Zdr(drops)))
+        rho_hv.append(radar.rho_hv(drops))
+        ldr.append(db(radar.ldr(drops)))
+    
+    d = {'R':dsd.intensity(), 'Zh': zh, 'Zv': zv, 'Zdr': zdr, 'rho_hv': rho_hv,
+         'LDR': ldr}
+    return pd.DataFrame(data=d, index=psds.index)
 
-back = aux.geom_horiz_back
-forw = aux.geom_horiz_forw
-drops.psd_integrator.geometries = (back,forw)
+sep1.drop_empty = False
+sep1.plot(img=False)
+plt.figure()
+sep1.plot_R()
 
-drops.psd_integrator.init_scatter_table(drops)
+#radarCR = pd.read_csv(path.join(datapath, 'radarCR.csv'), index_col='datetime',
+#                  parse_dates=True)
+#radarXR = pd.read_csv(path.join(datapath, 'radarXR.csv'), index_col='datetime',
+#                  parse_dates=True)
+#
+#fname = '201007151615_VAN.PPI1_A.raw'
+#fpath = path.join(datapath, fname)
+#radar1 = pyart.io.read(fpath)
 
-psds = sep1.to_tm_series(resample=None)
-
-drops.set_geometry(back)
-
-zh = []
-zv = []
-zdr = []
-rho_hv = []
-ldr = []
-
-for tm_psd in psds:
-    drops.psd = tm_psd
-    zh.append(db(radar.refl(drops)))
-    zv.append(db(radar.refl(drops,False)))
-    zdr.append(db(radar.Zdr(drops)))
-    rho_hv.append(radar.rho_hv(drops))
-    ldr.append(db(radar.ldr(drops)))
-
-d = {'R':sep1.intensity(), 'Zh': zh, 'Zv': zv, 'Zdr': zdr, 'rho_hv': rho_hv,
-     'LDR': ldr}
-params = pd.DataFrame(data=d, index=psds.index)
+def plot_radar_field(radar, fieldname='differential_reflectivity'):
+    f = plt.figure(figsize=[15,8])
+    my_pc = plt.pcolormesh(radar.range['data'], radar.time['data'],
+                           radar.fields[fieldname]['data'])
+    plt.xlabel(radar.range['standard_name'] + ' (' + radar.range['units'] + ')')
+    plt.ylabel(radar.time['standard_name'] + ' (' + radar.time['units'] + ')')
+    cb = plt.colorbar(mappable = my_pc)
+    cb.set_label(radar.fields[fieldname]['standard_name'] +\
+                 ' (' + radar.fields[fieldname]['units'] + ')')
 
 #print('Zh\t%s\t[dBZ]' % db(radar.refl(drops)))
 #print('Zv\t%s\t[dBZ]' % db(radar.refl(drops,False)))

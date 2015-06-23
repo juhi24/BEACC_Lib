@@ -15,8 +15,6 @@ import os
 from pytmatrix import tmatrix, psd, refractive, orientation, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
-from time import sleep
-
 # CONFIG default paths
 data_dir = '../DATA'
 h5file = 'baecc.h5'
@@ -45,7 +43,6 @@ def datafilelist(subpath, datadir = data_dir):
 
 def batch_import(dtstr, datadir=data_dir):
     """Read ASCII data according to a datestring pattern."""
-    print(dtstr)
     pipv_files = datafilelist(pipv_subpath % dtstr, datadir=datadir)
     dsd_files = datafilelist(dsd_subpath % dtstr, datadir=datadir)
     pluvio200_files = datafilelist(p200_subpath % dtstr, datadir=datadir)
@@ -148,7 +145,6 @@ class EventsCollection(MultiSeries):
         """Add data from a Case object."""
         cases = []
         for (i, e) in self.events.iterrows():
-            #print(i,e)
             cases.append(data.between_datetime(e.start, e.end,
                                                autoshift=autoshift,
                                                autobias=autobias))
@@ -534,7 +530,26 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 rho[rho>rhomax] = np.nan
             return rho.replace(np.inf, np.nan)
         return self.msger(name, func)
-        
+
+    def data_in_density_range(self, data, rhomin, rhomax):
+        outdata = read.merge_series(data, self.density())
+        return outdata.query('%s < density < %s' % (rhomin, rhomax))
+
+    def vfit_density_range(self, rhomin, rhomax):
+        data = self.data_in_density_range(self.pipv.good_data(), rhomin, rhomax)
+        return self.pipv.find_fit(data=data)
+
+    def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800)):
+        fig, ax = plt.subplots()
+        for i, rhomin in enumerate(rholimits[:-1]):
+            rhomax = rholimits[i+1]
+            self.vfit_density_range(rhomin, rhomax)[0].plot(ax=ax, label='%s-%s' % (rhomin, rhomax))
+        ax.set_title(self.dtstr())
+        ax.set_xlabel('equivalent diameter (mm)')
+        ax.set_ylabel('fall velocity (m/s)')
+        plt.legend()
+        return ax
+
     def Z(self):
         """Radar reflectivity wrapper"""
         return self.xsacr.Z(varinterval=self.varinterval, rule=self.rule)
