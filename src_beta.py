@@ -11,6 +11,9 @@ from scipy.special import gamma
 from scipy import sqrt
 import matplotlib.pyplot as plt
 
+#from pytmatrix.test import test_tmatrix
+#test_tmatrix.run_tests()
+
 #batch_create_hdf(datadir='../DATA', outname='winter1.h5',dtstr='20141217')
 #batch_create_hdf(datadir='../DATA', outname='winter1.h5',dtstr='20141218')
 #batch_create_hdf(datadir='../DATA', outname='winter1.h5',dtstr='20141220')
@@ -35,56 +38,16 @@ import matplotlib.pyplot as plt
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150127') #NODATA
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150131') #NODATA
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150201') #NODATA
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140131')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140201')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140131')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140201')
 batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
 batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140215')
 batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140216')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140221')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140222')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140221')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140222')
 print('FINE FINE FINE')
-exit()
-
-
-
 
 #%%
-
-#radarfolder='../../Radars/'
-#RadarVP = pd.DataFrame()
-#for root, dirs, files in os.walk(radarfolder):
-#    for radarfile in files:
-#        if radarfile.startswith('tmpxsacr') and radarfile.endswith('.nc'):
-#            radardata = matio.netcdf.netcdf_file(root + '/' + radarfile)
-#            radarvariables = radardata.variables
-#            if 'RHI' in radardata.scan_name.decode():
-#                print('RHI')
-#                range_idx = 1
-#            if 'v' in radardata.scan_name.decode():
-#                print('VPT')
-#                range_idx = 0
-#            print(radardata.scan_name.decode())
-#            if 'reflectivity' in radarvariables.keys():
-#                reflectivity = radarvariables['reflectivity'].data[:,range_idx]*radarvariables['reflectivity'].scale_factor + radarvariables['reflectivity'].add_offset
-#            if 'time' in radarvariables.keys():
-#                basetime = datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%dT%H:%M:%SZ')
-#                time_lag = timedelta(minutes=4.4)
-#                if basetime > datetime(2014,2,15):
-#                    time_lag = timedelta(minutes=3.8)
-#                if basetime > datetime(2014,2,21):
-#                    time_lag = timedelta(minutes=1.0)
-#                deltatime = pd.to_timedelta(radarvariables['time'].data,unit='s')
-#                time = basetime + deltatime + time_lag
-#            if 'elevation' in radarvariables.keys():
-#                elevation = radarvariables['elevation'].data
-#            if 'range' in radarvariables.keys():
-#                rng = radarvariables['range'].data
-#            print(radarfile,rng[0])
-#            VP = np.abs(elevation-90) < 0.5
-#            tmpDF = pd.DataFrame(reflectivity[VP],index=time[VP],columns=['reflectivity'])
-#            RadarVP = RadarVP.append(tmpDF)
-#RadarVP.sort_index(inplace=True)
-#RadarVP.index.name = 'datetime'
 
 dtformat_default = '%d.%m. %H:%M'
 dtformat_default_year = '%d.%m.%y %H:%M'
@@ -94,7 +57,7 @@ dtformat_print = '%y%m%d%H%M'
 folder = '/home/dori/SnowCases_BAEC/DensityJussi/test/'
 #RadarVP.to_csv(folder + 'radar_data.csv')
 
-e = EventsCollection('cases/cases_of_interest_radar.csv', dtformat_default_year)
+e = EventsCollection('cases/test2.csv', dtformat_default_year)
 e.autoimport_data(autoshift=False, autobias=False, rule='5min',
                   varinterval=True, datafile=['../DATA/baecc3.h5'])
 
@@ -137,10 +100,16 @@ b_huang.sort_index(inplace=True)
 
 #%%
 #for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
+Zray = pd.Series()
 for c in e.events.pluvio200.values:
     c.pluvio.shift_periods = -6
     basename = folder + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H')
     print(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H'))
+    c.pluvio.n_combined_intervals = 2
+    #c.v(0.3)
+    z = c.Z()
+    #z.plot()
+    #plt.savefig('xsacr_avg')
     #depth = c.amount(params=[100],simple=True)
     #depth.to_csv(basename + 'depth_' + c.pluvio.name + '.csv')
     #print(depth.sum())
@@ -148,20 +117,20 @@ for c in e.events.pluvio200.values:
     #print(c.pluvio.amount(rule=c.rule))
 
 ####
-    c.pluvio.n_combined_intervals = 2
-    print('densita')
-    den_dtfr = c.density(pluvio_filter=True,pip_filter=False)
-    print('salvo densita')
-    den_dtfr.to_csv(basename + 'density_' + c.pluvio.name + '.csv')
-    print('sommario')
+#    c.pluvio.n_combined_intervals = 2
+    #c.tmatrix(wl=30.89598)
+#    Zray = Zray.append(c.Z_rayleigh_Xband())
+    #den_dtfr = c.density(pluvio_filter=True,pip_filter=False)
+    #den_dtfr.to_csv(basename + 'density_' + c.pluvio.name + '.csv')
     #c.pipv.plots(save=True, suffix='.eps', grid=False, xmax=4, ymax=3, xticks=[0,1,2,3,4], yticks=[0,1,2,3],colorbar=False, hexsize=8)
-    c.summary().to_csv(basename + 'summary_' + c.pluvio.name + '.csv')
-    c.pluvio.tdelta().to_csv(basename + 'timedelta_' + c.pluvio.name + '.csv')
-    c.density(pluvio_filter=True,pip_filter=False).plot()
-    axes=plt.gca()
-    axes.set_ylim([0, 1000])
-    plt.savefig(basename + 'density_' + c.pluvio.name + '.png')
-    plt.close("all")
+    #c.summary().to_csv(basename + 'summary_' + c.pluvio.name + '.csv')
+#    c.pluvio.tdelta().to_csv(basename + 'timedelta_' + c.pluvio.name + '.csv')
+#    c.density(pluvio_filter=True,pip_filter=False).plot()
+#    axes=plt.gca()
+#    axes.set_ylim([0, 1000])
+#    plt.savefig(basename + 'density_' + c.pluvio.name + '.png')
+#    plt.close("all")
+
     
     # Faccio le medie
 #    delta = pd.Series(c.pluvio.amount(crop=True).index.to_datetime(),index=c.pluvio.amount(crop=True).index).diff()

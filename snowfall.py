@@ -15,6 +15,8 @@ import os
 from pytmatrix import tmatrix, psd, refractive, orientation, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
+from time import sleep
+
 # CONFIG default paths
 data_dir = '../DATA'
 h5file = 'baecc.h5'
@@ -43,6 +45,7 @@ def datafilelist(subpath, datadir = data_dir):
 
 def batch_import(dtstr, datadir=data_dir):
     """Read ASCII data according to a datestring pattern."""
+    print(dtstr)
     pipv_files = datafilelist(pipv_subpath % dtstr, datadir=datadir)
     dsd_files = datafilelist(dsd_subpath % dtstr, datadir=datadir)
     pluvio200_files = datafilelist(p200_subpath % dtstr, datadir=datadir)
@@ -59,8 +62,10 @@ def batch_import(dtstr, datadir=data_dir):
     kasacr = read.Radar(kasacr_files)
     kazr = read.Radar(kazr_files)
     mwacr = read.Radar(mwacr_files)
-    return {'vel': pipv, 'dsd': dsd,
-            'pluvio200': pluvio200, 'pluvio400': pluvio400}
+    
+    return {'vel': pipv, 'dsd': dsd, 'pluvio200': pluvio200,
+            'pluvio400': pluvio400, 'xsacr': xsacr, 'kasacr': kasacr,
+            'kazr': kazr, 'mwacr': mwacr}
 
 def batch_create_hdf(datadir=data_dir, outname=h5file,
                      dtstr='20140[2-3]??'):
@@ -137,13 +142,13 @@ class EventsCollection(MultiSeries):
     def parse_datetime(self, dtstr):
         #date = datetime.strptime(dtstr+'+0000', self.dtformat+'%z')
         date = datetime.strptime(dtstr, self.dtformat)
-        #date = date.replace(year=2014)
         return date
 
     def add_data(self, data, autoshift=True, autobias=True):
         """Add data from a Case object."""
         cases = []
         for (i, e) in self.events.iterrows():
+            #print(i,e)
             cases.append(data.between_datetime(e.start, e.end,
                                                autoshift=autoshift,
                                                autobias=autobias))
@@ -169,13 +174,18 @@ class EventsCollection(MultiSeries):
 
 class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     """Calculate snowfall rate from particle size and velocity data."""
-    def __init__(self, dsd, pipv, pluvio, varinterval=True, unbias=False,
+    def __init__(self, dsd, pipv, pluvio, xsacr, kasacr, kazr, mwacr,
+                 varinterval=True, unbias=False,
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
                  bnd=((0, 0.1), (1, 3)), rule='15min', use_cache=True):
         self._use_cache = use_cache
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
+        self.xsacr = xsacr
+        self.kasacr = kasacr
+        self.kazr = kazr
+        self.mwacr = mwacr
         self._varinterval = varinterval
         self.pluvio.varinterval = varinterval
         self.quess = quess
@@ -258,10 +268,14 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         pluvio400 = read.Pluvio(filenames, hdf_table='pluvio400')
         dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
         pipv = read.PipV(filenames, hdf_table='pip_vel')
-        for instr in [pluvio200, pluvio400, dsd, pipv]:
+        xsacr = read.Radar(filenames, hdf_table='XSACR')
+        kasacr = read.Radar(filenames, hdf_table='KASACR')
+        kazr = read.Radar(filenames, hdf_table='KAZR')
+        mwacr = read.Radar(filenames, hdf_table='MWACR')
+        for instr in [pluvio200, pluvio400, dsd, pipv, xsacr, kasacr, kazr, mwacr]:
             instr.set_span(dt_start, dt_end)
-        m200 = cls(dsd, pipv, pluvio200, **kwargs)
-        m400 = cls(dsd, pipv, pluvio400, **kwargs)
+        m200 = cls(dsd, pipv, pluvio200, xsacr, kasacr, kazr, mwacr, **kwargs)
+        m400 = cls(dsd, pipv, pluvio400, xsacr, kasacr, kazr, mwacr, **kwargs)
         return m200, m400
 
     def dtstr(self, dtformat='%b %d'):
@@ -281,7 +295,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             m = self
         else:
             m = copy.deepcopy(self)
-        for instr in [m.dsd, m.pipv, m.pluvio]:
+        for instr in [m.dsd, m.pipv, m.pluvio, m.xsacr, m.kasacr, m.kazr, m.mwacr]:
             instr.between_datetime(dt_start, dt_end, inplace=True)
             instr.case = m
         m.pluvio.bias = 0
@@ -520,6 +534,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 rho[rho>rhomax] = np.nan
             return rho.replace(np.inf, np.nan)
         return self.msger(name, func)
+        
+    def Z(self):
+        """Radar reflectivity wrapper"""
+        return self.xsacr.Z(varinterval=self.varinterval, rule=self.rule)
         
     def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False):
         """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
