@@ -249,6 +249,7 @@ class Radar(InstrumentData):
         if self.data.empty and filenames:
             self.name = (os.path.basename(os.path.dirname(self.filenames[0])))
             for filename in filenames:
+                print(filename)
                 radardata = io.netcdf.netcdf_file(filename)
                 radarvariables = radardata.variables
                 if filename.endswith('.nc'):
@@ -256,9 +257,9 @@ class Radar(InstrumentData):
                         range_idx = 1
                     if 'KaSACR' in radardata.title.decode():
                         range_idx = 0
-                    reflectivity = radarvariables['reflectivity'].data[:,range_idx]*radarvariables['reflectivity'].scale_factor  + radarvariables['reflectivity'].add_offset
+                    refl = radarvariables['reflectivity']
+                    reflectivity = 10.0**(0.1*(refl.data[:,range_idx]*refl.scale_factor + refl.add_offset))
                     basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%dT%H:%M:%SZ')
-                    #delta = (np.round(radarvariables['time'].data/60.0)*60.0).astype(int)
                     delta = radarvariables['time'].data
                     deltatime = pd.to_timedelta(delta,unit='s')
                     time = basetime + deltatime # + time_lag
@@ -271,45 +272,30 @@ class Radar(InstrumentData):
                 elif filename.endswith('.cdf'):
                     if 'reflectivity_copol' in radarvariables.keys():
                         range_idx = 10
-                        reflectivity = radarvariables['reflectivity_copol'].data[:,range_idx].byteswap().newbyteorder()
+                        reflectivity = 10.0**(0.1*radarvariables['reflectivity_copol'].data[:,range_idx].byteswap().newbyteorder())
                     elif 'reflectivity' in radarvariables.keys():
                         range_idx = 6
-                        ref1 = radarvariables['reflectivity'].data[:,range_idx]
-                        ref2 = radarvariables['reflectivity'].data[:,range_idx+1]
-                        reflectivity = 10.0*np.log10(0.5*(10.0**(0.1*ref1)+10.0**(0.1*ref2)))
+                        ref1 = 10.0**(0.1*radarvariables['reflectivity'].data[:,range_idx])
+                        ref2 = 10.0**(0.1*radarvariables['reflectivity'].data[:,range_idx+1])
+                        reflectivity = 0.5*(ref1+ref2)
                     basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%d %H:%M:%S 0:00')
                     delta = radarvariables['time'].data
-                    #delta = (np.round(radarvariables['time'].data/60.0)*60.0).astype(int)
                     deltatime = pd.to_timedelta(delta,unit='s')
                     time = basetime + deltatime # + time_lag
                     timetrunc = pd.DatetimeIndex(((time.astype(np.int64) // ns1min + 1 ) * ns1min))
                     self.data = pd.DataFrame(reflectivity,index=timetrunc,
                                              columns=['reflectivity'],dtype=np.float64)
         self.finish_init(dt_start, dt_end)
-        
-#    def grouped(self, varinterval=True, rule=None): # TODO fix grouping
-#        if rule is None:
-#            rule = self.rule
-#        if varinterval:
-#            data = self.good_data()
-#            grpd_data = pd.merge(data, rule, left_index=True, right_index=True)
-#            return grpd_data.groupby('group')
-#        return self.good_data().groupby(pd.Grouper(freq=rule, closed='right', label='right'))
-    
-    def Z(self, rule=None, varinterval=True):
+         
+    def z(self, rule=None, varinterval=True):
         """Reflectivity time series"""
-        for name, group in self.grouped(rule=rule, varinterval=varinterval):
-            print('NAME')
-            print(name)
-            print('GROUP')
-            print(group)
-        return self.grouped(rule=rule, varinterval=varinterval)
-        
-    def Zavg(Z):
-        """Return average of reflectivity"""
-        return 10.0*np.log10( (10.0**(0.1*Z)).mean() )
-
-                    
+        grp = self.grouped(rule=rule, varinterval=varinterval)
+        z = grp.mean()
+        zs = z[z.columns[0]]
+        zs.name = self. name + ' reflectivity'
+        zs.index.name = 'datetime'
+        return zs
+                           
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -763,7 +749,6 @@ class PipV(InstrumentData):
         if rule is None:
             rule = self.rule
         if self.fits.empty:
-            print(rule)
             self.find_fits(rule, fit=emptyfit, varinterval=varinterval)
         elif not varinterval:
             if pd.datetools.to_offset(rule) != self.fits.index.freq:

@@ -150,14 +150,14 @@ class EventsCollection(MultiSeries):
                                                autobias=autobias))
         self.events[data.pluvio.name] = cases
 
-    def autoimport_data(self, datafile=[h5path],
-                        autoshift=False, autobias=False, **casekwargs):
+    def autoimport_data(self, datafile=[h5path], autoshift=False, 
+                        autobias=False, radar=False, **casekwargs):
         """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=3)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
         data = Case.from_hdf(dt_start, dt_end, autoshift=False,
-                             filenames=datafile, **casekwargs)
+                             filenames=datafile, radar=radar, **casekwargs)
         for d in data:
             if d is not None:
                 self.add_data(d, autoshift=autoshift, autobias=autobias)
@@ -179,7 +179,6 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
-#       if xsacr is not None:
         self.xsacr = xsacr
         self.kasacr = kasacr
         self.kazr = kazr
@@ -566,9 +565,16 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         plt.legend()
         return ax
 
-    def Z(self):
+    def z(self, radarname='XSACR'):
         """Radar reflectivity wrapper"""
-        return self.xsacr.Z(varinterval=self.varinterval, rule=self.rule)
+        if radarname == 'XSACR':
+            return self.xsacr.z(varinterval=self.varinterval, rule=self.rule)
+        elif radarname == 'KASACR':
+            return self.kasacr.z(varinterval=self.varinterval, rule=self.rule)
+        elif radarname == 'KAZR':
+            return self.kazr.z(varinterval=self.varinterval, rule=self.rule)
+        elif radarname == 'MWACR':
+            return self.mwacr.z(varinterval=self.varinterval, rule=self.rule)
         
     def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False):
         """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
@@ -622,7 +628,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 Z = 10.0*np.log10(radar.refl(flake))
             else:
                 Z = np.nan
-            print(ref,item[0],Z)
+            #print(ref,item[0],Z)
             Zserie.loc[item[0]] = Z
         Zserie.name = name
         return Zserie

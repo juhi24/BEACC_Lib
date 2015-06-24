@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150201') #NODATA
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140131')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140201')
-#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
+batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140215')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140216')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140221')
@@ -57,9 +57,9 @@ dtformat_print = '%y%m%d%H%M'
 folder = '/home/dori/SnowCases_BAEC/DensityJussi/test/'
 #RadarVP.to_csv(folder + 'radar_data.csv')
 
-e = EventsCollection('cases/test2.csv', dtformat_default_year)
+e = EventsCollection('cases/cases_of_interest_radar.csv', dtformat_default_year)
 e.autoimport_data(autoshift=False, autobias=False, rule='5min',
-                  varinterval=True, datafile=['../DATA/baecc3.h5'])
+                  varinterval=True, radar=True, datafile=['../DATA/baecc3.h5'])
 
 def func_all_beta(mu,delta,deltaZ):
     def func_beta(beta):
@@ -105,11 +105,23 @@ for c in e.events.pluvio200.values:
     c.pluvio.shift_periods = -6
     basename = folder + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H')
     print(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H'))
-    c.pluvio.n_combined_intervals = 2
-    #c.v(0.3)
-    z = c.Z()
-    #z.plot()
-    #plt.savefig('xsacr_avg')
+    c.pluvio.n_combined_intervals = 1
+    zx = 10.0*np.log10(c.z('XSACR'))
+    zk = 10.0*np.log10(c.z('KASACR'))
+    zkz = 10.0*np.log10(c.z('KAZR'))
+    zmw = 10.0*np.log10(c.z('MWACR'))
+    plt.figure()
+    zx.plot(label='xsacr')
+    #zk.plot(label='kasacr')
+    #zkz.plot(label='kazr')
+    #zmw.plot(label='mwacr')
+    zxtm = c.tmatrix(wl=30.87)
+    zxray = c.Z_rayleigh_Xband()
+    zxtm.plot(label='Xtm')
+    zxray.plot(label='Xray')
+    plt.legend(loc=0)
+    plt.savefig(basename + 'radar_avg.png')
+    plt.close()
     #depth = c.amount(params=[100],simple=True)
     #depth.to_csv(basename + 'depth_' + c.pluvio.name + '.csv')
     #print(depth.sum())
