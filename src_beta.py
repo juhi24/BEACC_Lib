@@ -40,9 +40,9 @@ import matplotlib.pyplot as plt
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150201') #NODATA
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140131')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140201')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140215')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140216')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140215')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140216')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140221')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140222')
 print('FINE FINE FINE')

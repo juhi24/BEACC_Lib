@@ -159,7 +159,8 @@ class EventsCollection(MultiSeries):
         data = Case.from_hdf(dt_start, dt_end, autoshift=False,
                              filenames=datafile, **casekwargs)
         for d in data:
-            self.add_data(d, autoshift=autoshift, autobias=autobias)
+            if d is not None:
+                self.add_data(d, autoshift=autoshift, autobias=autobias)
         return
 
     def summary(self, pluvio='pluvio200', dtformat='%Y %b %d', **kwargs):
@@ -170,18 +171,19 @@ class EventsCollection(MultiSeries):
 
 class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     """Calculate snowfall rate from particle size and velocity data."""
-    def __init__(self, dsd, pipv, pluvio, xsacr, kasacr, kazr, mwacr,
-                 varinterval=True, unbias=False,
+    def __init__(self, dsd, pipv, pluvio, xsacr=None, kasacr=None,
+                 kazr=None, mwacr=None, varinterval=True, unbias=False,
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
                  bnd=((0, 0.1), (1, 3)), rule='15min', use_cache=True):
         self._use_cache = use_cache
         self.dsd = dsd
         self.pipv = pipv
         self.pluvio = pluvio
+#       if xsacr is not None:
         self.xsacr = xsacr
         self.kasacr = kasacr
         self.kazr = kazr
-        self.mwacr = mwacr
+        self.mwacr = mwacr        
         self._varinterval = varinterval
         self.pluvio.varinterval = varinterval
         self.quess = quess
@@ -255,7 +257,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         self._ab = ab
 
     @classmethod
-    def from_hdf(cls, dt_start, dt_end, filenames=[h5path],
+    def from_hdf(cls, dt_start, dt_end, filenames=[h5path], radar=False,
                  **kwargs):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
@@ -264,14 +266,23 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         pluvio400 = read.Pluvio(filenames, hdf_table='pluvio400')
         dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
         pipv = read.PipV(filenames, hdf_table='pip_vel')
-        xsacr = read.Radar(filenames, hdf_table='XSACR')
-        kasacr = read.Radar(filenames, hdf_table='KASACR')
-        kazr = read.Radar(filenames, hdf_table='KAZR')
-        mwacr = read.Radar(filenames, hdf_table='MWACR')
-        for instr in [pluvio200, pluvio400, dsd, pipv, xsacr, kasacr, kazr, mwacr]:
+        instr_lst = [pluvio200, pluvio400, dsd, pipv]
+        if radar:
+            xsacr = read.Radar(filenames, hdf_table='XSACR')
+            kasacr = read.Radar(filenames, hdf_table='KASACR')
+            kazr = read.Radar(filenames, hdf_table='KAZR')
+            mwacr = read.Radar(filenames, hdf_table='MWACR')
+            instr_lst = [pluvio200, pluvio400, dsd, pipv, xsacr, kasacr, kazr, mwacr]
+            
+        for instr in instr_lst:
             instr.set_span(dt_start, dt_end)
-        m200 = cls(dsd, pipv, pluvio200, xsacr, kasacr, kazr, mwacr, **kwargs)
-        m400 = cls(dsd, pipv, pluvio400, xsacr, kasacr, kazr, mwacr, **kwargs)
+            
+        if radar:
+            m200 = cls(dsd, pipv, pluvio200, xsacr, kasacr, kazr, mwacr, **kwargs)
+            m400 = cls(dsd, pipv, pluvio400, xsacr, kasacr, kazr, mwacr, **kwargs)
+        else:
+            m200 = cls(dsd, pipv, pluvio200, **kwargs)
+            m400 = cls(dsd, pipv, pluvio400, **kwargs)
         return m200, m400
 
     def dtstr(self, dtformat='%b %d'):
@@ -291,9 +302,14 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             m = self
         else:
             m = copy.deepcopy(self)
-        for instr in [m.dsd, m.pipv, m.pluvio, m.xsacr, m.kasacr, m.kazr, m.mwacr]:
-            instr.between_datetime(dt_start, dt_end, inplace=True)
-            instr.case = m
+        if m.xsacr is not None:
+            for instr in [m.dsd, m.pipv, m.pluvio, m.xsacr, m.kasacr, m.kazr, m.mwacr]:
+                instr.between_datetime(dt_start, dt_end, inplace=True)
+                instr.case = m
+        else:
+            for instr in [m.dsd, m.pipv, m.pluvio]:
+                instr.between_datetime(dt_start, dt_end, inplace=True)
+                instr.case = m
         m.pluvio.bias = 0
         if autoshift:
             m.autoshift(inplace=True)
