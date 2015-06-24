@@ -628,7 +628,6 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 Z = 10.0*np.log10(radar.refl(flake))
             else:
                 Z = np.nan
-            #print(ref,item[0],Z)
             Zserie.loc[item[0]] = Z
         Zserie.name = name
         return Zserie

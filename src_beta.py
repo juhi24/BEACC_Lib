@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150201') #NODATA
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140131')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140201')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140215')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140216')
 #batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140221')
@@ -58,6 +58,7 @@ folder = '/home/dori/SnowCases_BAEC/DensityJussi/test/'
 #RadarVP.to_csv(folder + 'radar_data.csv')
 
 e = EventsCollection('cases/cases_of_interest_radar.csv', dtformat_default_year)
+#e = EventsCollection('cases/test2.csv', dtformat_default_year)
 e.autoimport_data(autoshift=False, autobias=False, rule='5min',
                   varinterval=True, radar=True, datafile=['../DATA/baecc3.h5'])
 
@@ -105,7 +106,18 @@ for c in e.events.pluvio200.values:
     c.pluvio.shift_periods = -6
     basename = folder + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H')
     print(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H'))
-    c.pluvio.n_combined_intervals = 1
+    start = c.pluvio.dt_start()
+    if start.month == 2:
+        if start.day == 12:
+            c.pluvio.n_combined_intervals = 1
+            c.xsacr.time_lag = pd.to_timedelta(60.0*2.0,unit='s') #fixme
+        elif start.day == 15 or start.day == 16:
+            c.pluvio.n_combined_intervals = 2
+            c.xsacr.time_lag = pd.to_timedelta(60.0*3.8,unit='s')
+        elif start.day == 21 or start.day ==22:
+            c.pluvio.n_combined_intervals = 2
+            c.xsacr.time_lag = pd.to_timedelta(60.0*1.0,unit='s')
+    
     zx = 10.0*np.log10(c.z('XSACR'))
     zk = 10.0*np.log10(c.z('KASACR'))
     zkz = 10.0*np.log10(c.z('KAZR'))
@@ -115,7 +127,7 @@ for c in e.events.pluvio200.values:
     #zk.plot(label='kasacr')
     #zkz.plot(label='kazr')
     #zmw.plot(label='mwacr')
-    zxtm = c.tmatrix(wl=30.87)
+    zxtm = c.tmatrix(wl=30.8)
     zxray = c.Z_rayleigh_Xband()
     zxtm.plot(label='Xtm')
     zxray.plot(label='Xray')
@@ -157,31 +169,33 @@ for c in e.events.pluvio200.values:
 #            tmpTimeZ = pd.DataFrame(Zmean,index=[idx.to_datetime()],columns=['Zmea'])
 #        time_Zavg = time_Zavg.append(tmpTimeZ)
 #            
-#    Zfile = pd.read_csv(folder + 'Z_' + c.pluvio.name + '_' + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H') + '30.89598.csv',header=None,names=['rho','n','Z'],parse_dates=True)
-#    
+#    Zfile = pd.read_csv(folder + 'Z_' + c.pluvio.name + '_' + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H') + '30.89598.csv',header=None,names=['rho','n','Z'],parse_dates=True) 
 #    Zestimate = pd.DataFrame(Zfile['Z'].values,index=time_Zavg.index,columns=['Zest'])
-#    dataZ = pd.concat([time_Zavg, c.mu(), c.lam(),c.pipv.fit_params()['b'],c.density(),Zestimate], join='outer', axis = 1)
-#    FinalData = pd.DataFrame()
-#    for index, row in dataZ.iterrows():
-#        dZ = row['Zmea']-row['Zest']
-#        f = func_all_beta(mu=row['mu'],delta=row['b'],deltaZ=dZ)
-#        g = func_all_b(mu=row['mu'],delta=row['b'],deltaZ=dZ)
-#        if np.isnan(dZ) or f(0.5)*f(4.5) > 0.0:
-#            betaopt = np.nan
-#            bopt = np.nan
-#        else:
-#            betaopt = opt.brentq(f,a=0.5,b=4.5,xtol=1.0e-04)
-#            bopt = opt.brentq(g,a=-2.5,b=1.5,xtol=1.0e-04)
-#        print(dZ,betaopt,bopt,row['b'],row['mu'])
-#        tmpFinalData = pd.DataFrame(np.array([[betaopt,bopt]]),index=[index.to_datetime()],columns=['beta','b'])
-#        FinalData = FinalData.append(tmpFinalData)
-#    
-#    axe = FinalData.plot()
-#    b_huang[c.pluvio.dt_start().to_datetime():c.pluvio.dt_end().to_datetime()].plot(ax=axe)
-#    plt.title(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y %m %d'))
-#    
-#    plt.savefig(basename + 'beta_b_' + c.pluvio.name + '.png')
-#    plt.close("all")
+
+    Zestimate = pd.DataFrame(zxray)
+    time_Zavg = pd.DataFrame(zx)
+    dataZ = pd.concat([time_Zavg, c.mu(), c.lam(),c.pipv.fit_params()['b'],c.density(),Zestimate], join='outer', axis = 1)
+    FinalData = pd.DataFrame()
+    for index, row in dataZ.iterrows():
+        dZ = row['XSACR reflectivity']-row['30.8reflTM']
+        f = func_all_beta(mu=row['mu'],delta=row['b'],deltaZ=dZ)
+        g = func_all_b(mu=row['mu'],delta=row['b'],deltaZ=dZ)
+        if np.isnan(dZ) or f(0.5)*f(4.5) > 0.0:
+            betaopt = np.nan
+            bopt = np.nan
+        else:
+            betaopt = opt.brentq(f,a=0.5,b=4.5,xtol=1.0e-04)
+            bopt = opt.brentq(g,a=-2.5,b=1.5,xtol=1.0e-04)
+        print(dZ,betaopt,bopt,row['b'],row['mu'])
+        tmpFinalData = pd.DataFrame(np.array([[betaopt,bopt]]),index=[index.to_datetime()],columns=['beta','b'])
+        FinalData = FinalData.append(tmpFinalData)
+    
+    axe = FinalData['beta'].plot('*-')
+    b_huang['beta_huang'][c.pluvio.dt_start().to_datetime():c.pluvio.dt_end().to_datetime()].plot(ax=axe)
+    plt.title(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y %m %d'))
+    
+    plt.savefig(basename + 'beta_b_' + c.pluvio.name + '.png')
+    plt.close("all")
     
 
 #c.plot_velfitcoefs(rhomax=600, countmin=2000)

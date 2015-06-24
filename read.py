@@ -22,7 +22,7 @@ RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
 MSGTLD = '.msg'
 
-ns1min=1*60*1000000000
+ns1min=1.0*60.0*1000000000.0
 
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
@@ -245,6 +245,7 @@ class Radar(InstrumentData):
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
         """Create vertical pointing Radar object using data from various radar modes"""
         print('Reading Radar data...')
+        self._time_lag = pd.to_timedelta(0.0,unit='s')
         InstrumentData.__init__(self,filenames,**kwargs)
         if self.data.empty and filenames:
             self.name = (os.path.basename(os.path.dirname(self.filenames[0])))
@@ -261,13 +262,12 @@ class Radar(InstrumentData):
                     reflectivity = 10.0**(0.1*(refl.data[:,range_idx]*refl.scale_factor + refl.add_offset))
                     basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%dT%H:%M:%SZ')
                     delta = radarvariables['time'].data
-                    deltatime = pd.to_timedelta(delta,unit='s')
-                    time = basetime + deltatime # + time_lag
-                    timetrunc = pd.DatetimeIndex(((time.astype(np.int64) // ns1min + 1 ) * ns1min))
+                    deltatime = pd.to_timedelta(np.round(delta),unit='s')
+                    time = basetime + deltatime
                     elevation = radarvariables['elevation'].data
                     rng = radarvariables['range'].data
                     VP = np.abs(elevation-90.0) < 0.5
-                    tmpDF = pd.DataFrame(reflectivity[VP],index=timetrunc[VP],columns=['reflectivity'],dtype=np.float64)
+                    tmpDF = pd.DataFrame(reflectivity[VP],index=time[VP],columns=['reflectivity'],dtype=np.float64)
                     self.data = self.data.append(tmpDF)
                 elif filename.endswith('.cdf'):
                     if 'reflectivity_copol' in radarvariables.keys():
@@ -280,12 +280,21 @@ class Radar(InstrumentData):
                         reflectivity = 0.5*(ref1+ref2)
                     basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%d %H:%M:%S 0:00')
                     delta = radarvariables['time'].data
-                    deltatime = pd.to_timedelta(delta,unit='s')
-                    time = basetime + deltatime # + time_lag
-                    timetrunc = pd.DatetimeIndex(((time.astype(np.int64) // ns1min + 1 ) * ns1min))
-                    self.data = pd.DataFrame(reflectivity,index=timetrunc,
+                    deltatime = pd.to_timedelta(np.round(delta),unit='s')
+                    time = basetime + deltatime
+                    self.data = pd.DataFrame(reflectivity,index=time,
                                              columns=['reflectivity'],dtype=np.float64)
         self.finish_init(dt_start, dt_end)
+        
+    def good_data(self):
+        """Return useful data with filters and corrections applied."""
+        if self.stored_good_data is not None:
+            return self.stored_good_data
+        data = copy.deepcopy(self.data)
+        data.index = self.data.index + self.time_lag
+        time = pd.DatetimeIndex((np.round(data.index.astype(np.int64)/ns1min))*ns1min)
+        data.index = time
+        return data
          
     def z(self, rule=None, varinterval=True):
         """Reflectivity time series"""
@@ -295,6 +304,14 @@ class Radar(InstrumentData):
         zs.name = self. name + ' reflectivity'
         zs.index.name = 'datetime'
         return zs
+    
+    @property
+    def time_lag(self):
+        return self._time_lag
+        
+    @time_lag.setter
+    def time_lag(self, lag):
+        self._time_lag = lag
                            
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
