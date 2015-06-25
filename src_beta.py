@@ -11,6 +11,9 @@ from scipy.special import gamma
 from scipy import sqrt
 import matplotlib.pyplot as plt
 
+#from pytmatrix.test import test_tmatrix
+#test_tmatrix.run_tests()
+
 #batch_create_hdf(datadir='../DATA', outname='winter1.h5',dtstr='20141217')
 #batch_create_hdf(datadir='../DATA', outname='winter1.h5',dtstr='20141218')
 #batch_create_hdf(datadir='../DATA', outname='winter1.h5',dtstr='20141220')
@@ -35,56 +38,16 @@ import matplotlib.pyplot as plt
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150127') #NODATA
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150131') #NODATA
 ####batch_create_hdf(datadir='../DATA', outname='new_winter.h5',dtstr='20150201') #NODATA
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140131')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140201')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140215')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140216')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140221')
-batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140222')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140131')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140201')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140212')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140215')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140216')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140221')
+#batch_create_hdf(datadir='../DATA', outname='baecc3.h5',dtstr='20140222')
 print('FINE FINE FINE')
-exit()
-
-
-
 
 #%%
-
-#radarfolder='../../Radars/'
-#RadarVP = pd.DataFrame()
-#for root, dirs, files in os.walk(radarfolder):
-#    for radarfile in files:
-#        if radarfile.startswith('tmpxsacr') and radarfile.endswith('.nc'):
-#            radardata = matio.netcdf.netcdf_file(root + '/' + radarfile)
-#            radarvariables = radardata.variables
-#            if 'RHI' in radardata.scan_name.decode():
-#                print('RHI')
-#                range_idx = 1
-#            if 'v' in radardata.scan_name.decode():
-#                print('VPT')
-#                range_idx = 0
-#            print(radardata.scan_name.decode())
-#            if 'reflectivity' in radarvariables.keys():
-#                reflectivity = radarvariables['reflectivity'].data[:,range_idx]*radarvariables['reflectivity'].scale_factor + radarvariables['reflectivity'].add_offset
-#            if 'time' in radarvariables.keys():
-#                basetime = datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%dT%H:%M:%SZ')
-#                time_lag = timedelta(minutes=4.4)
-#                if basetime > datetime(2014,2,15):
-#                    time_lag = timedelta(minutes=3.8)
-#                if basetime > datetime(2014,2,21):
-#                    time_lag = timedelta(minutes=1.0)
-#                deltatime = pd.to_timedelta(radarvariables['time'].data,unit='s')
-#                time = basetime + deltatime + time_lag
-#            if 'elevation' in radarvariables.keys():
-#                elevation = radarvariables['elevation'].data
-#            if 'range' in radarvariables.keys():
-#                rng = radarvariables['range'].data
-#            print(radarfile,rng[0])
-#            VP = np.abs(elevation-90) < 0.5
-#            tmpDF = pd.DataFrame(reflectivity[VP],index=time[VP],columns=['reflectivity'])
-#            RadarVP = RadarVP.append(tmpDF)
-#RadarVP.sort_index(inplace=True)
-#RadarVP.index.name = 'datetime'
 
 dtformat_default = '%d.%m. %H:%M'
 dtformat_default_year = '%d.%m.%y %H:%M'
@@ -95,8 +58,9 @@ folder = '/home/dori/SnowCases_BAEC/DensityJussi/test/'
 #RadarVP.to_csv(folder + 'radar_data.csv')
 
 e = EventsCollection('cases/cases_of_interest_radar.csv', dtformat_default_year)
+#e = EventsCollection('cases/test2.csv', dtformat_default_year)
 e.autoimport_data(autoshift=False, autobias=False, rule='5min',
-                  varinterval=True, datafile=['../DATA/baecc3.h5'])
+                  varinterval=True, radar=True, datafile=['../DATA/baecc3.h5'])
 
 def func_all_beta(mu,delta,deltaZ):
     def func_beta(beta):
@@ -137,10 +101,39 @@ b_huang.sort_index(inplace=True)
 
 #%%
 #for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
+Zray = pd.Series()
 for c in e.events.pluvio200.values:
     c.pluvio.shift_periods = -6
     basename = folder + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H')
     print(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H'))
+    start = c.pluvio.dt_start()
+    if start.month == 2:
+        if start.day == 12:
+            c.pluvio.n_combined_intervals = 1
+            c.xsacr.time_lag = pd.to_timedelta(60.0*2.0,unit='s') #fixme
+        elif start.day == 15 or start.day == 16:
+            c.pluvio.n_combined_intervals = 2
+            c.xsacr.time_lag = pd.to_timedelta(60.0*3.8,unit='s')
+        elif start.day == 21 or start.day ==22:
+            c.pluvio.n_combined_intervals = 2
+            c.xsacr.time_lag = pd.to_timedelta(60.0*1.0,unit='s')
+    
+    zx = 10.0*np.log10(c.z('XSACR'))
+    zk = 10.0*np.log10(c.z('KASACR'))
+    zkz = 10.0*np.log10(c.z('KAZR'))
+    zmw = 10.0*np.log10(c.z('MWACR'))
+    plt.figure()
+    zx.plot(label='xsacr')
+    #zk.plot(label='kasacr')
+    #zkz.plot(label='kazr')
+    #zmw.plot(label='mwacr')
+    zxtm = c.tmatrix(wl=30.8)
+    zxray = c.Z_rayleigh_Xband()
+    zxtm.plot(label='Xtm')
+    zxray.plot(label='Xray')
+    plt.legend(loc=0)
+    plt.savefig(basename + 'radar_avg.png')
+    plt.close()
     #depth = c.amount(params=[100],simple=True)
     #depth.to_csv(basename + 'depth_' + c.pluvio.name + '.csv')
     #print(depth.sum())
@@ -148,20 +141,20 @@ for c in e.events.pluvio200.values:
     #print(c.pluvio.amount(rule=c.rule))
 
 ####
-    c.pluvio.n_combined_intervals = 2
-    print('densita')
-    den_dtfr = c.density(pluvio_filter=True,pip_filter=False)
-    print('salvo densita')
-    den_dtfr.to_csv(basename + 'density_' + c.pluvio.name + '.csv')
-    print('sommario')
+#    c.pluvio.n_combined_intervals = 2
+    #c.tmatrix(wl=30.89598)
+#    Zray = Zray.append(c.Z_rayleigh_Xband())
+    #den_dtfr = c.density(pluvio_filter=True,pip_filter=False)
+    #den_dtfr.to_csv(basename + 'density_' + c.pluvio.name + '.csv')
     #c.pipv.plots(save=True, suffix='.eps', grid=False, xmax=4, ymax=3, xticks=[0,1,2,3,4], yticks=[0,1,2,3],colorbar=False, hexsize=8)
-    c.summary().to_csv(basename + 'summary_' + c.pluvio.name + '.csv')
-    c.pluvio.tdelta().to_csv(basename + 'timedelta_' + c.pluvio.name + '.csv')
-    c.density(pluvio_filter=True,pip_filter=False).plot()
-    axes=plt.gca()
-    axes.set_ylim([0, 1000])
-    plt.savefig(basename + 'density_' + c.pluvio.name + '.png')
-    plt.close("all")
+    #c.summary().to_csv(basename + 'summary_' + c.pluvio.name + '.csv')
+#    c.pluvio.tdelta().to_csv(basename + 'timedelta_' + c.pluvio.name + '.csv')
+#    c.density(pluvio_filter=True,pip_filter=False).plot()
+#    axes=plt.gca()
+#    axes.set_ylim([0, 1000])
+#    plt.savefig(basename + 'density_' + c.pluvio.name + '.png')
+#    plt.close("all")
+
     
     # Faccio le medie
 #    delta = pd.Series(c.pluvio.amount(crop=True).index.to_datetime(),index=c.pluvio.amount(crop=True).index).diff()
@@ -176,31 +169,33 @@ for c in e.events.pluvio200.values:
 #            tmpTimeZ = pd.DataFrame(Zmean,index=[idx.to_datetime()],columns=['Zmea'])
 #        time_Zavg = time_Zavg.append(tmpTimeZ)
 #            
-#    Zfile = pd.read_csv(folder + 'Z_' + c.pluvio.name + '_' + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H') + '30.89598.csv',header=None,names=['rho','n','Z'],parse_dates=True)
-#    
+#    Zfile = pd.read_csv(folder + 'Z_' + c.pluvio.name + '_' + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H') + '30.89598.csv',header=None,names=['rho','n','Z'],parse_dates=True) 
 #    Zestimate = pd.DataFrame(Zfile['Z'].values,index=time_Zavg.index,columns=['Zest'])
-#    dataZ = pd.concat([time_Zavg, c.mu(), c.lam(),c.pipv.fit_params()['b'],c.density(),Zestimate], join='outer', axis = 1)
-#    FinalData = pd.DataFrame()
-#    for index, row in dataZ.iterrows():
-#        dZ = row['Zmea']-row['Zest']
-#        f = func_all_beta(mu=row['mu'],delta=row['b'],deltaZ=dZ)
-#        g = func_all_b(mu=row['mu'],delta=row['b'],deltaZ=dZ)
-#        if np.isnan(dZ) or f(0.5)*f(4.5) > 0.0:
-#            betaopt = np.nan
-#            bopt = np.nan
-#        else:
-#            betaopt = opt.brentq(f,a=0.5,b=4.5,xtol=1.0e-04)
-#            bopt = opt.brentq(g,a=-2.5,b=1.5,xtol=1.0e-04)
-#        print(dZ,betaopt,bopt,row['b'],row['mu'])
-#        tmpFinalData = pd.DataFrame(np.array([[betaopt,bopt]]),index=[index.to_datetime()],columns=['beta','b'])
-#        FinalData = FinalData.append(tmpFinalData)
-#    
-#    axe = FinalData.plot()
-#    b_huang[c.pluvio.dt_start().to_datetime():c.pluvio.dt_end().to_datetime()].plot(ax=axe)
-#    plt.title(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y %m %d'))
-#    
-#    plt.savefig(basename + 'beta_b_' + c.pluvio.name + '.png')
-#    plt.close("all")
+
+    Zestimate = pd.DataFrame(zxray)
+    time_Zavg = pd.DataFrame(zx)
+    dataZ = pd.concat([time_Zavg, c.mu(), c.lam(),c.pipv.fit_params()['b'],c.density(),Zestimate], join='outer', axis = 1)
+    FinalData = pd.DataFrame()
+    for index, row in dataZ.iterrows():
+        dZ = row['XSACR reflectivity']-row['30.8reflTM']
+        f = func_all_beta(mu=row['mu'],delta=row['b'],deltaZ=dZ)
+        g = func_all_b(mu=row['mu'],delta=row['b'],deltaZ=dZ)
+        if np.isnan(dZ) or f(0.5)*f(4.5) > 0.0:
+            betaopt = np.nan
+            bopt = np.nan
+        else:
+            betaopt = opt.brentq(f,a=0.5,b=4.5,xtol=1.0e-04)
+            bopt = opt.brentq(g,a=-2.5,b=1.5,xtol=1.0e-04)
+        print(dZ,betaopt,bopt,row['b'],row['mu'])
+        tmpFinalData = pd.DataFrame(np.array([[betaopt,bopt]]),index=[index.to_datetime()],columns=['beta','b'])
+        FinalData = FinalData.append(tmpFinalData)
+    
+    axe = FinalData['beta'].plot('*-')
+    b_huang['beta_huang'][c.pluvio.dt_start().to_datetime():c.pluvio.dt_end().to_datetime()].plot(ax=axe)
+    plt.title(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y %m %d'))
+    
+    plt.savefig(basename + 'beta_b_' + c.pluvio.name + '.png')
+    plt.close("all")
     
 
 #c.plot_velfitcoefs(rhomax=600, countmin=2000)
