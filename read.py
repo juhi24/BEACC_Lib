@@ -567,17 +567,20 @@ class PipDSD(InstrumentData):
         plt.xlabel('time (UTC) BROKEN')
         plt.ylabel('D (mm) BROKEN')
 
-    def filter_cat_and_dog(self, data=None, window=5):
+    def filter_cats_and_dogs(self, data=None, window=5):
         """a rolling window filter for isolated data points"""
         if data is None:
             data = self.data
+        # Any datapoint after <window-1> bins of zeros will be flagged
         is_dog = pd.rolling_count(data.mask(data == 0).T, window).T == 1
-        is_dog.ix[:, :window] = False # ignore first columns
-        is_dog[is_dog == False] = np.nan
+        is_dog.ix[:, :window] = False # unflag <window> first columns
+        is_dog[is_dog == False] = np.nan # False --> NaN, True --> 1
+        # In a time interval flag anything that's bigger than any previously
+        # flagged bin (forward fill).
         is_dog = is_dog.ffill(axis=1).fillna(False)
-        is_dog = is_dog.astype(np.bool)
+        is_dog = is_dog.astype(np.bool) # convert back to boolean
         filtered = copy.deepcopy(data)
-        filtered[is_dog] = 0
+        filtered[is_dog] = 0 # apply filter
         return filtered
 
     def good_data(self, filter_large=True, **kwargs):
@@ -589,7 +592,7 @@ class PipDSD(InstrumentData):
             gain_correction = 1
         data = self.data
         if filter_large:
-            data = self.filter_cat_and_dog(data=data, **kwargs)
+            data = self.filter_cats_and_dogs(data=data, **kwargs)
         bin_cen = self.data.columns.values
         too_small = bin_cen[bin_cen < 0.3]
         return gain_correction*data.drop(too_small, 1)
