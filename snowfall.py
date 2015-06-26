@@ -576,11 +576,12 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         elif radarname == 'MWACR':
             return self.mwacr.z(varinterval=self.varinterval, rule=self.rule)
         
-    def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False):
+    def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False, density=None):
         """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
         name = "reflXray"
         constant = 0.2/(0.93*917*917)
-        density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
+        if density is None:
+            density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
         Z = 10.0*np.log10(constant*density*density*self.n_moment(6))
         Z.name = name
         return Z
@@ -609,17 +610,19 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         density[density.isnull()] = 0
         return np.sqrt(density)
         
-    def tmatrix(self, wl, pluvio_filter=True, pip_filter=False):
+    def tmatrix(self, wl, pluvio_filter=True, pip_filter=False, density=None):
         """Calculate radar reflectivity at requested wavelength wl [mm] using T-matrix"""
         name = switch_wl(wl) + "reflTM"
-        density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
+        if density is None:
+            density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
         Zserie = pd.Series(density)
         dBin = self.dsd.d_bin
         edges = self.dsd.data.columns.values+0.5*dBin
-        PSDvalues = self.dsd.good_data()
+        PSDvalues = self.n(self.dsd.bin_cen())
         for item in density.iteritems():
-            ref=refractive.mi(wl,0.001*item[1])
-            if np.isfinite(ref):
+            if item[1] > 0.0:
+                ref=refractive.mi(wl,0.001*item[1])
+                print(ref)
                 flake = tmatrix.Scatterer(wavelength=wl, m=ref, axis_ratio=1.0/1.0)
                 flake.psd_integrator = psd.PSDIntegrator()
                 flake.psd_integrator.D_max = 28.0

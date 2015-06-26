@@ -71,6 +71,7 @@ class Fit:
             return
         if self.sigma is not None:
             kwargs['sigma'] = self.sigma
+        #print(type(self.x),type(self.y))
         params, cov = curve_fit(self.func, self.x, self.y, **kwargs)
         if store_params:
             self.params = params

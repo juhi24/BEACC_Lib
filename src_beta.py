@@ -56,10 +56,14 @@ dtformat_print = '%y%m%d%H%M'
 
 folder = '/home/dori/SnowCases_BAEC/DensityJussi/test/'
 #RadarVP.to_csv(folder + 'radar_data.csv')
-
+huang = True
 e = EventsCollection('cases/cases_of_interest_radar.csv', dtformat_default_year)
 #e = EventsCollection('cases/test2.csv', dtformat_default_year)
-e.autoimport_data(autoshift=False, autobias=False, rule='5min',
+if huang:
+    e.autoimport_data(autoshift=False, autobias=False, rule='5min', unbias=True,
+                  varinterval=False, radar=True, datafile=['../DATA/baecc3.h5'])
+else:
+    e.autoimport_data(autoshift=False, autobias=False, rule='5min',
                   varinterval=True, radar=True, datafile=['../DATA/baecc3.h5'])
 
 def func_all_beta(mu,delta,deltaZ):
@@ -91,57 +95,105 @@ for root, dirs, files in os.walk(huang_dir):
             #aa = mat['aa']
             ba = mat['ba']
             t_cnt = mat['t_cnt']
+            bulk = mat['bulk']
             day = datetime.strptime(huangfile[1:6],'%y%j')
             td = pd.to_timedelta(t_cnt[0]*3600+120+30,unit='s')
             time = day + td
-            tmp_b = pd.DataFrame(np.concatenate((3+ba.T, ba.T),axis=1),index=time,columns=['beta_huang','b_huang'])
+            tmp_b = pd.DataFrame(np.concatenate((3+ba.T, ba.T, 1000.0*bulk.T),axis=1),index=time,columns=['beta_huang','b_huang','density'])
             b_huang = b_huang.append(tmp_b)
-b_huang.sort_index(inplace=True)            
+b_huang.sort_index(inplace=True)
+b_huang = b_huang.drop_duplicates()
+
+           
 
 
 #%%
-#for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
 Zray = pd.Series()
-for c in e.events.pluvio200.values:
-    c.pluvio.shift_periods = -6
+for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
+#for c in e.events.pluvio200.values:
+    #c.pluvio.lwc = c.pipv.lwc(rule=c.rule)
+    #c.pluvio.shift_periods = -6
     basename = folder + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H')
     print(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H'))
     start = c.pluvio.dt_start()
-    if start.month == 2:
-        if start.day == 12:
-            c.pluvio.n_combined_intervals = 1
-            c.xsacr.time_lag = pd.to_timedelta(60.0*2.0,unit='s') #fixme
-        elif start.day == 15 or start.day == 16:
-            c.pluvio.n_combined_intervals = 2
-            c.xsacr.time_lag = pd.to_timedelta(60.0*3.8,unit='s')
-        elif start.day == 21 or start.day ==22:
-            c.pluvio.n_combined_intervals = 2
-            c.xsacr.time_lag = pd.to_timedelta(60.0*1.0,unit='s')
-    
+    if not c.varinterval:
+        if start.month == 2:
+            if start.day == 12:
+                c.pluvio.shift_periods = -5
+                c.xsacr.time_lag = pd.to_timedelta(60.0*2.0,unit='s')
+#                c.pluvio.n_combined_intervals = 1
+#                c.xsacr.time_lag = pd.to_timedelta(60.0*2.0,unit='s') #fixme
+            elif start.day == 15 or start.day == 16:
+                c.pluvio.shift_periods = -5
+                c.xsacr.time_lag = pd.to_timedelta(60.0*4.0,unit='s')
+#                c.pluvio.n_combined_intervals = 1
+#                c.xsacr.time_lag = pd.to_timedelta(60.0*3.8,unit='s')
+            elif start.day == 21 or start.day ==22:
+                c.pluvio.shift_periods = -6
+                c.xsacr.time_lag = pd.to_timedelta(60.0*1.0,unit='s')
+#                c.pluvio.n_combined_intervals = 1
+#                c.xsacr.time_lag = pd.to_timedelta(60.0*1.0,unit='s')
+    print('estraggo Z')
     zx = 10.0*np.log10(c.z('XSACR'))
     zk = 10.0*np.log10(c.z('KASACR'))
     zkz = 10.0*np.log10(c.z('KAZR'))
     zmw = 10.0*np.log10(c.z('MWACR'))
     plt.figure()
     zx.plot(label='xsacr')
+    print('densitá')
+    #print(c.density(pluvio_filter=False))
     #zk.plot(label='kasacr')
     #zkz.plot(label='kazr')
     #zmw.plot(label='mwacr')
-    zxtm = c.tmatrix(wl=30.8)
-    zxray = c.Z_rayleigh_Xband()
+
+    if huang:
+        print('Estimate huang reflectivities')
+        rho = b_huang['density']
+        rhocut = rho.loc[c.pluvio.dt_start():c.pluvio.dt_end()]
+        zxtm = c.tmatrix(wl=30.8,pluvio_filter=False,density=rhocut)
+        zxray = c.Z_rayleigh_Xband(density=rhocut)
+    else:
+        print('TM')
+        zxtm = c.tmatrix(wl=30.8,pluvio_filter=False)
+        print('RAY')
+        zxray = c.Z_rayleigh_Xband()
     zxtm.plot(label='Xtm')
     zxray.plot(label='Xray')
     plt.legend(loc=0)
-    plt.savefig(basename + 'radar_avg.png')
+    plt.savefig(basename + c.pluvio.name + 'radar_avg.png')
     plt.close()
-    #depth = c.amount(params=[100],simple=True)
+    
+#    depth = c.amount(params=[100],simple=True)
+#    accum = c.pluvio.amount(rule=c.rule)
+#    xsacr = c.z(radarname = 'XSACR')
+#    xsacr = xsacr.fillna(xsacr.interpolate(method='cubic'))
+#    xsacr = 10.0*np.log10(xsacr)
+#    kasacr = 10.0*np.log10(c.z(radarname = 'KASACR'))
+#    kazr = 10.0*np.log10(c.z(radarname = 'KAZR'))
+#    mwacr = 10.0*np.log10(c.z(radarname = 'MWACR'))
+#    
+#    cor_plu_pip = np.correlate(depth,accum,'same')
+#    cor_plu_xsa = np.correlate(accum,xsacr,'same')
+#    cor_xsa_pip = np.correlate(xsacr,depth,'same')
+#    cor_xsa_ksa = np.correlate(xsacr,kasacr,'same')
+#    cor_xsa_mwa = np.correlate(xsacr,mwacr,'same')
+#    if depth.size % 2:
+#        print('odd  ',depth.size,cor_plu_pip.argmax(),cor_plu_pip.argmax()-(depth.size-1)//2)
+#        print('odd  ',depth.size,cor_xsa_pip.argmax(),cor_xsa_pip.argmax()-(depth.size-1)//2)
+#    else:
+#        print('even ',depth.size,cor_plu_pip.argmax(),cor_plu_pip.argmax()-depth.size//2)
+#        print('even ',depth.size,cor_xsa_pip.argmax(),cor_xsa_pip.argmax()-depth.size//2)
+#        
+#    if accum.size % 2:
+#        print('odd  ',accum.size,cor_plu_xsa.argmax(),cor_plu_xsa.argmax()-(accum.size-1)//2)
+#    else:
+#        print('even ',accum.size,cor_plu_xsa.argmax(),cor_plu_xsa.argmax()-accum.size//2)
     #depth.to_csv(basename + 'depth_' + c.pluvio.name + '.csv')
     #print(depth.sum())
     #print(depth)
     #print(c.pluvio.amount(rule=c.rule))
 
 ####
-#    c.pluvio.n_combined_intervals = 2
     #c.tmatrix(wl=30.89598)
 #    Zray = Zray.append(c.Z_rayleigh_Xband())
     #den_dtfr = c.density(pluvio_filter=True,pip_filter=False)
@@ -172,14 +224,18 @@ for c in e.events.pluvio200.values:
 #    Zfile = pd.read_csv(folder + 'Z_' + c.pluvio.name + '_' + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H') + '30.89598.csv',header=None,names=['rho','n','Z'],parse_dates=True) 
 #    Zestimate = pd.DataFrame(Zfile['Z'].values,index=time_Zavg.index,columns=['Zest'])
 
+    #Zestimate = pd.DataFrame(zxtm)
     Zestimate = pd.DataFrame(zxray)
     time_Zavg = pd.DataFrame(zx)
     dataZ = pd.concat([time_Zavg, c.mu(), c.lam(),c.pipv.fit_params()['b'],c.density(),Zestimate], join='outer', axis = 1)
     FinalData = pd.DataFrame()
     for index, row in dataZ.iterrows():
-        dZ = row['XSACR reflectivity']-row['30.8reflTM']
+        dZ = row['XSACR reflectivity']-row[Zestimate.columns[0]]
         f = func_all_beta(mu=row['mu'],delta=row['b'],deltaZ=dZ)
         g = func_all_b(mu=row['mu'],delta=row['b'],deltaZ=dZ)
+        if huang:
+            f = func_all_beta(mu=row['mu'],delta=0.0,deltaZ=dZ)
+            g = func_all_b(mu=row['mu'],delta=0.0,deltaZ=dZ)
         if np.isnan(dZ) or f(0.5)*f(4.5) > 0.0:
             betaopt = np.nan
             bopt = np.nan
@@ -190,7 +246,7 @@ for c in e.events.pluvio200.values:
         tmpFinalData = pd.DataFrame(np.array([[betaopt,bopt]]),index=[index.to_datetime()],columns=['beta','b'])
         FinalData = FinalData.append(tmpFinalData)
     
-    axe = FinalData['beta'].plot('*-')
+    axe = FinalData['beta'].plot(marker='*')
     b_huang['beta_huang'][c.pluvio.dt_start().to_datetime():c.pluvio.dt_end().to_datetime()].plot(ax=axe)
     plt.title(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y %m %d'))
     
@@ -199,11 +255,3 @@ for c in e.events.pluvio200.values:
     
 
 #c.plot_velfitcoefs(rhomax=600, countmin=2000)
-
-#03.01.15 00:00,03.01.15 23:50
-#12.01.15 21:00,13.01.15 08:00
-#31.01.14 21:00,01.02.14 04:00
-
-
-#14.01.15 01:00,14.01.15 05:00
-#16.01.15 01:00,16.01.15 07:00

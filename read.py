@@ -769,13 +769,13 @@ class PipV(InstrumentData):
             self.find_fits(rule, fit=emptyfit, varinterval=varinterval)
         elif not varinterval:
             if pd.datetools.to_offset(rule) != self.fits.index.freq:
-                # different sampling freq
+                print('different sampling freq')
                 self.find_fits(rule, fit=emptyfit, varinterval=varinterval)
         v = []
         for fit in self.fits[emptyfit.name].values:
             v.append(fit.func(d))
         return pd.Series(v, index=self.fits.index, name='v')
-
+        
     def lwc(self, rule='1min'):
         """liquid water content"""
         d3 = self.good_data().Wad_Dia**3
@@ -830,13 +830,19 @@ class PipV(InstrumentData):
             fit = self.default_fit
         fit = copy.deepcopy(fit)
         partcount = data.count()[0]
-        if partcount < 5 and (use_curve_fit or kde):
+        if partcount < 10 and (use_curve_fit or kde): #increased from 5 to 10
             print('Too few particles.')
             kde = False
             use_curve_fit = False
         elif filter_outliers:
-            data, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac)
-            if name is not None:
+            datao, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac, flip=True)
+            filtcount = datao.count()[0]
+            partcount = data.count()[0]
+            if filtcount < 2 and (use_curve_fit or kde):
+                print('Too few particles.')
+                kde = False
+                use_curve_fit = False
+            elif name is not None:
                 stdarr.resize(self.dbins.size, refcheck=False)
                 HWfracM.resize(self.dbins.size, refcheck=False)
                 std = pd.DataFrame(pd.Series(stdarr, index=self.dbins, name=name)).T
@@ -866,6 +872,7 @@ class PipV(InstrumentData):
         fit.x = d
         fit.y = v
         if use_curve_fit:
+            partcount = data.count()[0]
             params, pcov = fit.find_fit()
             perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
             if try_flip and not kde:
@@ -918,6 +925,7 @@ class PipV(InstrumentData):
         stds = []
         hwfms = []
         for name, group in self.grouped(rule=rule, varinterval=varinterval):
+            print('\n',name)
             try:
                 newfit, std, hwfm = self.find_fit(data=group, name=name,
                                                   try_flip=self.use_flip,
