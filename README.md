@@ -21,7 +21,7 @@ Activate your virtual environment.
 
     source py3env/bin/activate
     
-Then install the requirements inside the virtual environment using pip. Baecc requires `scipy`, `numpy`, `matplotlib`, `tstables` (`pytables`) and `pandas`.
+Then install the requirements inside the virtual environment using pip. Baecc requires `scipy`, `numpy`, `matplotlib`, `tstables` (`pytables`), `pytmatrix` and `pandas`.
 
     pip install PACKAGENAME
 
@@ -36,14 +36,27 @@ Getting started
 
 Files starting with `scr_` are example scripts.
 
+You need PIP and pluviometer data either in raw ASCII or HDF5 format. 
+Parts of the code can also utilize radar data using pytmatrix.
+
+Data is selected using csv case configuration files. 
+Minimum requirement for the configuration file is a header line with columns `start` and `end`, and at least one row (case) with corresponding datetime strings as shown here:
+
+    start,end
+    2014 21 February 21 UTC,2014 21 February 23 UTC
+
+You can use different date formatting and specify a corresponding format string when initializing EventsCollection object.
+
 Authors
 -------
 
 Jussi Tiira <jussi.tiira@helsinki.fi>
 
-Contributions from Davide Ori and Kalle Nordig
+Davide Ori
 
-Full (almost) list of contributions can be viewed in the contributor tab in Github.
+Contributions also from Kalle Nordling
+
+Full list of contributions can be viewed in the contributor tab in Github.
 
 Licensing
 ---------
