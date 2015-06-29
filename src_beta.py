@@ -54,9 +54,9 @@ dtformat_default_year = '%d.%m.%y %H:%M'
 dtformat_snex = '%y %d %B %H UTC'
 dtformat_print = '%y%m%d%H%M'
 
-folder = '/home/dori/SnowCases_BAEC/DensityJussi/test/'
+folder = '/home/dori/SnowCases_BAEC/DensityJussi/test_jussi/'
 #RadarVP.to_csv(folder + 'radar_data.csv')
-huang = True
+huang = False
 e = EventsCollection('cases/cases_of_interest_radar.csv', dtformat_default_year)
 #e = EventsCollection('cases/test2.csv', dtformat_default_year)
 if huang:
@@ -116,52 +116,65 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
     basename = folder + datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H')
     print(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y%m%d%H'))
     start = c.pluvio.dt_start()
-    if not c.varinterval:
+    if c.varinterval:
         if start.month == 2:
             if start.day == 12:
                 c.pluvio.shift_periods = -5
                 c.xsacr.time_lag = pd.to_timedelta(60.0*2.0,unit='s')
-#                c.pluvio.n_combined_intervals = 1
+                c.pluvio.n_combined_intervals = 1
 #                c.xsacr.time_lag = pd.to_timedelta(60.0*2.0,unit='s') #fixme
             elif start.day == 15 or start.day == 16:
                 c.pluvio.shift_periods = -5
                 c.xsacr.time_lag = pd.to_timedelta(60.0*4.0,unit='s')
 #                c.pluvio.n_combined_intervals = 1
-#                c.xsacr.time_lag = pd.to_timedelta(60.0*3.8,unit='s')
+                c.xsacr.time_lag = pd.to_timedelta(60.0*3.8,unit='s')
             elif start.day == 21 or start.day ==22:
                 c.pluvio.shift_periods = -6
                 c.xsacr.time_lag = pd.to_timedelta(60.0*1.0,unit='s')
-#                c.pluvio.n_combined_intervals = 1
-#                c.xsacr.time_lag = pd.to_timedelta(60.0*1.0,unit='s')
+                c.pluvio.n_combined_intervals = 1
+
     print('estraggo Z')
     zx = 10.0*np.log10(c.z('XSACR'))
     zk = 10.0*np.log10(c.z('KASACR'))
     zkz = 10.0*np.log10(c.z('KAZR'))
     zmw = 10.0*np.log10(c.z('MWACR'))
-    plt.figure()
-    zx.plot(label='xsacr')
     print('densitá')
     #print(c.density(pluvio_filter=False))
-    #zk.plot(label='kasacr')
-    #zkz.plot(label='kazr')
-    #zmw.plot(label='mwacr')
-
     if huang:
         print('Estimate huang reflectivities')
         rho = b_huang['density']
         rhocut = rho.loc[c.pluvio.dt_start():c.pluvio.dt_end()]
         zxtm = c.tmatrix(wl=30.8,pluvio_filter=False,density=rhocut)
+        #zktm = c.tmatrix(wl=8.49,pluvio_filter=False,density=rhocut)
+        #zwtm = c.tmatrix(wl=3.15,pluvio_filter=False,density=rhocut)
         zxray = c.Z_rayleigh_Xband(density=rhocut)
     else:
         print('TM')
         zxtm = c.tmatrix(wl=30.8,pluvio_filter=False)
+        #zktm = c.tmatrix(wl=8.49,pluvio_filter=False)
+        #zwtm = c.tmatrix(wl=3.15,pluvio_filter=False)
         print('RAY')
         zxray = c.Z_rayleigh_Xband()
+    plt.figure()
+    zx.plot(label='xsacr')
     zxtm.plot(label='Xtm')
     zxray.plot(label='Xray')
     plt.legend(loc=0)
-    plt.savefig(basename + c.pluvio.name + 'radar_avg.png')
-    plt.close()
+    plt.savefig(basename + c.pluvio.name + 'radar_avgX.png')
+    plt.close('all')
+#    plt.figure()
+#    zk.plot(label='kasacr')
+#    zkz.plot(label='kazr')
+#    zktm.plot(label='Ktm')
+#    plt.legend(loc=0)
+#    plt.savefig(basename + c.pluvio.name + 'radar_avgK.png')
+#    plt.close('all')
+#    plt.figure()
+#    zmw.plot(label='mwacr')
+#    zwtm.plot(label='Wtm')
+#    plt.legend(loc=0)
+#    plt.savefig(basename + c.pluvio.name + 'radar_avgW.png')
+#    plt.close('all')
     
 #    depth = c.amount(params=[100],simple=True)
 #    accum = c.pluvio.amount(rule=c.rule)
@@ -175,7 +188,7 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
 #    cor_plu_pip = np.correlate(depth,accum,'same')
 #    cor_plu_xsa = np.correlate(accum,xsacr,'same')
 #    cor_xsa_pip = np.correlate(xsacr,depth,'same')
-#    cor_xsa_ksa = np.correlate(xsacr,kasacr,'same')
+#    cor_xsa_ksa = np.correlate(xsacr,kasacr,'same')    plt.figure()
 #    cor_xsa_mwa = np.correlate(xsacr,mwacr,'same')
 #    if depth.size % 2:
 #        print('odd  ',depth.size,cor_plu_pip.argmax(),cor_plu_pip.argmax()-(depth.size-1)//2)
@@ -199,13 +212,13 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
     #den_dtfr = c.density(pluvio_filter=True,pip_filter=False)
     #den_dtfr.to_csv(basename + 'density_' + c.pluvio.name + '.csv')
     #c.pipv.plots(save=True, suffix='.eps', grid=False, xmax=4, ymax=3, xticks=[0,1,2,3,4], yticks=[0,1,2,3],colorbar=False, hexsize=8)
-    #c.summary().to_csv(basename + 'summary_' + c.pluvio.name + '.csv')
+    c.summary().to_csv(basename + 'summary_' + c.pluvio.name + '.csv')
 #    c.pluvio.tdelta().to_csv(basename + 'timedelta_' + c.pluvio.name + '.csv')
-#    c.density(pluvio_filter=True,pip_filter=False).plot()
-#    axes=plt.gca()
-#    axes.set_ylim([0, 1000])
-#    plt.savefig(basename + 'density_' + c.pluvio.name + '.png')
-#    plt.close("all")
+    c.density(pluvio_filter=True,pip_filter=False).plot()
+    axes=plt.gca()
+    axes.set_ylim([0, 1000])
+    plt.savefig(basename + 'density_' + c.pluvio.name + '.png')
+    plt.close("all")
 
     
     # Faccio le medie
@@ -225,7 +238,7 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
 #    Zestimate = pd.DataFrame(Zfile['Z'].values,index=time_Zavg.index,columns=['Zest'])
 
     #Zestimate = pd.DataFrame(zxtm)
-    Zestimate = pd.DataFrame(zxray)
+    Zestimate = pd.DataFrame(zxtm)
     time_Zavg = pd.DataFrame(zx)
     dataZ = pd.concat([time_Zavg, c.mu(), c.lam(),c.pipv.fit_params()['b'],c.density(),Zestimate], join='outer', axis = 1)
     FinalData = pd.DataFrame()
@@ -245,11 +258,10 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
         print(dZ,betaopt,bopt,row['b'],row['mu'])
         tmpFinalData = pd.DataFrame(np.array([[betaopt,bopt]]),index=[index.to_datetime()],columns=['beta','b'])
         FinalData = FinalData.append(tmpFinalData)
-    
+    plt.figure()
     axe = FinalData['beta'].plot(marker='*')
     b_huang['beta_huang'][c.pluvio.dt_start().to_datetime():c.pluvio.dt_end().to_datetime()].plot(ax=axe)
     plt.title(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y %m %d'))
-    
     plt.savefig(basename + 'beta_b_' + c.pluvio.name + '.png')
     plt.close("all")
     

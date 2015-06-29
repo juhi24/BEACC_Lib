@@ -928,7 +928,6 @@ class PipV(InstrumentData):
         stds = []
         hwfms = []
         for name, group in self.grouped(rule=rule, varinterval=varinterval):
-            print('\n',name)
             try:
                 newfit, std, hwfm = self.find_fit(data=group, name=name,
                                                   try_flip=self.use_flip,

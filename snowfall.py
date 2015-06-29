@@ -353,7 +353,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """numerical integration over particle diameter"""
         dD = self.dsd.d_bin
         result = self.series_zeros()
-        for d in self.dsd.good_data().columns:
+        for d in self.dsd.bin_cen():#good_data().columns:
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
 
@@ -485,7 +485,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def series_zeros(self):
         """Return series of zeros of the shape of timestep averaged data."""
-        return self.pluvio.acc(rule=self.rule)*0
+        return self.pluvio.acc(rule=self.rule)*0.0
 
     def series_nans(self):
         """Return series of nans of the shape of timestep averaged data."""
@@ -618,7 +618,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         Zserie = pd.Series(density)
         dBin = self.dsd.d_bin
         edges = self.dsd.data.columns.values+0.5*dBin
-        PSDvalues = self.n(self.dsd.bin_cen())
+        grp = self.dsd.grouped(rule=self.rule, varinterval=self.varinterval,
+                               col=self.dsd.bin_cen())
+        PSDvalues = grp.mean()
         for item in density.iteritems():
             if item[1] > 0.0:
                 ref=refractive.mi(wl,0.001*item[1])
@@ -779,7 +781,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                                       self.eta(),self.mu(),self.lam(),self.n_0(),
                                       self.n_moment(0),self.n_moment(1),
                                       self.n_moment(2),self.Z_rayleigh_Xband(),
-                                      self.tmatrix(wl))
+                                      self.tmatrix(tm_aux.wl_X))
         data.index.name = 'datetime'
         return data.sort_index(axis=1)
 
