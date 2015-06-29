@@ -39,12 +39,12 @@ class Fit:
         if self.params is None:
             return ax
         if xmax is None:
-            if self.x is None:
+            if self.x is None or len(self.x)<1:
                 xmax = 10
             else:
                 xmax = self.x.max()
         if xmin is None:
-            if self.x is None:
+            if self.x is None or len(self.x)<1:
                 xmin = 0
             else:
                 xmin = self.x.min()

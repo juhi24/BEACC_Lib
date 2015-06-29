@@ -11,9 +11,13 @@ import matplotlib.pyplot as plt
 import copy
 import locale
 import os
+import warnings
 
 from pytmatrix import tmatrix, psd, refractive, orientation, radar
 from pytmatrix import tmatrix_aux as tm_aux
+
+# general configuration
+debug = True
 
 # CONFIG default paths
 data_dir = '../DATA'
@@ -27,8 +31,16 @@ radar_subpath = 'Radar/%s/tmp%s*M1.a1.%s.*'
 
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
+if debug:
+    warnings.simplefilter('default')
+else:
+    warnings.simplefilter('ignore')
+
 TAU = 2*np.pi
 RHO_W = 1000
+
+def deprecation(message, stacklevel=2):
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
 
 def switch_wl(x):
     return {tm_aux.wl_C : "C", tm_aux.wl_X : "X", tm_aux.wl_Ku : "Ku",
@@ -148,7 +160,7 @@ class EventsCollection(MultiSeries):
             cases.append(data.between_datetime(e.start, e.end,
                                                autoshift=autoshift,
                                                autobias=autobias))
-        self.events[data.pluvio.name] = cases
+        self.events[data.instr['pluvio'].name] = cases
 
     def autoimport_data(self, datafile=[h5path], autoshift=False, 
                         autobias=False, radar=False, **casekwargs):
@@ -176,15 +188,16 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                  autoshift=False, liquid=False, quess=(0.01, 2.1),
                  bnd=((0, 0.1), (1, 3)), rule='15min', use_cache=True):
         self._use_cache = use_cache
-        self.dsd = dsd
-        self.pipv = pipv
-        self.pluvio = pluvio
-        self.xsacr = xsacr
-        self.kasacr = kasacr
-        self.kazr = kazr
-        self.mwacr = mwacr        
+        if xsacr is None:
+            self.instr = {'pluvio': pluvio, 'dsd': dsd, 'pipv': pipv}
+        else:
+            self.instr = {'pluvio': pluvio, 'dsd': dsd, 'pipv': pipv,
+                      'xsacr': xsacr, 'kasacr': kasacr, 'kazr': kazr,
+                      'mwacr': mwacr}
+        self.instr_depr_args = {'message':'Please use new syntax: case.instr[instrument_name]',
+                                'stacklevel':3}
         self._varinterval = varinterval
-        self.pluvio.varinterval = varinterval
+        self.instr['pluvio'].varinterval = varinterval
         self.quess = quess
         self.bnd = bnd
         if varinterval:
@@ -193,8 +206,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             self._rule = rule
         self.liquid = liquid
         self._ab = None # alpha, beta
-        for instr in [self.dsd, self.pipv, self.pluvio]:
-            instr.case = self
+        for instr in self.instr.values():
+            instr.case = self # maybe this is kind of silly
         if autoshift:
             self.autoshift()
         if unbias:
@@ -215,13 +228,83 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                                               dt_end, sampling_label)
 
     @property
+    def dsd(self):
+        deprecation(**self.instr_depr_args)
+        return self.instr['dsd']
+
+    @dsd.setter
+    def dsd(self, dsd):
+        deprecation(**self.instr_depr_args)
+        self.instr['dsd'] = dsd
+
+    @property
+    def pluvio(self):
+        deprecation(**self.instr_depr_args)
+        return self.instr['pluvio']
+
+    @pluvio.setter
+    def pluvio(self, pluvio):
+        deprecation(**self.instr_depr_args)
+        self.instr['pluvio'] = pluvio
+
+    @property
+    def pipv(self):
+        deprecation(**self.instr_depr_args)
+        return self.instr['pipv']
+
+    @pipv.setter
+    def pipv(self, pipv):
+        deprecation(**self.instr_depr_args)
+        self.instr['pipv'] = pipv
+
+    @property
+    def xsacr(self):
+        deprecation(**self.instr_depr_args)
+        return self.instr['xsacr']
+
+    @xsacr.setter
+    def xsacr(self, xsacr):
+        deprecation(**self.instr_depr_args)
+        self.instr['xsacr'] = xsacr
+
+    @property
+    def kasacr(self):
+        deprecation(**self.instr_depr_args)
+        return self.instr['kasacr']
+
+    @kasacr.setter
+    def kasacr(self, kasacr):
+        deprecation(**self.instr_depr_args)
+        self.instr['kasacr'] = kasacr
+
+    @property
+    def kazr(self):
+        deprecation(**self.instr_depr_args)
+        return self.instr['kazr']
+
+    @kazr.setter
+    def kazr(self, kazr):
+        deprecation(**self.instr_depr_args)
+        self.instr['kazr'] = kazr
+
+    @property
+    def mwacr(self):
+        deprecation(**self.instr_depr_args)
+        return self.instr['mwacr']
+
+    @mwacr.setter
+    def mwacr(self, mwacr):
+        deprecation(**self.instr_depr_args)
+        self.instr['mwacr'] = mwacr
+
+    @property
     def use_cache(self):
         return self._use_cache
 
     @use_cache.setter
     def use_cache(self, use_cache):
         self._use_cache = use_cache
-        for instr in [self.dsd, self.pipv, self.pluvio]:
+        for instr in self.instr.values():
             instr.use_cache = use_cache
 
     @property
@@ -231,13 +314,13 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     @varinterval.setter
     def varinterval(self, varinterval):
         self._varinterval = varinterval
-        self.pluvio.varinterval = varinterval
+        self.instr['pluvio'].varinterval = varinterval
         self.reset()
 
     @property
     def rule(self):
         if self.varinterval: #and self._rule is None:
-            self._rule = self.pluvio.grouper() # TODO: needs to be reset on changes for pluvio data
+            self._rule = self.instr['pluvio'].grouper() # TODO: needs to be reset on changes for pluvio data
         return self._rule
 
     @rule.setter
@@ -301,15 +384,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             m = self
         else:
             m = copy.deepcopy(self)
-        if m.xsacr is not None:
-            for instr in [m.dsd, m.pipv, m.pluvio, m.xsacr, m.kasacr, m.kazr, m.mwacr]:
-                instr.between_datetime(dt_start, dt_end, inplace=True)
-                instr.case = m
-        else:
-            for instr in [m.dsd, m.pipv, m.pluvio]:
-                instr.between_datetime(dt_start, dt_end, inplace=True)
-                instr.case = m
-        m.pluvio.bias = 0
+        for instr in self.instr.values():
+            instr.between_datetime(dt_start, dt_end, inplace=True)
+            instr.case = m
+        m.instr['pluvio'].bias = 0
         if autoshift:
             m.autoshift(inplace=True)
         if autobias:
@@ -575,6 +653,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             return self.kazr.z(varinterval=self.varinterval, rule=self.rule)
         elif radarname == 'MWACR':
             return self.mwacr.z(varinterval=self.varinterval, rule=self.rule)
+        # TODO: else throw error "unknown radarname"
         
     def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False, density=None):
         """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""

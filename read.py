@@ -182,6 +182,12 @@ class InstrumentData(Cacher):
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
+    
+    def __add__(self, other):
+        combined = copy.deepcopy(self)
+        combined.data = pd.concat(self.data, other.data)
+        combined.clear_cache()
+        return combined
 
     def finish_init(self, dt_start, dt_end):
         """Sort and name index, cut time span."""
