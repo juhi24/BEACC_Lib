@@ -350,8 +350,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
+        print(dt_start,dt_end)
         pluvio200 = read.Pluvio(filenames, hdf_table='pluvio200')
         pluvio400 = read.Pluvio(filenames, hdf_table='pluvio400')
+        print(pluvio200.data.shape,pluvio400.data.shape)
         dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
         pipv = read.PipV(filenames, hdf_table='pip_vel')
         instr_lst = [pluvio200, pluvio400, dsd, pipv]
@@ -388,7 +390,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             m = self
         else:
             m = copy.deepcopy(self)
-        for instr in self.instr.values():
+        for instr in m.instr.values():
             instr.between_datetime(dt_start, dt_end, inplace=True)
             instr.case = m
         m.instr['pluvio'].bias = 0
@@ -701,7 +703,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         Zserie = pd.Series(density)
         dBin = self.instr['dsd'].d_bin
         edges = self.instr['dsd'].data.columns.values+0.5*dBin
-        PSDvalues = self.n(self.instr['dsd'].bin_cen())
+        grp = self.instr['dsd'].grouped(rule=self.rule, varinterval=self.varinterval,
+                               col=self.dsd.bin_cen())
+        PSDvalues = grp.mean()
         for item in density.iteritems():
             if item[1] > 0.0:
                 ref = refractive.mi(wl, 0.001*item[1])
@@ -709,7 +713,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 flake = tmatrix.Scatterer(wavelength=wl, m=ref, axis_ratio=1.0/1.0)
                 flake.psd_integrator = psd.PSDIntegrator()
                 flake.psd_integrator.D_max = 28.0
-                flake.psd = psd.BinnedPSD(bin_edges=edges, bin_psd=PSDvalues.loc[item[0]].values)
+                flake.psd = psd.BinnedPSD(bin_edges=edges, 
+                                          bin_psd=PSDvalues.loc[item[0]].values)
                 flake.psd_integrator.init_scatter_table(flake)
                 Z = 10.0*np.log10(radar.refl(flake))
             else:
