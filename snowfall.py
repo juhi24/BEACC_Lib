@@ -227,6 +227,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return '%s case from %s to %s, %s' % (casetype, dt_start,
                                               dt_end, sampling_label)
 
+    #==========================================================================
+    # TODO: remove these getters and setters when no longer needed for
+    #       backwards compatibility
+
     @property
     def dsd(self):
         deprecation(**self.instr_depr_args)
@@ -296,6 +300,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def mwacr(self, mwacr):
         deprecation(**self.instr_depr_args)
         self.instr['mwacr'] = mwacr
+
+    #==========================================================================
 
     @property
     def use_cache(self):
@@ -408,7 +414,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             fits = self.series_nans()
             fits.loc[:] = read.gunn_kinzer
             fits.name = read.gunn_kinzer.name
-            self.pipv.fits = pd.DataFrame(fits)
+            self.instr['pipv'].fits = pd.DataFrame(fits)
             r = self.sum_over_d(self.r_rho, rho=RHO_W)
         elif simple:
             r = self.sum_over_d(self.r_rho, rho=params[0])
@@ -416,22 +422,22 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             r = self.sum_over_d(self.r_ab, alpha=params[0], beta=params[1])
         if self.varinterval:
             return r
-        return r.reindex(self.pluvio.amount(rule=self.rule).index).fillna(0)
+        return r.reindex(self.instr['pluvio'].amount(rule=self.rule).index).fillna(0)
 
     def amount(self, **kwargs):
         """Calculate precipitation in mm using given or saved parameters."""
         i = self.intensity(**kwargs)
         if self.varinterval:
-            delta = self.pluvio.tdelta()
+            delta = self.instr['pluvio'].tdelta()
         else:
             delta = i.index.freq.delta
         return i*(delta/pd.datetools.timedelta(hours=1))
 
     def sum_over_d(self, func, **kwargs):
         """numerical integration over particle diameter"""
-        dD = self.dsd.d_bin
+        dD = self.instr['dsd'].d_bin
         result = self.series_zeros()
-        for d in self.dsd.good_data().columns:
+        for d in self.instr['dsd'].good_data().columns:
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
 
@@ -439,9 +445,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """(mm/h)/(m/s)*kg/mg / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
         return 3.6/RHO_W*alpha*d**beta*self.v(d)*self.n(d)
-        #dBin = self.dsd.d_bin
-        #av = self.pipv.fit_params()['a']
-        #bv = self.pipv.fit_params()['b']
+        #dBin = self.instr['dsd'].d_bin
+        #av = self.instr['pipv'].fit_params()['a']
+        #bv = self.instr['pipv'].fit_params()['b']
         #return 3.6/RHO_W*alpha*self.n(d)*av/(dBin*(bv+beta+1))*((d+dBin*0.5)**(bv+beta+1)-(d-dBin*0.5)**(bv+beta+1))
 
     def r_rho(self, d, rho):
@@ -449,18 +455,18 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """
         return 3.6e-3*TAU/12*rho/RHO_W*d**3*self.v(d)*self.n(d)
         #self.v(d)
-        #dBin = self.dsd.d_bin
-        #av = self.pipv.fit_params()['a']
-        #bv = self.pipv.fit_params()['b']
+        #dBin = self.instr['dsd'].d_bin
+        #av = self.instr['pipv'].fit_params()['a']
+        #bv = self.instr['pipv'].fit_params()['b']
         #return 3.6e-3*TAU/12*rho/RHO_W*self.n(d)*av/(dBin*(bv+4))*((d+dBin*0.5)**(bv+4)-(d-dBin*0.5)**(bv+4))
 
     def v(self, d):
         """velocity wrapper"""
-        return self.pipv.v(d, varinterval=self.varinterval, rule=self.rule)
+        return self.instr['pipv'].v(d, varinterval=self.varinterval, rule=self.rule)
 
     def n(self, d):
         """N wrapper"""
-        return self.dsd.n(d, varinterval=self.varinterval, rule=self.rule)
+        return self.instr['dsd'].n(d, varinterval=self.varinterval, rule=self.rule)
 
     def n_t(self):
         """total concentration"""
@@ -473,7 +479,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def cache_dir(self):
         dt_start, dt_end = self.dt_start_end()
-        return super().cache_dir(dt_start, dt_end, self.pluvio.name)
+        return super().cache_dir(dt_start, dt_end, self.instr['pluvio'].name)
 
     def d_m(self):
         """mass weighted mean diameter"""
@@ -488,9 +494,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """median volume diameter"""
         name = 'D_0'
         def func():
-            idxd = self.dsd.good_data().columns
+            idxd = self.instr['dsd'].good_data().columns
             dd = pd.Series(idxd)
-            dD = self.dsd.d_bin
+            dD = self.instr['dsd'].d_bin
             d3n = lambda d: d**3*self.n(d)*dD
             #d3n = lambda d: dD*self.n(d)*((d+dD*0.5)**4.0-(d-dD*0.5)**4.0)/(dD*4.0)
             cumvol = dd.apply(d3n).cumsum().T
@@ -507,7 +513,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """maximum diameter from PSD tables"""
         name = 'D_max'
         def func():
-            idxd = self.dsd.good_data().columns
+            idxd = self.instr['dsd'].good_data().columns
             dd = pd.Series(idxd)
             nd = dd.apply(self.n).T
             nd.columns = idxd
@@ -518,7 +524,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def n_moment(self, n):
         moment = lambda d: d**n*self.n(d)
-        #dD = self.dsd.d_bin
+        #dD = self.instr['dsd'].d_bin
         #moment = lambda d: self.n(d)*((d+dD*0.5)**(n+1.0)-(d-dD*0.5)**(n+1.0))/(dD*(n+1.0))
         nth_mo = self.sum_over_d(moment)
         nth_mo.name = 'M' + str(n)
@@ -557,13 +563,13 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def partcount(self):
         """particle count"""
-        count = self.pipv.partcount(rule=self.rule, varinterval=self.varinterval)
+        count = self.instr['pipv'].partcount(rule=self.rule, varinterval=self.varinterval)
         count.name = 'count'
         return count
 
     def series_zeros(self):
         """Return series of zeros of the shape of timestep averaged data."""
-        return self.pluvio.acc(rule=self.rule)*0
+        return self.instr['pluvio'].acc(rule=self.rule)*0
 
     def series_nans(self):
         """Return series of nans of the shape of timestep averaged data."""
@@ -571,7 +577,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def noprecip_bias(self, inplace=True):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
-        return self.pluvio.noprecip_bias(self.pipv.lwc(), inplace=inplace)
+        return self.instr['pluvio'].noprecip_bias(self.instr['pipv'].lwc(), inplace=inplace)
 
     def pluvargs(self):
         args = {}
@@ -583,10 +589,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """Cost function for minimization"""
         if use_accum:
             pip_precip = self.acc(params=c)
-            cost_method = self.pluvio.acc
+            cost_method = self.instr['pluvio'].acc
         else:
             pip_precip = self.intesity(params=c)
-            cost_method = self.pluvio.intensity()
+            cost_method = self.instr['pluvio'].intensity()
         return abs(pip_precip.add(-1*cost_method(**self.pluvargs())).sum())
 
     def cost_lsq(self, beta):
@@ -597,7 +603,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def const_lsq(self, c, simple):
         acc_arr = self.acc(params=c, simple=simple).values
         A = np.vstack([acc_arr, np.ones(len(acc_arr))]).T
-        y = self.pluvio.acc(**self.pluvargs()).values
+        y = self.instr['pluvio'].acc(**self.pluvargs()).values
         return np.linalg.lstsq(A, y)[0][0]
 
     def alpha_lsq(self, beta):
@@ -614,10 +620,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         def func():
             rho_r_pip = self.amount(params=[1], simple=True)
             if pluvio_filter: #filter
-                rho_r_pip[self.pluvio.intensity() < 0.1] = np.nan
+                rho_r_pip[self.instr['pluvio'].intensity() < 0.1] = np.nan
             if pip_filter and self.ab is not None:
                 rho_r_pip[self.intensity() < 0.1] = np.nan
-            rho = self.pluvio.amount(rule=self.rule)/rho_r_pip
+            rho = self.instr['pluvio'].amount(rule=self.rule)/rho_r_pip
             rho.name = name
             if rhomax is not None:
                 rho[rho>rhomax] = np.nan
@@ -629,8 +635,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return outdata.query('%s < density < %s' % (rhomin, rhomax))
 
     def vfit_density_range(self, rhomin, rhomax):
-        data = self.data_in_density_range(self.pipv.good_data(), rhomin, rhomax)
-        return self.pipv.find_fit(data=data)
+        data = self.data_in_density_range(self.instr['pipv'].good_data(), rhomin, rhomax)
+        return self.instr['pipv'].find_fit(data=data)
 
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800)):
         fig, ax = plt.subplots()
@@ -646,13 +652,13 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def z(self, radarname='XSACR'):
         """Radar reflectivity wrapper"""
         if radarname == 'XSACR':
-            return self.xsacr.z(varinterval=self.varinterval, rule=self.rule)
+            return self.instr['xsacr'].z(varinterval=self.varinterval, rule=self.rule)
         elif radarname == 'KASACR':
-            return self.kasacr.z(varinterval=self.varinterval, rule=self.rule)
+            return self.instr['kasacr'].z(varinterval=self.varinterval, rule=self.rule)
         elif radarname == 'KAZR':
-            return self.kazr.z(varinterval=self.varinterval, rule=self.rule)
+            return self.instr['kazr'].z(varinterval=self.varinterval, rule=self.rule)
         elif radarname == 'MWACR':
-            return self.mwacr.z(varinterval=self.varinterval, rule=self.rule)
+            return self.instr['mwacr'].z(varinterval=self.varinterval, rule=self.rule)
         # TODO: else throw error "unknown radarname"
         
     def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False, density=None):
@@ -671,7 +677,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         def density_func(d):
             return density_size(d)*self.n(d)    # I am experimenting with precise integration leaved d**3
         def mom3(d):
-            return ((d+0.5*self.dsd.d_bin)**4-(d-0.5*self.dsd.d_bin)**4)*self.n(d)/(self.dsd.d_bin*4)
+            return ((d+0.5*self.instr['dsd'].d_bin)**4-(d-0.5*self.instr['dsd'].d_bin)**4)*self.n(d)/(self.instr['dsd'].d_bin*4)
         density = self.sum_over_d(density_func)/self.sum_over_d(mom3)
         density[density.isnull()] = 0
         density.name = name
@@ -683,7 +689,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         def density_func(d):
             return density_size(d)*self.n(d) # I am experimenting with precise integration leaved d**6 and squares
         def mom6(d):
-            return ((d+0.5*self.dsd.d_bin)**7-(d-0.5*self.dsd.d_bin)**7)*self.n(d)/(self.dsd.d_bin*7)
+            return ((d+0.5*self.instr['dsd'].d_bin)**7-(d-0.5*self.instr['dsd'].d_bin)**7)*self.n(d)/(self.instr['dsd'].d_bin*7)
         density = self.sum_over_d(density_func)/self.sum_over_d(mom6)
         density.name = name
         density[density.isnull()] = 0
@@ -695,9 +701,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         if density is None:
             density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
         Zserie = pd.Series(density)
-        dBin = self.dsd.d_bin
-        edges = self.dsd.data.columns.values+0.5*dBin
-        PSDvalues = self.n(self.dsd.bin_cen())
+        dBin = self.instr['dsd'].d_bin
+        edges = self.instr['dsd'].data.columns.values+0.5*dBin
+        PSDvalues = self.n(self.instr['dsd'].bin_cen())
         for item in density.iteritems():
             if item[1] > 0.0:
                 ref=refractive.mi(wl,0.001*item[1])
@@ -739,8 +745,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def time_range(self):
         """data time ticks on minute interval"""
-        return pd.date_range(self.pluvio.acc().index[0],
-                             self.pluvio.acc().index[-1], freq='1min')
+        return pd.date_range(self.instr['pluvio'].acc().index[0],
+                             self.instr['pluvio'].acc().index[-1], freq='1min')
 
     def plot(self, axarr=None, kind='line', label_suffix='', pip=True, **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
@@ -748,7 +754,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             f, axarr = plt.subplots(4, sharex=True, dpi=120)
         if pip:
             self.intensity().plot(label='PIP ' + label_suffix, kind=kind, ax=axarr[0], **kwargs)
-        self.pluvio.intensity(rule=self.rule).plot(label=self.pluvio.name + ' ' + label_suffix,
+        self.instr['pluvio'].intensity(rule=self.rule).plot(label=self.instr['pluvio'].name + ' ' + label_suffix,
                                                    kind=kind, ax=axarr[0],
                                                    **kwargs)
         axarr[0].set_ylabel('mm/h')
@@ -809,7 +815,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def plot_velfitcoefs(self, fig=None, ax=None, rhomin=None, rhomax=None,
                          countmin=1, **kwargs):
         rho = self.density()
-        params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
+        params = self.instr['pipv'].fits.polfit.apply(lambda fit: fit.params)
         selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
         rho = rho[selection]
         params = params[selection]
@@ -829,7 +835,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def plot_d0_bv(self, rhomin=None, rhomax=None, countmin=1,
                    count_as_size=True, countscale=4, **kwargs):
         rho = self.density()
-        params = self.pipv.fits.polfit.apply(lambda fit: fit.params)
+        params = self.instr['pipv'].fits.polfit.apply(lambda fit: fit.params)
         selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
         count = self.partcount()[selection]
         rho = rho[selection]
@@ -851,10 +857,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         casename.name = 'case'
         data = read.merge_multiseries(self.partcount(), self.density(),
                                       self.d_0(), self.n_t(), casename,
-                                      self.pipv.fit_params(), self.d_m(),
+                                      self.instr['pipv'].fit_params(), self.d_m(),
                                       self.d_max(), self.d_0_gamma(),
                                       self.amount(params=[100],simple=True),
-                                      self.pluvio.amount(rule=self.rule),
+                                      self.instr['pluvio'].amount(rule=self.rule),
                                       self.eta(),self.mu(),self.lam(),self.n_0(),
                                       self.n_moment(0),self.n_moment(1),
                                       self.n_moment(2),self.Z_rayleigh_Xband(),
@@ -868,23 +874,23 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """
         if ax is None:
             ax = plt.gca()
-        r = self.pluvio.intensity(rule=rule, unbias=False)
-        lwc = self.pipv.lwc(rule).reindex(r.index).fillna(0)
+        r = self.instr['pluvio'].intensity(rule=rule, unbias=False)
+        lwc = self.instr['pipv'].lwc(rule).reindex(r.index).fillna(0)
         return ax.xcorr(lwc, r, **kwargs)
 
     def autoshift(self, rule='1min', inplace=False):
         """Find and correct pluvio time shift using cross correlation."""
-        if self.pluvio.shift_periods != 0:
+        if self.instr['pluvio'].shift_periods != 0:
             print('Pluvio already timeshifted, resetting.')
-            self.pluvio.shift_reset()
+            self.instr['pluvio'].shift_reset()
         xc = self.xcorr(rule=rule)
         imaxcorr = xc[1].argmax()
         periods = xc[0][imaxcorr]
         if inplace:
-            self.pluvio.shift_periods = periods
-            self.pluvio.shift_freq = rule
+            self.instr['pluvio'].shift_periods = periods
+            self.instr['pluvio'].shift_freq = rule
             print('Pluvio timeshift set to %s*%s.'
-                  % (str(self.pluvio.shift_periods), self.pluvio.shift_freq))
+                  % (str(self.instr['pluvio'].shift_periods), self.instr['pluvio'].shift_freq))
         return periods
 
     def clear_cache(self):
