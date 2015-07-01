@@ -30,6 +30,8 @@ locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 TAU = 2*np.pi
 RHO_W = 1000
 
+PIP_CORR = 1.0/0.82 #0.82 Wood et al. 2013 Characterization of video disdrometer uncertainties ...
+
 def switch_wl(x):
     return {tm_aux.wl_C : "C", tm_aux.wl_X : "X", tm_aux.wl_Ku : "Ku",
             tm_aux.wl_Ka : "Ka",tm_aux.wl_W : "W"}.get(x,str(x))
@@ -360,7 +362,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s)*kg/mg / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
-        return 3.6/RHO_W*alpha*d**beta*self.v(d)*self.n(d)
+        return 3.6/RHO_W*alpha*(PIP_CORR*d)**beta*self.v(d)*self.n(d)
         #dBin = self.dsd.d_bin
         #av = self.pipv.fit_params()['a']
         #bv = self.pipv.fit_params()['b']
@@ -369,7 +371,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def r_rho(self, d, rho):
         """(mm/h)/(m/s)*m**3/mm**3 * kg/m**3 / (kg/m**3) * mm**3 * m/s * 1/(mm*m**3)
         """
-        return 3.6e-3*TAU/12*rho/RHO_W*d**3*self.v(d)*self.n(d)
+        return 3.6e-3*TAU/12*rho/RHO_W*(PIP_CORR*d)**3*self.v(d)*self.n(d)
         #self.v(d)
         #dBin = self.dsd.d_bin
         #av = self.pipv.fit_params()['a']
@@ -413,7 +415,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             idxd = self.dsd.good_data().columns
             dd = pd.Series(idxd)
             dD = self.dsd.d_bin
-            d3n = lambda d: d**3*self.n(d)*dD
+            d3n = lambda d: (PIP_CORR*d)**3*self.n(d)*dD
             #d3n = lambda d: dD*self.n(d)*((d+dD*0.5)**4.0-(d-dD*0.5)**4.0)/(dD*4.0)
             cumvol = dd.apply(d3n).cumsum().T
             cumvol.columns = idxd
@@ -433,13 +435,13 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             dd = pd.Series(idxd)
             nd = dd.apply(self.n).T
             nd.columns = idxd
-            dmax = nd[nd > 0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
+            dmax = (PIP_CORR*nd[nd > 0.0001].T.apply(pd.Series.last_valid_index).fillna(0))
             dmax.name = name
             return dmax
         return self.msger(name, func)
 
     def n_moment(self, n):
-        moment = lambda d: d**n*self.n(d)
+        moment = lambda d: (PIP_CORR*d)**n*self.n(d)
         #dD = self.dsd.d_bin
         #moment = lambda d: self.n(d)*((d+dD*0.5)**(n+1.0)-(d-dD*0.5)**(n+1.0))/(dD*(n+1.0))
         nth_mo = self.sum_over_d(moment)
@@ -590,9 +592,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """Calculate volume averaged bulk density for the given density size realation"""
         name = "rho3"
         def density_func(d):
-            return density_size(d)*self.n(d)    # I am experimenting with precise integration leaved d**3
+            return density_size((PIP_CORR*d))*self.n(d)    # I am experimenting with precise integration leaved d**3
         def mom3(d):
-            return ((d+0.5*self.dsd.d_bin)**4-(d-0.5*self.dsd.d_bin)**4)*self.n(d)/(self.dsd.d_bin*4)
+            return ((PIP_CORR*(d+0.5*self.dsd.d_bin))**4-(PIP_CORR*(d-0.5*self.dsd.d_bin))**4)*self.n(d)/(self.dsd.d_bin*4)
         density = self.sum_over_d(density_func)/self.sum_over_d(mom3)
         density[density.isnull()] = 0
         density.name = name
@@ -602,9 +604,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """Calculate volume averaged bulk density for the given density size realation"""
         name = "rho6"
         def density_func(d):
-            return density_size(d)*self.n(d) # I am experimenting with precise integration leaved d**6 and squares
+            return density_size((PIP_CORR*d))*self.n(d) # I am experimenting with precise integration leaved d**6 and squares
         def mom6(d):
-            return ((d+0.5*self.dsd.d_bin)**7-(d-0.5*self.dsd.d_bin)**7)*self.n(d)/(self.dsd.d_bin*7)
+            return ((PIP_CORR*(d+0.5*self.dsd.d_bin))**7-(PIP_CORR*(d-0.5*self.dsd.d_bin))**7)*self.n(d)/(self.dsd.d_bin*7)
         density = self.sum_over_d(density_func)/self.sum_over_d(mom6)
         density.name = name
         density[density.isnull()] = 0
@@ -617,7 +619,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
         Zserie = pd.Series(density)
         dBin = self.dsd.d_bin
-        edges = self.dsd.data.columns.values+0.5*dBin
+        edges = PIP_CORR*self.dsd.data.columns.values+0.5*dBin
         grp = self.dsd.grouped(rule=self.rule, varinterval=self.varinterval,
                                col=self.dsd.bin_cen())
         PSDvalues = grp.mean()
@@ -627,7 +629,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 print(ref)
                 flake = tmatrix.Scatterer(wavelength=wl, m=ref, axis_ratio=1.0/1.0)
                 flake.psd_integrator = psd.PSDIntegrator()
-                flake.psd_integrator.D_max = 28.0
+                flake.psd_integrator.D_max = 35.0
                 flake.psd = psd.BinnedPSD(bin_edges=edges,bin_psd=PSDvalues.loc[item[0]].values)
                 flake.psd_integrator.init_scatter_table(flake)
                 Z = 10.0*np.log10(radar.refl(flake))

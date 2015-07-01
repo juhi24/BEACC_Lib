@@ -54,7 +54,7 @@ dtformat_default_year = '%d.%m.%y %H:%M'
 dtformat_snex = '%y %d %B %H UTC'
 dtformat_print = '%y%m%d%H%M'
 
-folder = '/home/dori/SnowCases_BAEC/DensityJussi/test_jussi/'
+folder = '/home/dori/SnowCases_BAEC/DensityJussi/corr082_nomu/'
 #RadarVP.to_csv(folder + 'radar_data.csv')
 huang = False
 e = EventsCollection('cases/cases_of_interest_radar.csv', dtformat_default_year)
@@ -70,7 +70,7 @@ def func_all_beta(mu,delta,deltaZ):
     def func_beta(beta):
         m=mu
         #if mu < 0.0:
-        #    m= 0.0
+        m= 0.0
         d=delta
         dZ=10**(deltaZ/20.0)
         return sqrt(gamma(2.0*beta+m+1.0)/gamma(m+7.0))*(gamma(d+m+4.0)/gamma(beta+d+m+1.0))-dZ
@@ -80,7 +80,7 @@ def func_all_b(mu,delta,deltaZ):
     def func_b(b):
         m=mu
         #if mu < 0.0:
-        #    m= 0.0
+        m= 0.0
         d=delta
         dZ=10**(deltaZ/20.0)
         return sqrt(gamma(2.0*b+m+7.0)/gamma(m+7.0))*(gamma(d+m+4.0)/gamma(b+d+m+4.0))-dZ
@@ -139,7 +139,7 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
     zkz = 10.0*np.log10(c.z('KAZR'))
     zmw = 10.0*np.log10(c.z('MWACR'))
     print('densitá')
-    #print(c.density(pluvio_filter=False))
+    print(c.density(pluvio_filter=False))
     if huang:
         print('Estimate huang reflectivities')
         rho = b_huang['density']
@@ -212,11 +212,12 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
     #den_dtfr = c.density(pluvio_filter=True,pip_filter=False)
     #den_dtfr.to_csv(basename + 'density_' + c.pluvio.name + '.csv')
     #c.pipv.plots(save=True, suffix='.eps', grid=False, xmax=4, ymax=3, xticks=[0,1,2,3,4], yticks=[0,1,2,3],colorbar=False, hexsize=8)
-    c.summary().to_csv(basename + 'summary_' + c.pluvio.name + '.csv')
+#    c.summary().to_csv(basename + 'summary_' + c.pluvio.name + '.csv')
 #    c.pluvio.tdelta().to_csv(basename + 'timedelta_' + c.pluvio.name + '.csv')
     c.density(pluvio_filter=True,pip_filter=False).plot()
+    b_huang.density[c.pluvio.dt_start():c.pluvio.dt_end()].plot()
     axes=plt.gca()
-    axes.set_ylim([0, 1000])
+    axes.set_ylim([0, 800])
     plt.savefig(basename + 'density_' + c.pluvio.name + '.png')
     plt.close("all")
 

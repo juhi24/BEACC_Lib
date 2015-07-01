@@ -15,8 +15,8 @@ import copy
 from scipy import stats, io
 from scipy.optimize import fmin, minimize
 from fit import *
-#from pytmatrix import tmatrix_aux as aux
-#from pytmatrix import psd
+
+PIP_CORR = 1.0/0.82 # Wood et al. 2013 Characterization of video disdrometer uncertainties ...
 
 RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
