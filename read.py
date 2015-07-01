@@ -22,7 +22,7 @@ RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
 MSGTLD = '.msg'
 
-ns1min=1.0*60.0*1000000000.0
+ns1min = 1.0*60.0*1000000000.0
 
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
@@ -57,7 +57,7 @@ def merge_multiseries(s1, s2, *series, **kwargs):
     return s_all
 
 def kde(x, y):
-    values = np.vstack((x,y))
+    values = np.vstack((x, y))
     return stats.gaussian_kde(values)
 
 def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
@@ -76,7 +76,7 @@ def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
         ymin = y_fltr[0]
         ymax = y_fltr[-1]
         HWfracM.append(0.5*(ymax-ymin))
-        bin_data = bindata(x[i], xwidth, data, ymin=ymin, ymax=ymax, 
+        bin_data = bindata(x[i], xwidth, data, ymin=ymin, ymax=ymax,
                            xname=xname, yname=yname)
         std.append(bin_data[yname].std())
         filtered = filtered.append(bin_data)
@@ -182,7 +182,7 @@ class InstrumentData(Cacher):
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
-    
+
     def __add__(self, other):
         combined = copy.deepcopy(self)
         combined.data = pd.concat(self.data, other.data)
@@ -251,8 +251,8 @@ class Radar(InstrumentData):
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
         """Create vertical pointing Radar object using data from various radar modes"""
         print('Reading Radar data...')
-        self._time_lag = pd.to_timedelta(0.0,unit='s')
-        InstrumentData.__init__(self,filenames,**kwargs)
+        self._time_lag = pd.to_timedelta(0.0, unit='s')
+        InstrumentData.__init__(self, filenames, **kwargs)
         if self.data.empty and filenames:
             self.name = (os.path.basename(os.path.dirname(self.filenames[0])))
             for filename in filenames:
@@ -265,33 +265,36 @@ class Radar(InstrumentData):
                     if 'KaSACR' in radardata.title.decode():
                         range_idx = 0
                     refl = radarvariables['reflectivity']
-                    reflectivity = 10.0**(0.1*(refl.data[:,range_idx]*refl.scale_factor + refl.add_offset))
-                    basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%dT%H:%M:%SZ')
+                    reflectivity = 10.0**(0.1*(refl.data[:, range_idx]*refl.scale_factor + refl.add_offset))
+                    basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),
+                                                          'seconds since %Y-%m-%dT%H:%M:%SZ')
                     delta = radarvariables['time'].data
-                    deltatime = pd.to_timedelta(np.round(delta),unit='s')
+                    deltatime = pd.to_timedelta(np.round(delta), unit='s')
                     time = basetime + deltatime
                     elevation = radarvariables['elevation'].data
                     rng = radarvariables['range'].data
                     VP = np.abs(elevation-90.0) < 0.5
-                    tmpDF = pd.DataFrame(reflectivity[VP],index=time[VP],columns=['reflectivity'],dtype=np.float64)
+                    tmpDF = pd.DataFrame(reflectivity[VP], index=time[VP], columns=['reflectivity'], dtype=np.float64)
                     self.data = self.data.append(tmpDF)
                 elif filename.endswith('.cdf'):
                     if 'reflectivity_copol' in radarvariables.keys():
                         range_idx = 10
-                        reflectivity = 10.0**(0.1*radarvariables['reflectivity_copol'].data[:,range_idx].byteswap().newbyteorder())
+                        reflectivity = 10.0**(0.1*radarvariables['reflectivity_copol'].data[:, range_idx].byteswap().newbyteorder())
                     elif 'reflectivity' in radarvariables.keys():
                         range_idx = 6
-                        ref1 = 10.0**(0.1*radarvariables['reflectivity'].data[:,range_idx])
-                        ref2 = 10.0**(0.1*radarvariables['reflectivity'].data[:,range_idx+1])
+                        ref1 = 10.0**(0.1*radarvariables['reflectivity'].data[:, range_idx])
+                        ref2 = 10.0**(0.1*radarvariables['reflectivity'].data[:, range_idx+1])
                         reflectivity = 0.5*(ref1+ref2)
-                    basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),'seconds since %Y-%m-%d %H:%M:%S 0:00')
+                    basetime = datetime.datetime.strptime(radarvariables['time'].units.decode(),
+                                                          'seconds since %Y-%m-%d %H:%M:%S 0:00')
                     delta = radarvariables['time'].data
-                    deltatime = pd.to_timedelta(np.round(delta),unit='s')
+                    deltatime = pd.to_timedelta(np.round(delta), unit='s')
                     time = basetime + deltatime
-                    self.data = pd.DataFrame(reflectivity,index=time,
-                                             columns=['reflectivity'],dtype=np.float64)
+                    self.data = pd.DataFrame(reflectivity, index=time,
+                                             columns=['reflectivity'],
+                                             dtype=np.float64)
         self.finish_init(dt_start, dt_end)
-        
+
     def good_data(self):
         """Return useful data with filters and corrections applied."""
         if self.stored_good_data is not None:
@@ -301,7 +304,7 @@ class Radar(InstrumentData):
         time = pd.DatetimeIndex((np.round(data.index.astype(np.int64)/ns1min))*ns1min)
         data.index = time
         return data
-         
+
     def z(self, rule=None, varinterval=True):
         """Reflectivity time series"""
         grp = self.grouped(rule=rule, varinterval=varinterval)
@@ -310,15 +313,15 @@ class Radar(InstrumentData):
         zs.name = self. name + ' reflectivity'
         zs.index.name = 'datetime'
         return zs
-    
+
     @property
     def time_lag(self):
         return self._time_lag
-        
+
     @time_lag.setter
     def time_lag(self, lag):
         self._time_lag = lag
-                           
+
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
@@ -485,7 +488,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             return self.constinterval_amount(shift=shift, **bucketkwargs)
         am = self.good_data()[self.amount_col]
         n = self.n_combined_intervals
-        am = pd.stats.moments.rolling_sum(am[am > 0],window=n).iloc[n-1::n]
+        am = pd.stats.moments.rolling_sum(am[am > 0], window=n).iloc[n-1::n]
         if shift:
             am = am.tshift(periods=self.shift_periods, freq=self.shift_freq)
         if crop:
@@ -688,10 +691,10 @@ class PipV(InstrumentData):
                 if int(filename[-23:-15]) > 20140831: # TODO fixme
                     newdata = pd.read_csv(filename,
                                           engine='python', sep='\t',
-                                          skipinitialspace=True, skiprows=8, skip_footer = 1,
+                                          skipinitialspace=True, skiprows=8, skip_footer=1,
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime)
-                    newdata = newdata[newdata['RecNum']>-99]
+                    newdata = newdata[newdata['RecNum'] > -99]
                 else:
                     newdata = pd.read_csv(filename,
                                           delim_whitespace=True, skiprows=8,
@@ -784,7 +787,7 @@ class PipV(InstrumentData):
         for fit in self.fits[emptyfit.name].values:
             v.append(fit.func(d))
         return pd.Series(v, index=self.fits.index, name='v')
-        
+
     def lwc(self, rule='1min'):
         """liquid water content"""
         d3 = self.good_data().Wad_Dia**3
@@ -812,9 +815,9 @@ class PipV(InstrumentData):
             X, Y, Z = self.kde_grid(data)
             return filter_outlier(Y.T, X.T, Z.T, data, xname='vel_v',
                                   frac=frac, yname='Wad_Dia')
-        return filter_outlier(*self.kde_grid(data), data=data, 
+        return filter_outlier(*self.kde_grid(data), data=data,
                               xname='Wad_Dia', yname='vel_v', frac=frac)
-        
+
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
         vdata = self.good_data()
@@ -874,7 +877,7 @@ class PipV(InstrumentData):
                                     xname='Wad_Diam', yname='vel_v').vel_v.count() for diam in d])
             d = d[num > bin_num_min]
             v = v[num > bin_num_min]
-            sig = [self.dbin(diam, self.binwidth, data=data, xname='Wad_Diam', 
+            sig = [self.dbin(diam, self.binwidth, data=data, xname='Wad_Diam',
                              yname='vel_v').vel_v.sem() for diam in d]
         else:
             sig = np.ones(d.size)
@@ -887,7 +890,7 @@ class PipV(InstrumentData):
             if try_flip and not kde:
                 fiti = copy.deepcopy(fit)
                 datai, stdarri, HWfracMi = self.filter_outlier(data=data, frac=frac,
-                                                             flip=True)
+                                                               flip=True)
                 fiti.x = datai.vel_v.values
                 fiti.y = datai.Wad_Dia.values
                 paramsi, pcovi = fiti.find_fit()
@@ -896,7 +899,7 @@ class PipV(InstrumentData):
                 # x = a*y**b
                 fiti.params = np.array([paramsi[0]**(-1/paramsi[1]), 1/paramsi[1]])
                 if plot_flip:
-                    f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12,6))
+                    f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12, 6))
                     for ax in axarr:
                         fiti.plot(ax=ax, label='flipped %.4f' % perri[1])
         else:
@@ -934,7 +937,7 @@ class PipV(InstrumentData):
         stds = []
         hwfms = []
         for name, group in self.grouped(rule=rule, varinterval=varinterval):
-            print('\n',name)
+            print('\n', name)
             try:
                 newfit, std, hwfm = self.find_fit(data=group, name=name,
                                                   try_flip=self.use_flip,
@@ -1142,7 +1145,8 @@ class PipPart(InstrumentData):
                                       skiprows=[0, 1, 2, 3, 4, 5, 6, 7, 9],
                                       index_col='datetime',
                                       parse_dates={'datetime':['Year', 'Month',
-                                      'Day', 'Hr', 'Min', 'Sec']},
+                                                               'Day', 'Hr',
+                                                               'Min', 'Sec']},
                                       date_parser=datetime.datetime,
                                       dtype=dtype)
                 self.data = self.data.append(newdata)

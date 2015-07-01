@@ -17,21 +17,21 @@ from pytmatrix import tmatrix, psd, refractive, orientation, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
 # general configuration
-debug = True
+DEBUG = True
 
 # CONFIG default paths
-data_dir = '../DATA'
-h5file = 'baecc.h5'
-h5path = os.path.join(data_dir, h5file)
-pipv_subpath = 'PIP/a_Velocity_Tables/004%s/*2.dat'
-dsd_subpath = 'PIP/a_DSD_Tables/004%s_a_d.dat'
-p200_subpath = 'Pluvio200/pluvio200_??_%s*.txt'
-p400_subpath = 'Pluvio400/pluvio400_??_%s*.txt'
-radar_subpath = 'Radar/%s/tmp%s*M1.a1.%s.*'
+DATA_DIR = '../DATA'
+H5_FILE = 'baecc.h5'
+H5_PATH = os.path.join(DATA_DIR, H5_FILE)
+PIPV_SUBPATH = 'PIP/a_Velocity_Tables/004%s/*2.dat'
+DSD_SUBPATH = 'PIP/a_DSD_Tables/004%s_a_d.dat'
+P200_SUBPATH = 'Pluvio200/pluvio200_??_%s*.txt'
+P400_SUBPATH = 'Pluvio400/pluvio400_??_%s*.txt'
+RADAR_SUBPATH = 'Radar/%s/tmp%s*M1.a1.%s.*'
 
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
-if debug:
+if DEBUG:
     warnings.simplefilter('default')
 else:
     warnings.simplefilter('ignore')
@@ -40,29 +40,30 @@ TAU = 2*np.pi
 RHO_W = 1000
 
 def deprecation(message, stacklevel=2):
+    """Issue DeprecationWarning"""
     warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
 
 def switch_wl(x):
     return {tm_aux.wl_C : "C", tm_aux.wl_X : "X", tm_aux.wl_Ku : "Ku",
-            tm_aux.wl_Ka : "Ka",tm_aux.wl_W : "W"}.get(x,str(x))
+            tm_aux.wl_Ka : "Ka", tm_aux.wl_W : "W"}.get(x, str(x))
 
 def daterange(start_date, end_date):
-    for n in range(int ((end_date - start_date).days)):
+    for n in range(int((end_date - start_date).days)):
         yield start_date + timedelta(n)
-        
-def datafilelist(subpath, datadir = data_dir):
+
+def datafilelist(subpath, datadir=DATA_DIR):
     return glob(os.path.join(datadir, subpath))
 
-def batch_import(dtstr, datadir=data_dir):
+def batch_import(dtstr, datadir=DATA_DIR):
     """Read ASCII data according to a datestring pattern."""
-    pipv_files = datafilelist(pipv_subpath % dtstr, datadir=datadir)
-    dsd_files = datafilelist(dsd_subpath % dtstr, datadir=datadir)
-    pluvio200_files = datafilelist(p200_subpath % dtstr, datadir=datadir)
-    pluvio400_files = datafilelist(p400_subpath % dtstr, datadir=datadir)
-    xsacr_files = datafilelist(radar_subpath % ('XSACR','xsacr',dtstr), datadir=datadir)
-    kasacr_files = datafilelist(radar_subpath % ('KASACR','kasacr',dtstr), datadir=datadir)
-    kazr_files = datafilelist(radar_subpath % ('KAZR','kazrge',dtstr), datadir=datadir)
-    mwacr_files = datafilelist(radar_subpath % ('MWACR','mwacr',dtstr), datadir=datadir)
+    pipv_files = datafilelist(PIPV_SUBPATH % dtstr, datadir=datadir)
+    dsd_files = datafilelist(DSD_SUBPATH % dtstr, datadir=datadir)
+    pluvio200_files = datafilelist(P200_SUBPATH % dtstr, datadir=datadir)
+    pluvio400_files = datafilelist(P400_SUBPATH % dtstr, datadir=datadir)
+    xsacr_files = datafilelist(RADAR_SUBPATH % ('XSACR', 'xsacr', dtstr), datadir=datadir)
+    kasacr_files = datafilelist(RADAR_SUBPATH % ('KASACR', 'kasacr', dtstr), datadir=datadir)
+    kazr_files = datafilelist(RADAR_SUBPATH % ('KAZR', 'kazrge', dtstr), datadir=datadir)
+    mwacr_files = datafilelist(RADAR_SUBPATH % ('MWACR', 'mwacr', dtstr), datadir=datadir)
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
@@ -71,12 +72,11 @@ def batch_import(dtstr, datadir=data_dir):
     kasacr = read.Radar(kasacr_files)
     kazr = read.Radar(kazr_files)
     mwacr = read.Radar(mwacr_files)
-    
     return {'vel': pipv, 'dsd': dsd, 'pluvio200': pluvio200,
             'pluvio400': pluvio400, 'xsacr': xsacr, 'kasacr': kasacr,
             'kazr': kazr, 'mwacr': mwacr}
 
-def batch_create_hdf(datadir=data_dir, outname=h5file,
+def batch_create_hdf(datadir=DATA_DIR, outname=H5_FILE,
                      dtstr='20140[2-3]??'):
     """Read ASCII data and export to hdf."""
     instrdict = batch_import(dtstr, datadir)
@@ -162,7 +162,7 @@ class EventsCollection(MultiSeries):
                                                autobias=autobias))
         self.events[data.instr['pluvio'].name] = cases
 
-    def autoimport_data(self, datafile=[h5path], autoshift=False, 
+    def autoimport_data(self, datafile=[H5_PATH], autoshift=False,
                         autobias=False, radar=False, **casekwargs):
         """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=3)
@@ -192,8 +192,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             self.instr = {'pluvio': pluvio, 'dsd': dsd, 'pipv': pipv}
         else:
             self.instr = {'pluvio': pluvio, 'dsd': dsd, 'pipv': pipv,
-                      'xsacr': xsacr, 'kasacr': kasacr, 'kazr': kazr,
-                      'mwacr': mwacr}
+                          'xsacr': xsacr, 'kasacr': kasacr, 'kazr': kazr,
+                          'mwacr': mwacr}
         self.instr_depr_args = {'message':'Please use new syntax: case.instr[instrument_name]',
                                 'stacklevel':3}
         self._varinterval = varinterval
@@ -345,7 +345,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         self._ab = ab
 
     @classmethod
-    def from_hdf(cls, dt_start, dt_end, filenames=[h5path], radar=False,
+    def from_hdf(cls, dt_start, dt_end, filenames=[H5_PATH], radar=False,
                  **kwargs):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
@@ -361,10 +361,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             kazr = read.Radar(filenames, hdf_table='KAZR')
             mwacr = read.Radar(filenames, hdf_table='MWACR')
             instr_lst = [pluvio200, pluvio400, dsd, pipv, xsacr, kasacr, kazr, mwacr]
-            
         for instr in instr_lst:
             instr.set_span(dt_start, dt_end)
-            
         if radar:
             m200 = cls(dsd, pipv, pluvio200, xsacr, kasacr, kazr, mwacr, **kwargs)
             m400 = cls(dsd, pipv, pluvio400, xsacr, kasacr, kazr, mwacr, **kwargs)
@@ -626,7 +624,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             rho = self.instr['pluvio'].amount(rule=self.rule)/rho_r_pip
             rho.name = name
             if rhomax is not None:
-                rho[rho>rhomax] = np.nan
+                rho[rho > rhomax] = np.nan
             return rho.replace(np.inf, np.nan)
         return self.msger(name, func)
 
@@ -660,13 +658,13 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         elif radarname == 'MWACR':
             return self.instr['mwacr'].z(varinterval=self.varinterval, rule=self.rule)
         # TODO: else throw error "unknown radarname"
-        
+
     def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False, density=None):
         """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
         name = "reflXray"
         constant = 0.2/(0.93*917*917)
         if density is None:
-            density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
+            density = self.density(pluvio_filter=pluvio_filter, pip_filter=pip_filter)
         Z = 10.0*np.log10(constant*density*density*self.n_moment(6))
         Z.name = name
         return Z
@@ -694,24 +692,24 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         density.name = name
         density[density.isnull()] = 0
         return np.sqrt(density)
-        
+
     def tmatrix(self, wl, pluvio_filter=True, pip_filter=False, density=None):
         """Calculate radar reflectivity at requested wavelength wl [mm] using T-matrix"""
         name = switch_wl(wl) + "reflTM"
         if density is None:
-            density = self.density(pluvio_filter=pluvio_filter,pip_filter=pip_filter)
+            density = self.density(pluvio_filter=pluvio_filter, pip_filter=pip_filter)
         Zserie = pd.Series(density)
         dBin = self.instr['dsd'].d_bin
         edges = self.instr['dsd'].data.columns.values+0.5*dBin
         PSDvalues = self.n(self.instr['dsd'].bin_cen())
         for item in density.iteritems():
             if item[1] > 0.0:
-                ref=refractive.mi(wl,0.001*item[1])
+                ref = refractive.mi(wl, 0.001*item[1])
                 print(ref)
                 flake = tmatrix.Scatterer(wavelength=wl, m=ref, axis_ratio=1.0/1.0)
                 flake.psd_integrator = psd.PSDIntegrator()
                 flake.psd_integrator.D_max = 28.0
-                flake.psd = psd.BinnedPSD(bin_edges=edges,bin_psd=PSDvalues.loc[item[0]].values)
+                flake.psd = psd.BinnedPSD(bin_edges=edges, bin_psd=PSDvalues.loc[item[0]].values)
                 flake.psd_integrator.init_scatter_table(flake)
                 Z = 10.0*np.log10(radar.refl(flake))
             else:
@@ -859,11 +857,11 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                                       self.d_0(), self.n_t(), casename,
                                       self.instr['pipv'].fit_params(), self.d_m(),
                                       self.d_max(), self.d_0_gamma(),
-                                      self.amount(params=[100],simple=True),
+                                      self.amount(params=[100], simple=True),
                                       self.instr['pluvio'].amount(rule=self.rule),
-                                      self.eta(),self.mu(),self.lam(),self.n_0(),
-                                      self.n_moment(0),self.n_moment(1),
-                                      self.n_moment(2),self.Z_rayleigh_Xband(),
+                                      self.eta(), self.mu(), self.lam(), self.n_0(),
+                                      self.n_moment(0), self.n_moment(1),
+                                      self.n_moment(2), self.Z_rayleigh_Xband(),
                                       self.tmatrix(wl))
         data.index.name = 'datetime'
         return data.sort_index(axis=1)
