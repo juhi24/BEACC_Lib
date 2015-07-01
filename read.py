@@ -244,7 +244,7 @@ class InstrumentData(Cacher):
         if self.case is None:
             return
         dt_start, dt_end = self.case.dt_start_end()
-        return super().cache_dir(dt_start, dt_end, self.case.pluvio.name)
+        return super().cache_dir(dt_start, dt_end, self.case.instr['pluvio'].name)
 
 class Radar(InstrumentData):
     """Radar reflectivity at lowest level"""

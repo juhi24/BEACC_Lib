@@ -61,7 +61,7 @@ elif combined:
     subpath = 'combined/'
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
-    c.pluvio.shift_periods = -6
+    c.instr['pluvio'].shift_periods = -6
     if combined:
         fig = plt.figure()
     colorstr = c.density().apply(rangecolor, rholimits=rholimits)
@@ -92,7 +92,7 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
         ax.set_xlim([0, 10])
         dtstr = str(c.dt_start_end()[0].date())
         ax.set_ylim((0,3))
-        ax.set_title('%s, %s (%s)' % (dtstr, rhorange, c.pluvio.name))
+        ax.set_title('%s, %s (%s)' % (dtstr, rhorange, c.instr['pluvio'].name))
         if not (subplots and i>0):
             ax.set_ylabel('fall velocity')
         ax.set_xlabel('equivalent diameter')
@@ -101,8 +101,8 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
             fig.subplots_adjust(hspace=0)
             plt.setp([a.get_yticklabels() for a in fig.axes[1:]], visible=False)
         elif not combined:
-            plt.savefig(read.ensure_dir(outpath + subpath) + c.pluvio.name + '_' + dtstr + extra + '.eps')
+            plt.savefig(read.ensure_dir(outpath + subpath) + c.instr['pluvio'].name + '_' + dtstr + extra + '.eps')
     if subplots:
             fig.subplots_adjust(wspace=0)
             plt.setp([a.get_yticklabels() for a in fig.axes[1:]], visible=False)
-    plt.savefig(read.ensure_dir(outpath + subpath) + c.pluvio.name + '_' + dtstr + extra + '.eps')
+    plt.savefig(read.ensure_dir(outpath + subpath) + c.instr['pluvio'].name + '_' + dtstr + extra + '.eps')
