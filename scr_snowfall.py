@@ -17,5 +17,5 @@ e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True
 #plt.ioff()
 
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
-    c.pluvio.shift_periods = -6
-    c.pluvio.n_combined_intervals = 2
+    c.instr['pluvio'].shift_periods = -6
+    c.instr['pluvio'].n_combined_intervals = 2
