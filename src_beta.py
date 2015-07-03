@@ -138,6 +138,8 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
     zk = 10.0*np.log10(c.z('KASACR'))
     zkz = 10.0*np.log10(c.z('KAZR'))
     zmw = 10.0*np.log10(c.z('MWACR'))
+    plt.figure()
+    zx.plot(label='xsacr')
     print('densitá')
     print(c.density(pluvio_filter=False))
     if huang:
@@ -188,7 +190,7 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
 #    cor_plu_pip = np.correlate(depth,accum,'same')
 #    cor_plu_xsa = np.correlate(accum,xsacr,'same')
 #    cor_xsa_pip = np.correlate(xsacr,depth,'same')
-#    cor_xsa_ksa = np.correlate(xsacr,kasacr,'same')    plt.figure()
+#    cor_xsa_ksa = np.correlate(xsacr,kasacr,'same')
 #    cor_xsa_mwa = np.correlate(xsacr,mwacr,'same')
 #    if depth.size % 2:
 #        print('odd  ',depth.size,cor_plu_pip.argmax(),cor_plu_pip.argmax()-(depth.size-1)//2)
@@ -263,6 +265,7 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
     axe = FinalData['beta'].plot(marker='*')
     b_huang['beta_huang'][c.pluvio.dt_start().to_datetime():c.pluvio.dt_end().to_datetime()].plot(ax=axe)
     plt.title(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y %m %d'))
+    
     plt.savefig(basename + 'beta_b_' + c.pluvio.name + '.png')
     plt.close("all")
     
