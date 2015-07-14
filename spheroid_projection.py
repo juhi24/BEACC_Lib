@@ -9,6 +9,9 @@ import numpy as np
 from scipy.special import cbrt
 import matplotlib.pyplot as plt
 
+plt.ioff()
+#plt.ion()
+
 def rotateX(theta):
     """ Rotation matrix aroun X axis """
     st = np.sin(theta)
@@ -115,7 +118,7 @@ plt.legend(title='b/a',loc=0)
 plt.title('D_{svi,f}')
 plt.xlabel('c/a')
 plt.ylabel('\phi')
-plt.savefig('phif.png')
+plt.savefig('phif.eps')
 plw = plt.figure()
 for k in range(len(arh)):
     plt.errorbar(arv,mean_phiw[k],yerr=std_phiw[k],marker='*',label=str(arh[k]))
@@ -123,7 +126,7 @@ plt.legend(title='b/a',loc=0)
 plt.title('D_{svi,w}')
 plt.xlabel('c/a')
 plt.ylabel('\phi')
-plt.savefig('phiw.png')
+plt.savefig('phiw.eps')
 plec = plt.figure()
 for k in range(len(arh)):
     plt.errorbar(arv,mean_phiec[k],yerr=std_phiec[k],marker='*',label=str(arh[k]))
@@ -131,7 +134,7 @@ plt.legend(title='b/a',loc=0)
 plt.title('D_{svi,ec}')
 plt.xlabel('c/a')
 plt.ylabel('\phi')
-plt.savefig('phiec.png')
+plt.savefig('phiec.eps')
 plec2vol = plt.figure()
 for k in range(len(arh)):
     plt.errorbar(arv,mean_ec2vol[k],yerr=std_ec2vol[k],marker='*',label=str(arh[k]))
@@ -139,5 +142,4 @@ plt.legend(title='b/a',loc=0)
 plt.title('D_{svi,ec to equal volume}')
 plt.xlabel('c/a')
 plt.ylabel('\phi')
-plt.savefig('ec2vol.png')
-plt.close('all')
+plt.savefig('ec2vol.eps')
