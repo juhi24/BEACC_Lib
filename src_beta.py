@@ -54,7 +54,7 @@ dtformat_default_year = '%d.%m.%y %H:%M'
 dtformat_snex = '%y %d %B %H UTC'
 dtformat_print = '%y%m%d%H%M'
 
-folder = '/home/dori/SnowCases_BAEC/DensityJussi/corr082_nomu_instrdict/'
+folder = '/home/dori/SnowCases_BAEC/DensityJussi/corr082_nomu/'
 #RadarVP.to_csv(folder + 'radar_data.csv')
 huang = False
 e = EventsCollection('cases/cases_of_interest_radar.csv', dtformat_default_year)
@@ -138,6 +138,8 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
     zk = 10.0*np.log10(c.z('KASACR'))
     zkz = 10.0*np.log10(c.z('KAZR'))
     zmw = 10.0*np.log10(c.z('MWACR'))
+    plt.figure()
+    zx.plot(label='xsacr')
     print('densitá')
     print(c.density(pluvio_filter=False))
     if huang:
@@ -263,6 +265,7 @@ for c in np.append(e.events.pluvio200.values,e.events.pluvio400.values):
     axe = FinalData['beta'].plot(marker='*')
     b_huang['beta_huang'][c.pluvio.dt_start().to_datetime():c.pluvio.dt_end().to_datetime()].plot(ax=axe)
     plt.title(datetime.strftime(c.pluvio.dt_start().to_datetime(),'%Y %m %d'))
+    
     plt.savefig(basename + 'beta_b_' + c.pluvio.name + '.png')
     plt.close("all")
     
