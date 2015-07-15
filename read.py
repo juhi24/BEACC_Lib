@@ -185,7 +185,7 @@ class InstrumentData(Cacher):
 
     def __add__(self, other):
         combined = copy.deepcopy(self)
-        combined.data = pd.concat(self.data, other.data)
+        combined.data = pd.concat([self.data, other.data])
         combined.clear_cache()
         return combined
 

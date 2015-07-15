@@ -229,6 +229,17 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return '%s case from %s to %s, %s' % (casetype, dt_start,
                                               dt_end, sampling_label)
 
+    def __add__(self, other):
+        combined = copy.deepcopy(self)
+        for key in set(list(self.instr.keys()) + list(other.instr.keys())):
+            if key in self.instr.keys():
+                if key in other.instr.keys():
+                    combined.instr[key] = self.instr[key] + other.instr[key]
+            elif key in other.instr.keys():
+                combined.instr[key] = copy.deepcopy(other.instr[key])
+        combined.clear_cache()
+        return combined
+
     #==========================================================================
     # TODO: remove these getters and setters when no longer needed for
     #       backwards compatibility
@@ -638,15 +649,28 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         data = self.data_in_density_range(self.instr['pipv'].good_data(), rhomin, rhomax)
         return self.instr['pipv'].find_fit(data=data)
 
-    def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800)):
-        fig, ax = plt.subplots()
+    def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
+                                     separate=False):
+        dlabel = 'equivalent diameter (mm)'
+        vlabel = 'fall velocity (m/s)'
+        if separate:
+            fig, axarr = plt.subplots(1, len(rholimits)-1, sharex=True,
+                                      sharey=True)
+        else:
+            fig, ax = plt.subplots()
         for i, rhomin in enumerate(rholimits[:-1]):
+            if separate:
+                ax = axarr[i]
             rhomax = rholimits[i+1]
-            self.vfit_density_range(rhomin, rhomax)[0].plot(ax=ax, label='%s-%s' % (rhomin, rhomax))
-        ax.set_title(self.dtstr())
-        ax.set_xlabel('equivalent diameter (mm)')
-        ax.set_ylabel('fall velocity (m/s)')
-        plt.legend()
+            fit = self.vfit_density_range(rhomin, rhomax)[0]
+            fit.plot(ax=ax, label='%s-%s' % (rhomin, rhomax))
+            ax.set_xlabel(dlabel)
+            plt.legend()
+        if separate:
+            axarr[0].set_ylabel(vlabel)
+        else:
+            ax.set_ylabel(vlabel)
+            ax.set_title(self.dtstr())
         return ax
 
     def z(self, radarname='XSACR'):
