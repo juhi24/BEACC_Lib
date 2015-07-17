@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+import seaborn as sns
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
@@ -32,7 +33,7 @@ class Fit:
         return 0
 
     def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
-             source_data=False, marker='ro', linewidth=2, **kwargs):
+             source_data=False, source_kde=False, marker='ro', linewidth=2, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
@@ -55,6 +56,8 @@ class Fit:
         ax.plot(x, y, label=label, linewidth=linewidth, **kwargs)
         if source_data:
             ax.plot(self.x, self.y, marker)
+        if source_kde:
+            sns.kdeplot(self.x, self.y, ax=ax, shade=True, shade_lowest=False)
         return ax
 
     def cost(self, params, xarr, yarr, sigarr):

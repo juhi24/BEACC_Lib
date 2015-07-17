@@ -237,7 +237,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                     combined.instr[key] = self.instr[key] + other.instr[key]
             elif key in other.instr.keys():
                 combined.instr[key] = copy.deepcopy(other.instr[key])
-        combined.clear_cache()
+        #combined.clear_cache() # TODO: check if needed
         return combined
 
     #==========================================================================
@@ -650,27 +650,32 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return self.instr['pipv'].find_fit(data=data)
 
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
-                                     separate=False):
+                                     separate=False, **kwargs):
         dlabel = 'equivalent diameter (mm)'
         vlabel = 'fall velocity (m/s)'
+        n_ranges = len(rholimits)-1
         if separate:
-            fig, axarr = plt.subplots(1, len(rholimits)-1, sharex=True,
-                                      sharey=True)
+            fig, axarr = plt.subplots(1, n_ranges, sharex=True,
+                                      sharey=True, dpi=100, tight_layout=True,
+                                      figsize=(n_ranges*6, 6))
         else:
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(tight_layout=True)
         for i, rhomin in enumerate(rholimits[:-1]):
             if separate:
                 ax = axarr[i]
             rhomax = rholimits[i+1]
             fit = self.vfit_density_range(rhomin, rhomax)[0]
-            fit.plot(ax=ax, label='%s-%s' % (rhomin, rhomax))
+            fit.plot(ax=ax, label='$%s < \\rho < %s$' % (rhomin, rhomax), **kwargs)
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(handles, labels)
             ax.set_xlabel(dlabel)
-            plt.legend()
         if separate:
             axarr[0].set_ylabel(vlabel)
         else:
             ax.set_ylabel(vlabel)
             ax.set_title(self.dtstr())
+        if separate:
+            return axarr
         return ax
 
     def z(self, radarname='XSACR'):
