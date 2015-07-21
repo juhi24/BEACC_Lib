@@ -645,9 +645,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         outdata = read.merge_series(data, self.density())
         return outdata.query('%s < density < %s' % (rhomin, rhomax))
 
-    def vfit_density_range(self, rhomin, rhomax):
+    def vfit_density_range(self, rhomin, rhomax, **fitargs):
         data = self.data_in_density_range(self.instr['pipv'].good_data(), rhomin, rhomax)
-        return self.instr['pipv'].find_fit(data=data)
+        return self.instr['pipv'].find_fit(data=data, **fitargs)
 
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
                                      separate=False, **kwargs):

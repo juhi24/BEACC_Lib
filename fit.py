@@ -33,7 +33,8 @@ class Fit:
         return 0
 
     def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
-             source_data=False, source_kde=False, marker='ro', linewidth=2, **kwargs):
+             source_data=False, source_kde=False, source_hex=False,
+             marker='ro', linewidth=2, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
@@ -57,7 +58,10 @@ class Fit:
         if source_data:
             ax.plot(self.x, self.y, marker)
         if source_kde:
-            sns.kdeplot(self.x, self.y, ax=ax, shade=True, shade_lowest=False)
+            sns.kdeplot(self.x, self.y, ax=ax, shade=True, shade_lowest=False,
+                        bw=.01)
+        if source_hex:
+            ax.hexbin(self.x, self.y)
         return ax
 
     def cost(self, params, xarr, yarr, sigarr):

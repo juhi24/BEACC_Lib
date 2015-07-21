@@ -11,7 +11,7 @@ from os import path
 dtformat_default = '%d.%m. %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 
-e = EventsCollection('cases/test.csv', dtformat_snex)
+e = EventsCollection('cases/pip2015.csv', dtformat_snex)
 e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
 
 #plt.close('all')
@@ -22,6 +22,10 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.instr['pluvio'].n_combined_intervals = 2
 
 comb200 = e.events.pluvio200.sum()
-ax = comb200.plot_vfits_in_density_ranges(separate=True, source_kde=True, source_data=False)
-savepath = read.ensure_dir(path.join('../results/pip2015/vfits_density_ranges', c.instr['pluvio'].name))
-plt.savefig(path.join(savepath, c.dtstr('combined.eps')))
+comb400 = e.events.pluvio400.sum()
+del(e) # to save memory
+for comb in (comb200, comb400):
+    ax = comb.plot_vfits_in_density_ranges(separate=True, source_kde=True, 
+                                           source_data=False, source_hex=False)
+    savepath = read.ensure_dir(path.join('../results/pip2015/vfits_density_ranges', c.instr['pluvio'].name))
+    plt.savefig(path.join(savepath, c.dtstr('combined.eps')))

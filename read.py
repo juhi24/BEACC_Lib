@@ -16,7 +16,8 @@ from scipy import stats, io
 from scipy.optimize import fmin, minimize
 from fit import *
 
-PIP_CORR = 1.0/0.82 # Wood et al. 2013 Characterization of video disdrometer uncertainties ...
+#PIP_CORR = 1.0/0.82 # Wood et al. 2013 Characterization of video disdrometer uncertainties ...
+PIP_CORR = 1/0.9 # Davide
 
 RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
@@ -847,10 +848,9 @@ class PipV(InstrumentData):
             kde = False
             use_curve_fit = False
         elif filter_outliers:
-            datao, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac, flip=True)
-            filtcount = datao.count()[0]
-            partcount = data.count()[0]
-            if filtcount < 2 and (use_curve_fit or kde):
+            data, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac, flip=True)
+            fltrcount = data.count()[0]
+            if fltrcount < 2 and (use_curve_fit or kde):
                 print('Too few particles.')
                 kde = False
                 use_curve_fit = False
