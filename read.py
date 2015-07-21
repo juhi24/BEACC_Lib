@@ -834,6 +834,9 @@ class PipV(InstrumentData):
                  name=None, try_flip=True, plot_flip=False, **kwargs):
         """Find and store a fit for either raw data or kde."""
         # TODO: clean this mess
+        def too_few_particles(use_curve_fit, kde):
+            print('Too few particles.')
+            return False, False
         std = pd.DataFrame()
         hwfm = pd.DataFrame()
         if data is None:
@@ -844,16 +847,13 @@ class PipV(InstrumentData):
         fit = copy.deepcopy(fit)
         partcount = data.count()[0]
         if partcount < 10 and (use_curve_fit or kde): #increased from 5 to 10
-            print('Too few particles.')
-            kde = False
-            use_curve_fit = False
+            use_curve_fit, kde = too_few_particles(use_curve_fit, kde)
         elif filter_outliers:
-            data, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac, flip=True)
-            fltrcount = data.count()[0]
+            data, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac)
+            datao = self.filter_outlier(data=data, frac=frac, flip=True)[0]
+            fltrcount = datao.count()[0]
             if fltrcount < 2 and (use_curve_fit or kde):
-                print('Too few particles.')
-                kde = False
-                use_curve_fit = False
+                use_curve_fit, kde = too_few_particles(use_curve_fit, kde)
             elif name is not None:
                 stdarr.resize(self.dbins.size, refcheck=False)
                 HWfracM.resize(self.dbins.size, refcheck=False)
@@ -884,7 +884,6 @@ class PipV(InstrumentData):
         fit.x = d
         fit.y = v
         if use_curve_fit:
-            partcount = data.count()[0]
             params, pcov = fit.find_fit()
             perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
             if try_flip and not kde:
