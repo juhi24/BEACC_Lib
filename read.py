@@ -829,12 +829,12 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
 
-    def find_fit(self, fit=None, data=None, kde=False, cut_d=False, frac=0.5,
+    def find_fit(self, fit=None, data=None, use_kde_peak=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
                  name=None, try_flip=True, plot_flip=False, **kwargs):
         """Find and store a fit for either raw data or kde."""
         # TODO: clean this mess
-        def too_few_particles(use_curve_fit, kde):
+        def too_few_particles(use_curve_fit, use_kde_peak):
             print('Too few particles.')
             return False, False
         std = pd.DataFrame()
@@ -846,14 +846,14 @@ class PipV(InstrumentData):
             fit = self.default_fit
         fit = copy.deepcopy(fit)
         partcount = data.count()[0]
-        if partcount < 10 and (use_curve_fit or kde): #increased from 5 to 10
-            use_curve_fit, kde = too_few_particles(use_curve_fit, kde)
+        if partcount < 10 and (use_curve_fit or use_kde_peak): #increased from 5 to 10
+            use_curve_fit, use_kde_peak = too_few_particles(use_curve_fit, use_kde_peak)
         elif filter_outliers:
             data, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac)
             datao = self.filter_outlier(data=data, frac=frac, flip=True)[0]
             fltrcount = datao.count()[0]
-            if fltrcount < 2 and (use_curve_fit or kde):
-                use_curve_fit, kde = too_few_particles(use_curve_fit, kde)
+            if fltrcount < 2 and (use_curve_fit or use_kde_peak):
+                use_curve_fit, use_kde_peak = too_few_particles(use_curve_fit, use_kde_peak)
             elif name is not None:
                 stdarr.resize(self.dbins.size, refcheck=False)
                 HWfracM.resize(self.dbins.size, refcheck=False)
@@ -863,7 +863,7 @@ class PipV(InstrumentData):
                     df.index.name = 'datetime'
         else:
             print('Could not apply filter.')
-        if kde:
+        if use_kde_peak:
             d, v = self.kde_peak(data=data)
         else:
             d = data.Wad_Dia.values
@@ -872,7 +872,7 @@ class PipV(InstrumentData):
             dcut = self.d_cut(**kwargs)
             d = d[d < dcut]
             v = v[d < dcut]
-        if kde:
+        if use_kde_peak:
             num = np.array([bindata(diam, self.binwidth, data=data,
                                     xname='Wad_Diam', yname='vel_v').vel_v.count() for diam in d])
             d = d[num > bin_num_min]
@@ -886,7 +886,7 @@ class PipV(InstrumentData):
         if use_curve_fit:
             params, pcov = fit.find_fit()
             perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
-            if try_flip and not kde:
+            if try_flip and not use_kde_peak:
                 fiti = copy.deepcopy(fit)
                 datai, stdarri, HWfracMi = self.filter_outlier(data=data, frac=frac,
                                                                flip=True)
