@@ -841,7 +841,7 @@ class PipV(InstrumentData):
         hwfm = pd.DataFrame()
         if data is None:
             data = self.good_data()
-        origdata = copy.deepcopy(data)
+        origdata = copy.deepcopy(data) # do not rewrite
         if fit is None:
             fit = self.default_fit
         fit = copy.deepcopy(fit)
@@ -906,19 +906,7 @@ class PipV(InstrumentData):
                               args=(d, v, sig))
             fit.params = result.x
         if plot_flip and use_curve_fit:
-            filterstr = ['D-binned filter', 'v-binned filter', 'unfiltered']
-            for ax in axarr:
-                fit.plot(ax=ax, label='original %.4f' % perr[1])
-            self.plot(ax=axarr[0], data=data, ymax=3)
-            self.plot(ax=axarr[1], data=datai, ymax=3)
-            self.plot(ax=axarr[2], data=origdata, ymax=3)
-            for i, ax in enumerate(axarr):
-                ax.set_title(ax.get_title() + ', ' + filterstr[i])
-            plt.legend()
-            f.tight_layout()
-            fname = data.index[-1].strftime('%H%M.eps')
-            datedir = data.index[-1].strftime('%Y%m%d')
-            f.savefig(os.path.join(ensure_dir(os.path.join(RESULTS_DIR, 'pip2015', 'fitcomparison', datedir)), fname))
+            self.plot_flip(axarr, data, datai, origdata)
         fitstr = 'standard'
         fitout = fit
         if use_curve_fit and try_flip:
@@ -927,6 +915,23 @@ class PipV(InstrumentData):
                 fitstr = 'flipped'
         print(fitstr + ' fit: ' + str(fitout) + ' (' + str(partcount) + ' particles)')
         return fitout, std, hwfm # TODO: wrong std, hwfm when flipped
+
+    def plot_flip(self, axarr, data, datai, origdata):
+        filterstr = ['D-binned filter', 'v-binned filter', 'unfiltered']
+        for ax in axarr:
+            fit.plot(ax=ax, label='original %.4f' % perr[1])
+        self.plot(ax=axarr[0], data=data, ymax=3)
+        self.plot(ax=axarr[1], data=datai, ymax=3)
+        self.plot(ax=axarr[2], data=origdata, ymax=3)
+        for i, ax in enumerate(axarr):
+            ax.set_title(ax.get_title() + ', ' + filterstr[i])
+        plt.legend()
+        f.tight_layout()
+        fname = data.index[-1].strftime('%H%M.eps')
+        datedir = data.index[-1].strftime('%Y%m%d')
+        f.savefig(os.path.join(ensure_dir(os.path.join(RESULTS_DIR, 'pip2015',
+                                                       'fitcomparison', datedir)), fname))
+        return axarr
 
     def find_fits(self, rule, varinterval=True, draw_plots=False,
                   empty_on_fail=True, **kwargs):

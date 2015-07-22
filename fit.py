@@ -34,7 +34,8 @@ class Fit:
 
     def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
              source_data=False, source_kde=False, source_hex=False,
-             marker='ro', linewidth=2, **kwargs):
+             marker='ro', linewidth=2, source_style=None, source_kwargs={},
+             **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
@@ -55,6 +56,7 @@ class Fit:
         if label is None:
             label = r'$' + str(self) + r'$'
         ax.plot(x, y, label=label, linewidth=linewidth, **kwargs)
+        # TODO: deprecated ###
         if source_data:
             ax.plot(self.x, self.y, marker)
         if source_kde:
@@ -62,6 +64,14 @@ class Fit:
                         bw=.01)
         if source_hex:
             ax.hexbin(self.x, self.y)
+        ###
+        if source_style=='raw':
+            ax.plot(self.x, self.y, **source_kwargs)
+        elif source_style=='kde':
+            sns.kdeplot(self.x, self.y, ax=ax, shade=True, shade_lowest=False,
+                        bw=.01, **source_kwargs)
+        elif source_style=='hex':
+            ax.hexbin(self.x, self.y, **source_kwargs)
         return ax
 
     def cost(self, params, xarr, yarr, sigarr):
