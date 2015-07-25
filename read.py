@@ -893,6 +893,9 @@ class PipV(InstrumentData):
                 fiti.x = datai.vel_v.values
                 fiti.y = datai.Wad_Dia.values
                 paramsi, pcovi = fiti.find_fit()
+                # Flip values back to (D,v)
+                fiti.x = datai.Wad_Dia.values
+                fiti.y = datai.vel_v.values
                 perri = np.sqrt(np.diag(pcovi))[::-1] # flipped back to d, v
                 # TODO: fit type neutrality
                 # x = a*y**b
