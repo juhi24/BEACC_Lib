@@ -650,7 +650,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return self.instr['pipv'].find_fit(data=data, **fitargs)
 
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
-                                     separate=False, **kwargs):
+                                     separate=False, hide_high_limit=True,
+                                     fitargs={}, **kwargs):
         dlabel = 'equivalent diameter (mm)'
         vlabel = 'fall velocity (m/s)'
         n_ranges = len(rholimits)-1
@@ -664,11 +665,13 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             if separate:
                 ax = axarr[i]
             rhomax = rholimits[i+1]
-            fit = self.vfit_density_range(rhomin, rhomax)[0]
+            fit = self.vfit_density_range(rhomin, rhomax, **fitargs)[0]
             fit.plot(ax=ax, label='$%s < \\rho < %s$' % (rhomin, rhomax), **kwargs)
             handles, labels = ax.get_legend_handles_labels()
             ax.legend(handles, labels)
             ax.set_xlabel(dlabel)
+        if hide_high_limit:
+            pass # TODO
         if separate:
             axarr[0].set_ylabel(vlabel)
         else:

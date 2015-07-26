@@ -831,7 +831,8 @@ class PipV(InstrumentData):
 
     def find_fit(self, fit=None, data=None, use_kde_peak=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
-                 name=None, try_flip=True, plot_flip=False, **kwargs):
+                 name=None, try_flip=True, plot_flip=False, force_flip=False,
+                 **kwargs):
         """Find and store a fit for either raw data or kde."""
         # TODO: clean this mess
         def too_few_particles(use_curve_fit, use_kde_peak):
@@ -839,6 +840,8 @@ class PipV(InstrumentData):
             return False, False
         std = pd.DataFrame()
         hwfm = pd.DataFrame()
+        if force_flip:
+            try_flip = True
         if data is None:
             data = self.good_data()
         origdata = copy.deepcopy(data) # do not rewrite
@@ -910,13 +913,18 @@ class PipV(InstrumentData):
             fit.params = result.x
         if plot_flip and use_curve_fit:
             self.plot_flip(axarr, data, datai, origdata)
+        desfmt = '{0:.3f}'
         fitstr = 'standard'
+        errstr = ''
         fitout = fit
-        if use_curve_fit and try_flip:
-            if perr[1] > perri[1] and fiti.is_good():
-                fitout = fiti
-                fitstr = 'flipped'
-        print(fitstr + ' fit: ' + str(fitout) + ' (' + str(partcount) + ' particles)')
+        if use_curve_fit:
+            errstr += 'err: std ' + desfmt.format(perr[1])
+            if try_flip:
+                errstr += ', inv ' + desfmt.format(perri[1])
+                if (perr[1] > perri[1] and fiti.is_good()) or force_flip:
+                    fitout = fiti
+                    fitstr = 'flipped'
+        print(fitstr + ' fit: ' + str(fitout) + '; ' + str(partcount) + ' particles; ' + errstr)
         return fitout, std, hwfm # TODO: wrong std, hwfm when flipped
 
     def plot_flip(self, axarr, data, datai, origdata):
