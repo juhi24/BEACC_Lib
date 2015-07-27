@@ -642,7 +642,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return self.msger(name, func)
 
     def data_in_density_range(self, data, rhomin, rhomax):
-        outdata = read.merge_series(data, self.density())
+        grouped = read.merge_series(data, self.instr['pluvio'].grouper())
+        outdata = pd.merge(grouped, pd.DataFrame(self.density()),
+                           left_on='group', right_index=True)
         return outdata.query('%s < density < %s' % (rhomin, rhomax))
 
     def vfit_density_range(self, rhomin, rhomax, **fitargs):
@@ -666,12 +668,16 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                 ax = axarr[i]
             rhomax = rholimits[i+1]
             fit = self.vfit_density_range(rhomin, rhomax, **fitargs)[0]
-            fit.plot(ax=ax, label='$%s < \\rho < %s$' % (rhomin, rhomax), **kwargs)
+            limitstr = '$%s < \\rho < %s$' % (rhomin, rhomax)
+            fitstr = '$' + str(fit) + '$'
+            fit.plot(ax=ax, label=fitstr, **kwargs)
             handles, labels = ax.get_legend_handles_labels()
-            ax.legend(handles, labels)
+            ax.legend(handles, labels, loc='lower right')
             ax.set_xlabel(dlabel)
+            ax.set_title(limitstr)
         if hide_high_limit:
-            pass # TODO
+            limitstr = '$\\rho > ' + str(rhomin) + '$'
+            ax.set_title(limitstr)
         if separate:
             axarr[0].set_ylabel(vlabel)
         else:
