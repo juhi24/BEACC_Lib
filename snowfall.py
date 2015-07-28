@@ -649,7 +649,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def vfit_density_range(self, rhomin, rhomax, **fitargs):
         data = self.data_in_density_range(self.instr['pipv'].good_data(), rhomin, rhomax)
-        return self.instr['pipv'].find_fit(data=data, **fitargs)
+        fit = self.instr['pipv'].find_fit(data=data, **fitargs)[0]
+        fit.x_unfiltered = data.Wad_Dia.values
+        fit.y_unfiltered = data.vel_v.values
+        return fit
 
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
                                      separate=False, hide_high_limit=True,
@@ -667,7 +670,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             if separate:
                 ax = axarr[i]
             rhomax = rholimits[i+1]
-            fit = self.vfit_density_range(rhomin, rhomax, **fitargs)[0]
+            fit = self.vfit_density_range(rhomin, rhomax, **fitargs)
             limitstr = '$%s < \\rho < %s$' % (rhomin, rhomax)
             fitstr = '$' + str(fit) + '$'
             fit.plot(ax=ax, label=fitstr, **kwargs)

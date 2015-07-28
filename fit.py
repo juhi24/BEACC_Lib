@@ -13,12 +13,14 @@ GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
 class Fit:
     """parent for different fit types"""
-    def __init__(self, x=None, y=None, sigma=None, params=None, name='fit',
-                 xname='D'):
+    def __init__(self, x=None, y=None, x_unfiltered=None, y_unfiltered=None,
+                 sigma=None, params=None, name='fit', xname='D'):
         self.params = params
         self.name = name
         self.x = x
         self.y = y
+        self.x_unfiltered = x_unfiltered
+        self.y_unfiltered = y_unfiltered
         self.sigma = sigma
         self.xname = xname
 
@@ -34,8 +36,8 @@ class Fit:
 
     def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
              source_data=False, source_kde=False, source_hex=False,
-             marker='ro', linewidth=2, source_style=None, source_kwargs={},
-             **kwargs):
+             marker='ro', linewidth=2, source_style=None, unfiltered=False,
+             source_kwargs={}, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
             ax = plt.gca()
@@ -56,22 +58,19 @@ class Fit:
         if label is None:
             label = r'$' + str(self) + r'$'
         ax.plot(x, y, label=label, linewidth=linewidth, **kwargs)
-        # TODO: deprecated ###
-        if source_data:
-            ax.plot(self.x, self.y, marker)
-        if source_kde:
-            sns.kdeplot(self.x, self.y, ax=ax, shade=True, shade_lowest=False,
-                        bw=.01)
-        if source_hex:
-            ax.hexbin(self.x, self.y)
-        ###
+        if unfiltered:
+            x = self.x_unfiltered
+            y = self.y_unfiltered
+        else:
+            x = self.x
+            y = self.y
         if source_style=='raw':
-            ax.plot(self.x, self.y, **source_kwargs)
+            ax.plot(x, y, **source_kwargs)
         elif source_style=='kde':
-            sns.kdeplot(self.x, self.y, ax=ax, shade=True, shade_lowest=False,
+            sns.kdeplot(x, y, ax=ax, shade=True, shade_lowest=False,
                         bw=.01, **source_kwargs)
         elif source_style=='hex':
-            ax.hexbin(self.x, self.y, **source_kwargs)
+            ax.hexbin(x, y, **source_kwargs)
         return ax
 
     def cost(self, params, xarr, yarr, sigarr):
