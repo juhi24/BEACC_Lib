@@ -913,7 +913,7 @@ class PipV(InstrumentData):
             fit.params = result.x
         if plot_flip and use_curve_fit:
             self.plot_flip(axarr, data, datai, origdata)
-        desfmt = '{0:.3f}'
+        desfmt = '{0:.4f}'
         fitstr = 'standard'
         errstr = ''
         fitout = fit

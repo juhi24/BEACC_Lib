@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 from scipy.special import gamma
 from glob import glob
 from itertools import cycle
+from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import copy
 import locale
@@ -647,30 +648,46 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                            left_on='group', right_index=True)
         return outdata.query('%s < density < %s' % (rhomin, rhomax))
 
-    def vfit_density_range(self, rhomin, rhomax, **fitargs):
+    def vfit_density_range(self, lims, **fitargs):
+        rhomin = lims[0]
+        rhomax = lims[1]
         data = self.data_in_density_range(self.instr['pipv'].good_data(), rhomin, rhomax)
         fit = self.instr['pipv'].find_fit(data=data, **fitargs)[0]
         fit.x_unfiltered = data.Wad_Dia.values
         fit.y_unfiltered = data.vel_v.values
         return fit
 
+    def vfits_density_range(self, limslist, parallel=True, **fitargs):
+        if parallel:
+            processes = min(len(limslist), os.cpu_count())
+            with Pool(processes) as p:
+                fits = p.map(self.vfit_density_range, limslist)
+            return fits
+        fits = []
+        for lims in limslist:
+            fits.append(self.vfit_density_range(lims, **fitargs))
+        return fits
+
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
                                      separate=False, hide_high_limit=True,
-                                     fitargs={}, **kwargs):
+                                     fitargs={}, parallel=True, **kwargs):
+        limslist = [(rhomin, rholimits[i+1]) for i, rhomin in enumerate(rholimits[:-1])]
         dlabel = 'equivalent diameter (mm)'
         vlabel = 'fall velocity (m/s)'
-        n_ranges = len(rholimits)-1
+        fits = self.vfits_density_range(limslist, parallel=parallel)
+        n_ranges = len(fits)
         if separate:
             fig, axarr = plt.subplots(1, n_ranges, sharex=True,
                                       sharey=True, dpi=100, tight_layout=True,
                                       figsize=(n_ranges*6, 6))
         else:
             fig, ax = plt.subplots(tight_layout=True)
-        for i, rhomin in enumerate(rholimits[:-1]):
+        for i, fit in enumerate(fits):
             if separate:
                 ax = axarr[i]
-            rhomax = rholimits[i+1]
-            fit = self.vfit_density_range(rhomin, rhomax, **fitargs)
+            lims = limslist[i]
+            rhomin = lims[0]
+            rhomax = lims[1]
             limitstr = '$%s < \\rho < %s$' % (rhomin, rhomax)
             fitstr = '$' + str(fit) + '$'
             fit.plot(ax=ax, label=fitstr, **kwargs)
