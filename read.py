@@ -684,7 +684,7 @@ class PipV(InstrumentData):
         self._std = pd.DataFrame(columns=self.dbins)
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
-        self._default_fit = PolFit()
+        self.default_fit = PolFit
         self.use_flip = True
         if self.data.empty:
             for filename in filenames:
@@ -763,18 +763,10 @@ class PipV(InstrumentData):
         else:
             self._hwfm = hwfm
 
-    @property
-    def default_fit(self):
-        return copy.deepcopy(self._default_fit)
-
-    @default_fit.setter
-    def default_fit(self, emptyfit):
-        self._default_fit = emptyfit
-
     def v(self, d, emptyfit=None, varinterval=True, rule=None):
         """velocities according to fits for given diameter"""
         if emptyfit is None:
-            emptyfit = self.default_fit
+            emptyfit = self.default_fit()
         emptyfit = copy.deepcopy(emptyfit)
         if rule is None:
             rule = self.rule
@@ -829,7 +821,7 @@ class PipV(InstrumentData):
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
         return fmin(dcost, d0)[0]
 
-    def find_fit(self, fit=None, data=None, use_kde_peak=False, cut_d=False, frac=0.5,
+    def find_fit(self, fitclass=None, data=None, use_kde_peak=False, cut_d=False, frac=0.5,
                  use_curve_fit=True, bin_num_min=5, filter_outliers=True,
                  name=None, try_flip=True, plot_flip=False, force_flip=False,
                  **kwargs):
@@ -845,9 +837,10 @@ class PipV(InstrumentData):
         if data is None:
             data = self.good_data()
         origdata = copy.deepcopy(data) # do not rewrite
-        if fit is None:
-            fit = self.default_fit
-        fit = copy.deepcopy(fit)
+        if fitclass is None:
+            fit = self.default_fit()
+        else:
+            fit = fitclass()
         partcount = data.count()[0]
         if partcount < 10 and (use_curve_fit or use_kde_peak): #increased from 5 to 10
             use_curve_fit, use_kde_peak = too_few_particles(use_curve_fit, use_kde_peak)
@@ -961,7 +954,7 @@ class PipV(InstrumentData):
                 print('Particle count: %s' % group.vel_v.count())
                 if len(fits) == 0 or empty_on_fail:
                     print('Using an empty fit')
-                    newfit = self.default_fit
+                    newfit = self.default_fit()
                     std = np.nan
                     hwfm = np.nan
                 else:
@@ -969,7 +962,6 @@ class PipV(InstrumentData):
                     newfit = fits[-1]
                     std = stds[-1]
                     hwfm = hwfms[-1]
-            newfit = copy.deepcopy(newfit)
             fits.append(newfit)
             names.append(name)
             stds.append(std)
