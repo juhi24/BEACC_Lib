@@ -561,7 +561,6 @@ class Pluvio(InstrumentData, PrecipMeasurer):
             ticks = ticks.tshift(periods=self.shift_periods, freq=self.shift_freq)
         ticktime = self.amount().index
         dtgroups = pd.Series(ticktime, index=ticktime).reindex(ticks.index).bfill()[self.dt_start():self.dt_end()]
-        #numgroups = ticks.astype(int).cumsum().shift(1).fillna(0)[self.dt_start():self.dt_end()]
         dtgroups.name = 'group'
         last_index = self.tdelta().index[-1]
         return pd.DataFrame(dtgroups[dtgroups.notnull()])[:last_index]
@@ -905,7 +904,7 @@ class PipV(InstrumentData):
                               args=(d, v, sig))
             fit.params = result.x
         if plot_flip and use_curve_fit:
-            self.plot_flip(axarr, data, datai, origdata)
+            self.plot_flip(axarr, f, data, datai, origdata, perr)
         desfmt = '{0:.4f}'
         fitstr = 'standard'
         errstr = ''
@@ -920,7 +919,7 @@ class PipV(InstrumentData):
         print(fitstr + ' fit: ' + str(fitout) + '; ' + str(partcount) + ' particles; ' + errstr)
         return fitout, std, hwfm # TODO: wrong std, hwfm when flipped
 
-    def plot_flip(self, axarr, data, datai, origdata):
+    def plot_flip(self, axarr, f, data, datai, origdata, perr):
         filterstr = ['D-binned filter', 'v-binned filter', 'unfiltered']
         for ax in axarr:
             fit.plot(ax=ax, label='original %.4f' % perr[1])
