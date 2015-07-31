@@ -937,8 +937,7 @@ class PipV(InstrumentData):
                                                        'fitcomparison', datedir)), fname))
         return axarr
 
-    def find_fits(self, rule, varinterval=True, draw_plots=False,
-                  empty_on_fail=True, **kwargs):
+    def find_fits(self, rule, varinterval=True, empty_on_fail=True, **kwargs):
         print('Calculating velocity fits for given sampling frequency...')
         names = []
         fits = []
@@ -966,11 +965,6 @@ class PipV(InstrumentData):
             names.append(name)
             stds.append(std)
             hwfms.append(hwfm)
-            if draw_plots:
-                f, ax = plt.subplots()
-                self.plot_kde(data=group, ax=ax)
-                self.plot(data=group, hexbin=False, ax=ax)
-                plt.show()
         self.std = pd.concat(stds)
         self.hwfm = pd.concat(hwfms)
         if varinterval:
