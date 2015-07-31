@@ -762,22 +762,21 @@ class PipV(InstrumentData):
         else:
             self._hwfm = hwfm
 
-    def v(self, d, emptyfit=None, varinterval=True, rule=None):
+    def v(self, d, fitclass=None, varinterval=True, rule=None):
         """velocities according to fits for given diameter"""
-        if emptyfit is None:
-            emptyfit = self.default_fit()
-        emptyfit = copy.deepcopy(emptyfit)
+        if fitclass is None:
+            fitclass = self.default_fit
         if rule is None:
             rule = self.rule
         if self.fits.empty:
-            self.find_fits(rule, fit=emptyfit, varinterval=varinterval)
+            self.find_fits(rule, fitclass=fitclass, varinterval=varinterval)
         elif not varinterval:
             if pd.datetools.to_offset(rule) != self.fits.index.freq:
                 print('different sampling freq')
-                self.find_fits(rule, fit=emptyfit, varinterval=varinterval)
+                self.find_fits(rule, fitclass=fitclass, varinterval=varinterval)
         v = []
-        for fit in self.fits[emptyfit.name].values:
-            v.append(fit.func(d))
+        for vfit in self.fits[fitclass.name].values:
+            v.append(vfit.func(d))
         return pd.Series(v, index=self.fits.index, name='v')
 
     def lwc(self, rule='1min'):
@@ -837,9 +836,9 @@ class PipV(InstrumentData):
             data = self.good_data()
         origdata = copy.deepcopy(data) # do not rewrite
         if fitclass is None:
-            fit = self.default_fit()
+            vfit = self.default_fit()
         else:
-            fit = fitclass()
+            vfit = fitclass()
         partcount = data.count()[0]
         if partcount < 10 and (use_curve_fit or use_kde_peak): #increased from 5 to 10
             use_curve_fit, use_kde_peak = too_few_particles(use_curve_fit, use_kde_peak)
@@ -876,13 +875,13 @@ class PipV(InstrumentData):
                              yname='vel_v').vel_v.sem() for diam in d]
         else:
             sig = np.ones(d.size)
-        fit.x = d
-        fit.y = v
+        vfit.x = d
+        vfit.y = v
         if use_curve_fit:
-            params, pcov = fit.find_fit()
+            params, pcov = vfit.find_fit()
             perr = np.sqrt(np.diag(pcov)) # standard errors of d, v
             if try_flip and not use_kde_peak:
-                fiti = copy.deepcopy(fit)
+                fiti = copy.deepcopy(vfit)
                 datai, stdarri, HWfracMi = self.filter_outlier(data=data, frac=frac,
                                                                flip=True)
                 fiti.x = datai.vel_v.values
@@ -900,15 +899,15 @@ class PipV(InstrumentData):
                     for ax in axarr:
                         fiti.plot(ax=ax, label='flipped %.4f' % perri[1])
         else:
-            result = minimize(fit.cost, fit.quess, method='Nelder-Mead',
+            result = minimize(vfit.cost, vfit.quess, method='Nelder-Mead',
                               args=(d, v, sig))
-            fit.params = result.x
+            vfit.params = result.x
         if plot_flip and use_curve_fit:
-            self.plot_flip(axarr, f, data, datai, origdata, perr)
+            self.plot_flip(axarr, f, vfit, data, datai, origdata, perr)
         desfmt = '{0:.4f}'
         fitstr = 'standard'
         errstr = ''
-        fitout = fit
+        fitout = vfit
         if use_curve_fit:
             errstr += 'err: std ' + desfmt.format(perr[1])
             if try_flip:
@@ -919,10 +918,10 @@ class PipV(InstrumentData):
         print(fitstr + ' fit: ' + str(fitout) + '; ' + str(partcount) + ' particles; ' + errstr)
         return fitout, std, hwfm # TODO: wrong std, hwfm when flipped
 
-    def plot_flip(self, axarr, f, data, datai, origdata, perr):
+    def plot_flip(self, axarr, f, vfit, data, datai, origdata, perr):
         filterstr = ['D-binned filter', 'v-binned filter', 'unfiltered']
         for ax in axarr:
-            fit.plot(ax=ax, label='original %.4f' % perr[1])
+            vfit.plot(ax=ax, label='original %.4f' % perr[1])
         self.plot(ax=axarr[0], data=data, ymax=3)
         self.plot(ax=axarr[1], data=datai, ymax=3)
         self.plot(ax=axarr[2], data=origdata, ymax=3)
@@ -985,7 +984,7 @@ class PipV(InstrumentData):
         if fit_type is None:
             fit_type = self.default_fit.name
         letter = 'abcdef'
-        params = self.fits[fit_type].apply(lambda fit: fit.params)
+        params = self.fits[fit_type].apply(lambda vfit: vfit.params)
         paramlist = []
         for i in range(params.values[0].size):
             param = params.apply(lambda p: p[i])
@@ -1042,8 +1041,8 @@ class PipV(InstrumentData):
             fits = [self.find_fit()[0]]
         else:
             fits = self.fits.loc[tstep].values
-        for fit in fits:
-            fit.plot(**kwargs)
+        for vfit in fits:
+            vfit.plot(**kwargs)
 
     def plot(self, data=None, hexbin=True, ax=None, xmax=None, ymax=None,
              show_particle_count=False, colormap='gray_r', ygrid=True,
