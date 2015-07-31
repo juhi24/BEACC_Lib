@@ -12,9 +12,9 @@ import pandas as pd
 import numpy as np
 import linecache
 import copy
+import fit
 from scipy import stats, io
 from scipy.optimize import fmin, minimize
-from fit import *
 
 #PIP_CORR = 1.0/0.82 # Wood et al. 2013 Characterization of video disdrometer uncertainties ...
 PIP_CORR = 1/0.9 # Davide
@@ -684,7 +684,7 @@ class PipV(InstrumentData):
         self._std = pd.DataFrame(columns=self.dbins)
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
-        self.default_fit = PolFit
+        self.default_fit = fit.PolFit
         self.use_flip = True
         if self.data.empty:
             for filename in filenames:
