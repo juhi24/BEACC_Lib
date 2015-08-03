@@ -25,7 +25,7 @@ ns1min = 1.0*60.0*1000000000.0
 
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
-    return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum%1) - datetime.timedelta(days=366)
+    return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum % 1) - datetime.timedelta(days=366)
 
 
 def msg_io(msgpath, func, **kwargs):
@@ -874,9 +874,8 @@ class PipV(InstrumentData):
             data = self.good_data()
         origdata = copy.deepcopy(data)  # do not rewrite
         if fitclass is None:
-            vfit = self.default_fit()
-        else:
-            vfit = fitclass()
+            fitclass = self.default_fit
+        vfit = fitclass()
         partcount = data.count()[0]
         # increased from 5 to 10
         if partcount < 10 and (use_curve_fit or use_kde_peak):
@@ -923,22 +922,16 @@ class PipV(InstrumentData):
         vfit.y = v
         if use_curve_fit:
             params, pcov = vfit.find_fit()
-            perr = np.sqrt(np.diag(pcov))   # standard errors of d, v
+            perr = vfit.perr()   # standard errors of d, v
             if try_flip and not use_kde_peak:
-                fiti = copy.deepcopy(vfit)
+                fiti = fitclass()
                 datai, stdarri, HWfracMi = self.filter_outlier(data=data,
                                                                frac=frac,
                                                                flip=True)
-                fiti.x = datai.vel_v.values
-                fiti.y = datai.Wad_Dia.values
-                paramsi, pcovi = fiti.find_fit()
-                # Flip values back to (D,v)
                 fiti.x = datai.Wad_Dia.values
                 fiti.y = datai.vel_v.values
-                perri = np.sqrt(np.diag(pcovi))[::-1]   # flipped back to d, v
-                # TODO: fit type neutrality
-                # x = a*y**b
-                fiti.params = np.array([paramsi[0]**(-1/paramsi[1]), 1/paramsi[1]])
+                paramsi, pcovi = fiti.find_fit(flipped=True)
+                perri = fiti.perr()
                 if plot_flip:
                     f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12, 6))
                     for ax in axarr:

@@ -11,12 +11,28 @@ import seaborn as sns
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
+
+def antidiagonal_identity(n):
+    return np.matrix(np.identity(n))[::-1]
+
+
+def antidiagonal_transpose(matrix):
+    n = len(matrix)
+    J = antidiagonal_identity(n)
+    return J*matrix.T*J
+
+
+class ClassProperty(property):
+    def __get__(self, cls, owner):
+        return self.fget.__get__(None, owner)()
+
+
 class Fit:
     """parent for different fit types"""
     def __init__(self, x=None, y=None, x_unfiltered=None, y_unfiltered=None,
                  sigma=None, params=None, name='fit', xname='D'):
         self.params = params
-        self.name = name
+        self._name = name
         self.x = x
         self.y = y
         self.x_unfiltered = x_unfiltered
@@ -82,19 +98,42 @@ class Fit:
             cost += 1/sig**2*(y - self.func(x, *params))**2 + self.penalty(params)
         return cost
 
-    def find_fit(self, store_params=True, **kwargs):
+    def find_fit(self, flipped=True, store_params=True, **kwargs):
         if self.x is None or self.y is None:
             return
         if self.sigma is not None:
             kwargs['sigma'] = self.sigma
-        #print(type(self.x),type(self.y))
-        params, cov = curve_fit(self.func, self.x, self.y, **kwargs)
+        if flipped:
+            x = self.y
+            y = self.x
+        else:
+            x = self.x
+            y = self.y
+        params, cov = curve_fit(self.func, x, y, **kwargs)
+        if flipped:
+            params = self.flip_params(params)
+            cov = antidiagonal_transpose(cov)
         if store_params:
             self.params = params
+            self.cov = cov
         return params, cov
+
+    def flip_params(self, params):
+        return params
+
+    def perr(self, cov=None):
+        """standard errors of x and y"""
+        if cov is None:
+            cov = self.cov
+        return np.sqrt(np.diag(cov))
 
     def is_good(self):
         return True
+
+    @ClassProperty
+    @classmethod
+    def name(cls):
+        return cls.__name__.lower()
 
 class ExpFit(Fit):
     """exponential fit of form a*(1-b*exp(-c*D))"""
@@ -141,6 +180,9 @@ class PolFit(Fit):
     def penalty(self, params):
         #return 0
         return 1000*max(0, 0.2-params[1])
+
+    def flip_params(self, params):
+        return np.array([params[0]**(-1/params[1]), 1/params[1]])
 
     def is_good(self):
         a = self.params[0]
