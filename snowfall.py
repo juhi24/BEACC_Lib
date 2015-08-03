@@ -42,22 +42,27 @@ RHO_W = 1000
 
 # Wood et al. 2013 Characterization of video disdrometer uncertainties ...
 #PIP_CORR = 1.0/0.82
-PIP_CORR = 1/0.9 # Davide
+PIP_CORR = 1/0.9    # Davide
+
 
 def deprecation(message, stacklevel=2):
     """Issue DeprecationWarning"""
     warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
 
+
 def switch_wl(x):
-    return {tm_aux.wl_C : "C", tm_aux.wl_X : "X", tm_aux.wl_Ku : "Ku",
-            tm_aux.wl_Ka : "Ka", tm_aux.wl_W : "W"}.get(x, str(x))
+    return {tm_aux.wl_C: "C", tm_aux.wl_X: "X", tm_aux.wl_Ku: "Ku",
+            tm_aux.wl_Ka: "Ka", tm_aux.wl_W: "W"}.get(x, str(x))
+
 
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days)):
         yield start_date + timedelta(n)
 
+
 def datafilelist(subpath, datadir=DATA_DIR):
     return glob(os.path.join(datadir, subpath))
+
 
 def batch_import(dtstr, datadir=DATA_DIR):
     """Read ASCII data according to a datestring pattern."""
@@ -65,10 +70,14 @@ def batch_import(dtstr, datadir=DATA_DIR):
     dsd_files = datafilelist(DSD_SUBPATH % dtstr, datadir=datadir)
     pluvio200_files = datafilelist(P200_SUBPATH % dtstr, datadir=datadir)
     pluvio400_files = datafilelist(P400_SUBPATH % dtstr, datadir=datadir)
-    xsacr_files = datafilelist(RADAR_SUBPATH % ('XSACR', 'xsacr', dtstr), datadir=datadir)
-    kasacr_files = datafilelist(RADAR_SUBPATH % ('KASACR', 'kasacr', dtstr), datadir=datadir)
-    kazr_files = datafilelist(RADAR_SUBPATH % ('KAZR', 'kazrge', dtstr), datadir=datadir)
-    mwacr_files = datafilelist(RADAR_SUBPATH % ('MWACR', 'mwacr', dtstr), datadir=datadir)
+    xsacr_files = datafilelist(RADAR_SUBPATH % ('XSACR', 'xsacr', dtstr),
+                               datadir=datadir)
+    kasacr_files = datafilelist(RADAR_SUBPATH % ('KASACR', 'kasacr', dtstr),
+                                datadir=datadir)
+    kazr_files = datafilelist(RADAR_SUBPATH % ('KAZR', 'kazrge', dtstr),
+                              datadir=datadir)
+    mwacr_files = datafilelist(RADAR_SUBPATH % ('MWACR', 'mwacr', dtstr),
+                               datadir=datadir)
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
@@ -77,10 +86,10 @@ def batch_import(dtstr, datadir=DATA_DIR):
     kasacr = read.Radar(kasacr_files)
     kazr = read.Radar(kazr_files)
     mwacr = read.Radar(mwacr_files)
-    
     return {'vel': pipv, 'dsd': dsd, 'pluvio200': pluvio200,
             'pluvio400': pluvio400, 'xsacr': xsacr, 'kasacr': kasacr,
             'kazr': kazr, 'mwacr': mwacr}
+
 
 def batch_create_hdf(datadir=DATA_DIR, outname=H5_FILE,
                      dtstr='20140[2-3]??'):
@@ -90,12 +99,14 @@ def batch_create_hdf(datadir=DATA_DIR, outname=H5_FILE,
     for key in instrdict:
         instrdict[key].to_hdf(filename=hdf_file)
 
+
 def scatterplot(x, y, c=None, kind='scatter', **kwargs):
     """scatter plot of two Series objects"""
     plotdata = read.merge_series(x, y)
     if c is not None:
         kwargs['c'] = c
     return plotdata.plot(kind=kind, x=x.name, y=y.name, **kwargs)
+
 
 def combine_datasets(*datasets):
     eventslist = []
@@ -106,6 +117,7 @@ def combine_datasets(*datasets):
     combined.events.sort(columns='start', inplace=True)
     combined.events.reset_index(inplace=True)
     return combined
+
 
 class MultiSeries:
     """Provide calculated parameters as one DataFrame and use it for plotting.
@@ -138,11 +150,12 @@ class MultiSeries:
             for (name, group), marker in zip(groups, cycle(markers)):
                 colorbar = groups.case.first().iloc[0] == name and colorbar
                 group.plot(ax=ax, x=x, y=y, marker=marker, kind=kind,
-                           label=name, colorbar=colorbar, edgecolors=edgecolors,
-                           **kwargs)
+                           label=name, colorbar=colorbar,
+                           edgecolors=edgecolors, **kwargs)
             return ax
         return data.plot(ax=ax, x=x, y=y, kind=kind, colorbar=colorbar,
                          edgecolors=edgecolors, **kwargs)
+
 
 class EventsCollection(MultiSeries):
     """Manage multiple snow/rain events."""
@@ -187,6 +200,7 @@ class EventsCollection(MultiSeries):
             sumlist.append(c.summary(dtformat=dtformat))
         return pd.concat(sumlist, **kwargs)
 
+
 class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, xsacr=None, kasacr=None,
@@ -200,8 +214,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             self.instr = {'pluvio': pluvio, 'dsd': dsd, 'pipv': pipv,
                           'xsacr': xsacr, 'kasacr': kasacr, 'kazr': kazr,
                           'mwacr': mwacr}
-        self.instr_depr_args = {'message':'Please use new syntax: case.instr[instrument_name]',
-                                'stacklevel':3}
+        self.instr_depr_args = {'message': 'Please use new syntax: case.instr[instrument_name]',
+                                'stacklevel': 3}
         self._varinterval = varinterval
         self.instr['pluvio'].varinterval = varinterval
         self.quess = quess
@@ -211,9 +225,9 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         else:
             self._rule = rule
         self.liquid = liquid
-        self._ab = None # alpha, beta
+        self._ab = None         # alpha, beta
         for instr in self.instr.values():
-            instr.case = self # maybe this is kind of silly
+            instr.case = self   # maybe this is kind of silly
         if autoshift:
             self.autoshift()
         if unbias:
@@ -343,7 +357,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     @property
     def rule(self):
         if self.varinterval: #and self._rule is None:
-            self._rule = self.instr['pluvio'].grouper() # TODO: needs to be reset on changes for pluvio data
+            # TODO: needs to be reset on changes for pluvio data
+            self._rule = self.instr['pluvio'].grouper()
         return self._rule
 
     @rule.setter
@@ -377,12 +392,15 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             kasacr = read.Radar(filenames, hdf_table='KASACR')
             kazr = read.Radar(filenames, hdf_table='KAZR')
             mwacr = read.Radar(filenames, hdf_table='MWACR')
-            instr_lst = [pluvio200, pluvio400, dsd, pipv, xsacr, kasacr, kazr, mwacr]
+            instr_lst = [pluvio200, pluvio400, dsd, pipv, xsacr, kasacr, kazr,
+                         mwacr]
         for instr in instr_lst:
             instr.set_span(dt_start, dt_end)
         if radar:
-            m200 = cls(dsd, pipv, pluvio200, xsacr, kasacr, kazr, mwacr, **kwargs)
-            m400 = cls(dsd, pipv, pluvio400, xsacr, kasacr, kazr, mwacr, **kwargs)
+            m200 = cls(dsd, pipv, pluvio200, xsacr, kasacr, kazr, mwacr,
+                       **kwargs)
+            m400 = cls(dsd, pipv, pluvio400, xsacr, kasacr, kazr, mwacr,
+                       **kwargs)
         else:
             m200 = cls(dsd, pipv, pluvio200, **kwargs)
             m400 = cls(dsd, pipv, pluvio400, **kwargs)
@@ -422,7 +440,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             self.rule = None
 
     def intensity(self, params=None, simple=False):
-        """Calculate precipitation intensity using given or saved parameters."""
+        """Calculate precipitation intensity using given or saved parameters.
+        """
         if params is None and not self.liquid:
             params = self.ab
         if self.liquid:
@@ -477,11 +496,13 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def v(self, d):
         """velocity wrapper"""
-        return self.instr['pipv'].v(d, varinterval=self.varinterval, rule=self.rule)
+        return self.instr['pipv'].v(d, varinterval=self.varinterval,
+                                    rule=self.rule)
 
     def n(self, d):
         """N wrapper"""
-        return self.instr['dsd'].n(d, varinterval=self.varinterval, rule=self.rule)
+        return self.instr['dsd'].n(d, varinterval=self.varinterval,
+                                   rule=self.rule)
 
     def n_t(self):
         """total concentration"""
@@ -578,7 +599,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def partcount(self):
         """particle count"""
-        count = self.instr['pipv'].partcount(rule=self.rule, varinterval=self.varinterval)
+        count = self.instr['pipv'].partcount(rule=self.rule,
+                                             varinterval=self.varinterval)
         count.name = 'count'
         return count
 
@@ -592,7 +614,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def noprecip_bias(self, inplace=True):
         """Wrapper to unbias pluvio using LWC calculated from PIP data."""
-        return self.instr['pluvio'].noprecip_bias(self.instr['pipv'].lwc(), inplace=inplace)
+        return self.instr['pluvio'].noprecip_bias(self.instr['pipv'].lwc(),
+                                                  inplace=inplace)
 
     def pluvargs(self):
         args = {}
@@ -634,7 +657,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         name = 'density'
         def func():
             rho_r_pip = self.amount(params=[1], simple=True)
-            if pluvio_filter: #filter
+            if pluvio_filter:
                 rho_r_pip[self.instr['pluvio'].intensity() < 0.1] = np.nan
             if pip_filter and self.ab is not None:
                 rho_r_pip[self.intensity() < 0.1] = np.nan
@@ -654,7 +677,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def vfit_density_range(self, lims, **fitargs):
         rhomin = lims[0]
         rhomax = lims[1]
-        data = self.data_in_density_range(self.instr['pipv'].good_data(), rhomin, rhomax)
+        data = self.data_in_density_range(self.instr['pipv'].good_data(),
+                                          rhomin, rhomax)
         fit = self.instr['pipv'].find_fit(data=data, **fitargs)[0]
         fit.x_unfiltered = data.Wad_Dia.values
         fit.y_unfiltered = data.vel_v.values
@@ -714,26 +738,34 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def z(self, radarname='XSACR'):
         """Radar reflectivity wrapper"""
         if radarname == 'XSACR':
-            return self.instr['xsacr'].z(varinterval=self.varinterval, rule=self.rule)
+            return self.instr['xsacr'].z(varinterval=self.varinterval,
+                                         rule=self.rule)
         elif radarname == 'KASACR':
-            return self.instr['kasacr'].z(varinterval=self.varinterval, rule=self.rule)
+            return self.instr['kasacr'].z(varinterval=self.varinterval,
+                                          rule=self.rule)
         elif radarname == 'KAZR':
-            return self.instr['kazr'].z(varinterval=self.varinterval, rule=self.rule)
+            return self.instr['kazr'].z(varinterval=self.varinterval,
+                                        rule=self.rule)
         elif radarname == 'MWACR':
-            return self.instr['mwacr'].z(varinterval=self.varinterval, rule=self.rule)
+            return self.instr['mwacr'].z(varinterval=self.varinterval,
+                                         rule=self.rule)
         # TODO: else throw error "unknown radarname"
 
-    def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False, density=None):
-        """Use rayleigh formula and maxwell-garnett EMA to compute radar reflectivity Z"""
+    def Z_rayleigh_Xband(self, pluvio_filter=True, pip_filter=False,
+                         density=None):
+        """Use rayleigh formula and maxwell-garnett EMA to compute radar
+        reflectivity Z"""
         name = "reflXray"
         constant = 0.2/(0.93*917*917)
         if density is None:
-            density = self.density(pluvio_filter=pluvio_filter, pip_filter=pip_filter)
+            density = self.density(pluvio_filter=pluvio_filter,
+                                   pip_filter=pip_filter)
         Z = 10.0*np.log10(constant*density*density*self.n_moment(6))
         Z.name = name
         return Z
 
-    def volume_avg_density(self, density_size, pluvio_filter=True, pip_filter=False):
+    def volume_avg_density(self, density_size, pluvio_filter=True,
+                           pip_filter=False):
         """Calculate volume averaged bulk density for the given density size realation"""
         name = "rho3"
         def density_func(d):
@@ -745,11 +777,14 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         density.name = name
         return density
 
-    def reflectivity_avg_density(self, density_size, pluvio_filter=True, pip_filter=False):
-        """Calculate volume averaged bulk density for the given density size realation"""
+    def reflectivity_avg_density(self, density_size, pluvio_filter=True,
+                                 pip_filter=False):
+        """Calculate volume averaged bulk density for the given density size
+        realation"""
         name = "rho6"
         def density_func(d):
-            return density_size((PIP_CORR*d))*self.n(d) # I am experimenting with precise integration leaved d**6 and squares
+            # I am experimenting with precise integration leaved d**6 and squares
+            return density_size((PIP_CORR*d))*self.n(d)
         def mom6(d):
             return ((PIP_CORR*(d+0.5*self.instr['dsd'].d_bin))**7-(PIP_CORR*(d-0.5*self.instr['dsd'].d_bin))**7)*self.n(d)/(self.instr['dsd'].d_bin*7)
         density = self.sum_over_d(density_func)/self.sum_over_d(mom6)
@@ -758,24 +793,28 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return np.sqrt(density)
 
     def tmatrix(self, wl, pluvio_filter=True, pip_filter=False, density=None):
-        """Calculate radar reflectivity at requested wavelength wl [mm] using T-matrix"""
+        """Calculate radar reflectivity at requested wavelength wl [mm] using
+        T-matrix"""
         name = switch_wl(wl) + "reflTM"
         if density is None:
-            density = self.density(pluvio_filter=pluvio_filter, pip_filter=pip_filter)
+            density = self.density(pluvio_filter=pluvio_filter,
+                                   pip_filter=pip_filter)
         Zserie = pd.Series(density)
         dBin = self.instr['dsd'].d_bin
         edges = PIP_CORR*self.instr['dsd'].data.columns.values+0.5*dBin
-        grp = self.instr['dsd'].grouped(rule=self.rule, varinterval=self.varinterval,
-                               col=self.dsd.bin_cen())
+        grp = self.instr['dsd'].grouped(rule=self.rule,
+                                        varinterval=self.varinterval,
+                                        col=self.dsd.bin_cen())
         PSDvalues = grp.mean()
         for item in density.iteritems():
             if item[1] > 0.0:
                 ref = refractive.mi(wl, 0.001*item[1])
                 print(ref)
-                flake = tmatrix.Scatterer(wavelength=wl, m=ref, axis_ratio=1.0/1.0)
+                flake = tmatrix.Scatterer(wavelength=wl, m=ref,
+                                          axis_ratio=1.0/1.0)
                 flake.psd_integrator = psd.PSDIntegrator()
                 flake.psd_integrator.D_max = 35.0
-                flake.psd = psd.BinnedPSD(bin_edges=edges, 
+                flake.psd = psd.BinnedPSD(bin_edges=edges,
                                           bin_psd=PSDvalues.loc[item[0]].values)
                 flake.psd_integrator.init_scatter_table(flake)
                 Z = 10.0*np.log10(radar.refl(flake))
@@ -813,12 +852,14 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return pd.date_range(self.instr['pluvio'].acc().index[0],
                              self.instr['pluvio'].acc().index[-1], freq='1min')
 
-    def plot(self, axarr=None, kind='line', label_suffix='', pip=True, **kwargs):
+    def plot(self, axarr=None, kind='line', label_suffix='', pip=True,
+             **kwargs):
         """Plot calculated (PIP) and pluvio intensities."""
         if axarr is None:
             f, axarr = plt.subplots(4, sharex=True, dpi=120)
         if pip:
-            self.intensity().plot(label='PIP ' + label_suffix, kind=kind, ax=axarr[0], **kwargs)
+            self.intensity().plot(label='PIP ' + label_suffix, kind=kind,
+                                  ax=axarr[0], **kwargs)
         self.instr['pluvio'].intensity(rule=self.rule).plot(label=self.instr['pluvio'].name + ' ' + label_suffix,
                                                    kind=kind, ax=axarr[0],
                                                    **kwargs)
@@ -881,7 +922,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                          countmin=1, **kwargs):
         rho = self.density()
         params = self.instr['pipv'].fits.polfit.apply(lambda fit: fit.params)
-        selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
+        selection = pd.DataFrame([rho.notnull(),
+                                  self.partcount() > countmin]).all()
         rho = rho[selection]
         params = params[selection]
         a = params.apply(lambda p: p[0]).values
@@ -901,7 +943,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                    count_as_size=True, countscale=4, **kwargs):
         rho = self.density()
         params = self.instr['pipv'].fits.polfit.apply(lambda fit: fit.params)
-        selection = pd.DataFrame([rho.notnull(), self.partcount() > countmin]).all()
+        selection = pd.DataFrame([rho.notnull(),
+                                  self.partcount() > countmin]).all()
         count = self.partcount()[selection]
         rho = rho[selection]
         params = params[selection]
@@ -914,7 +957,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             rhomin = rho.min()
         if rhomax is None:
             rhomax = rho.max()
-        return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax, **kwargs)
+        return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax,
+                           **kwargs)
 
     def summary(self, **kwargs):
         """Return a DataFrame of combined numerical results."""
@@ -922,13 +966,16 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         casename.name = 'case'
         data = read.merge_multiseries(self.partcount(), self.density(),
                                       self.d_0(), self.n_t(), casename,
-                                      self.instr['pipv'].fit_params(), self.d_m(),
-                                      self.d_max(), self.d_0_gamma(),
+                                      self.instr['pipv'].fit_params(),
+                                      self.d_m(), self.d_max(),
+                                      self.d_0_gamma(),
                                       self.amount(params=[100], simple=True),
                                       self.instr['pluvio'].amount(rule=self.rule),
-                                      self.eta(), self.mu(), self.lam(), self.n_0(),
+                                      self.eta(), self.mu(), self.lam(),
+                                      self.n_0(),
                                       self.n_moment(0), self.n_moment(1),
-                                      self.n_moment(2), self.Z_rayleigh_Xband(),
+                                      self.n_moment(2),
+                                      self.Z_rayleigh_Xband(),
                                       self.tmatrix(tm_aux.wl_X))
         data.index.name = 'datetime'
         return data.sort_index(axis=1)
@@ -955,7 +1002,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             self.instr['pluvio'].shift_periods = periods
             self.instr['pluvio'].shift_freq = rule
             print('Pluvio timeshift set to %s*%s.'
-                  % (str(self.instr['pluvio'].shift_periods), self.instr['pluvio'].shift_freq))
+                  % (str(self.instr['pluvio'].shift_periods),
+                     self.instr['pluvio'].shift_freq))
         return periods
 
     def clear_cache(self):
@@ -963,6 +1011,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         xtra.extend(glob(os.path.join(self.cache_dir(), '*.h5')))
         super().clear_cache(extra_files=xtra)
         self.reset()
+
 
 class Snow2:
     """UNTESTED.
@@ -973,10 +1022,10 @@ class Snow2:
 
     @staticmethod
     def best(re, mh=True):
-        if mh: # MH05
+        if mh:  # MH05
             cl = np.array([3.8233, -1.5211, 0.30065, -0.06104, 0.13074,
                            -0.073429, 0.016006, -0.0012483])
-        else: # KC05
+        else:   # KC05
             cl = np.array([3.8816, -1.4579, 0.27749, -0.41521, 0.57683,
                            -0.29220, 0.06467, -0.0053405])
         logx = 0
@@ -992,4 +1041,3 @@ class Snow2:
         nu_a = 1.544e-5
         re = u*d/nu_a
         return np.pi*rho_a*nu_a**2/(8*g)*Snow2.best(re)*ar*fa
-
