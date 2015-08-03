@@ -14,7 +14,7 @@ import locale
 import os
 import warnings
 
-from pytmatrix import tmatrix, psd, refractive, orientation, radar
+from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
 # general configuration
@@ -39,7 +39,10 @@ else:
 
 TAU = 2*np.pi
 RHO_W = 1000
-PIP_CORR = 1.0/0.82 #0.82 Wood et al. 2013 Characterization of video disdrometer uncertainties ...
+
+# Wood et al. 2013 Characterization of video disdrometer uncertainties ...
+#PIP_CORR = 1.0/0.82
+PIP_CORR = 1/0.9 # Davide
 
 def deprecation(message, stacklevel=2):
     """Issue DeprecationWarning"""
@@ -662,6 +665,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             processes = min(len(limslist), os.cpu_count())
             with Pool(processes) as p:
                 fits = p.map(self.vfit_density_range, limslist)
+            p.join()
             return fits
         fits = []
         for lims in limslist:

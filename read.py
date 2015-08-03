@@ -16,9 +16,6 @@ import fit
 from scipy import stats, io
 from scipy.optimize import fmin, minimize
 
-#PIP_CORR = 1.0/0.82 # Wood et al. 2013 Characterization of video disdrometer uncertainties ...
-PIP_CORR = 1/0.9 # Davide
-
 RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
 MSGTLD = '.msg'
@@ -290,7 +287,7 @@ class Radar(InstrumentData):
                     deltatime = pd.to_timedelta(np.round(delta), unit='s')
                     time = basetime + deltatime
                     elevation = radarvariables['elevation'].data
-                    rng = radarvariables['range'].data
+                    #rng = radarvariables['range'].data
                     VP = np.abs(elevation-90.0) < 0.5
                     tmpDF = pd.DataFrame(reflectivity[VP], index=time[VP],
                                          columns=['reflectivity'],
