@@ -471,7 +471,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """numerical integration over particle diameter"""
         dD = self.instr['dsd'].d_bin
         result = self.series_zeros()
-        for d in self.dsd.bin_cen():#good_data().columns:
+        for d in self.instr['dsd'].bin_cen():#good_data().columns:
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
 
@@ -702,7 +702,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         limslist = [(rhomin, rholimits[i+1]) for i, rhomin in enumerate(rholimits[:-1])]
         dlabel = 'equivalent diameter (mm)'
         vlabel = 'fall velocity (m/s)'
-        fits = self.vfits_density_range(limslist, parallel=parallel)
+        fits = self.vfits_density_range(limslist, parallel=parallel, **fitargs)
         n_ranges = len(fits)
         if separate:
             fig, axarr = plt.subplots(1, n_ranges, sharex=True,

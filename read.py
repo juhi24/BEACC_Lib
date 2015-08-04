@@ -924,13 +924,13 @@ class PipV(InstrumentData):
             params, pcov = vfit.find_fit()
             perr = vfit.perr()   # standard errors of d, v
             if try_flip and not use_kde_peak:
-                fiti = fitclass()
+                fiti = fitclass(flipped=True)
                 datai, stdarri, HWfracMi = self.filter_outlier(data=data,
                                                                frac=frac,
                                                                flip=True)
                 fiti.x = datai.Wad_Dia.values
                 fiti.y = datai.vel_v.values
-                paramsi, pcovi = fiti.find_fit(flipped=True)
+                paramsi, pcovi = fiti.find_fit()
                 perri = fiti.perr()
                 if plot_flip:
                     f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12, 6))

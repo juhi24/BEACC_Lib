@@ -4,7 +4,6 @@ curve fitting tools
 @author: Jussi Tiira
 """
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import seaborn as sns
@@ -30,7 +29,8 @@ class ClassProperty(property):
 class Fit:
     """parent for different fit types"""
     def __init__(self, x=None, y=None, x_unfiltered=None, y_unfiltered=None,
-                 sigma=None, params=None, name='fit', xname='D'):
+                 sigma=None, params=None, name='fit', xname='D',
+                 flipped=False):
         self.params = params
         self._name = name
         self.x = x
@@ -39,6 +39,7 @@ class Fit:
         self.y_unfiltered = y_unfiltered
         self.sigma = sigma
         self.xname = xname
+        self.flipped = flipped
 
     def func(self, x, a=None):
         """Fit function. If no coefficients are given use stored ones."""
@@ -98,19 +99,19 @@ class Fit:
             cost += 1/sig**2*(y - self.func(x, *params))**2 + self.penalty(params)
         return cost
 
-    def find_fit(self, flipped=True, store_params=True, **kwargs):
+    def find_fit(self, store_params=True, **kwargs):
         if self.x is None or self.y is None:
             return
         if self.sigma is not None:
             kwargs['sigma'] = self.sigma
-        if flipped:
+        if self.flipped:
             x = self.y
             y = self.x
         else:
             x = self.x
             y = self.y
         params, cov = curve_fit(self.func, x, y, **kwargs)
-        if flipped:
+        if self.flipped:
             params = self.flip_params(params)
             cov = antidiagonal_transpose(cov)
         if store_params:
@@ -153,6 +154,8 @@ class ExpFit(Fit):
     def func(self, x, a=None, b=None, c=None):
         if a is None:
             return self.func(x, *self.params)
+        if self.flipped:
+            return -1/c*np.log((1-x/a)/b)
         return a*(1-b*np.exp(-c*x))
 
     def penalty(self, params):
