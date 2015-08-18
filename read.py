@@ -920,6 +920,8 @@ class PipV(InstrumentData):
             sig = np.ones(d.size)
         vfit.x = d
         vfit.y = v
+        vfit.x_unfiltered = origdata.Wad_Dia.values
+        vfit.y_unfiltered = origdata.vel_v.values
         if use_curve_fit:
             params, pcov = vfit.find_fit()
             perr = vfit.perr()   # standard errors of d, v
@@ -930,6 +932,8 @@ class PipV(InstrumentData):
                                                                flip=True)
                 fiti.x = datai.Wad_Dia.values
                 fiti.y = datai.vel_v.values
+                fiti.x_unfiltered = origdata.Wad_Dia.values
+                fiti.y_unfiltered = origdata.vel_v.values
                 paramsi, pcovi = fiti.find_fit()
                 perri = fiti.perr()
                 if plot_flip:
@@ -1074,6 +1078,14 @@ class PipV(InstrumentData):
         D, V, Z = self.kde_grid(**kwargs)
         pc = ax.pcolor(D, V, Z, cmap=plt.cm.gist_earth_r)
         return pc
+
+    def plot_fits(self, fit_type=None, **kwargs):
+        if fit_type is None:
+            fit_type = self.default_fit.name    # as a string
+        fits = self.fits[fit_type]
+        for i, vfit in fits.iteritems():
+            plt.figure()
+            vfit.plot(**kwargs)
 
     def plot_fit(self, tstep=None, **kwargs):
         if tstep is None:

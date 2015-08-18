@@ -52,7 +52,6 @@ class Fit:
         return 0
 
     def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
-             source_data=False, source_kde=False, source_hex=False,
              marker='ro', linewidth=2, source_style=None, unfiltered=False,
              source_kwargs={}, **kwargs):
         """Plot fit curve and fitted data."""
@@ -163,7 +162,7 @@ class ExpFit(Fit):
         return 1000*(max(0, 0.1-params[1]) + max(0, 0.4-params[2]))
 
 class PolFit(Fit):
-    """polynomial fit of form a*D**b"""
+    """power law fit of form a*D**b"""
     def __init__(self, params=None, **kwargs):
         super().__init__(params=params, name='polfit', **kwargs)
         self.quess = (1., 1.)
