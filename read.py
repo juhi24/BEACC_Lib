@@ -714,7 +714,7 @@ class PipV(InstrumentData):
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
         self.default_fit = fit.PolFit
-        self.use_flip = True
+        self.use_flip = False
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
