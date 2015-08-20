@@ -72,16 +72,20 @@ def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
     x = X[0, :]
     y = Y[:, 0]
     xwidth = (x[-1]-x[0])/len(x)    # TODO: check if correct
+    xmin = x-0.5*xwidth
+    xmax = x+0.5*xwidth
+    ymin = []
+    ymax = []
     for i in range(0, Z.shape[1]):
         z = Z[:, i]
         z_lim = z.max()*frac
         y_fltr = y[z > z_lim]       # FWHM when frac=0.5
         if y_fltr.size == 0:
             continue
-        ymin = y_fltr[0]
-        ymax = y_fltr[-1]
+        ymin.append(y_fltr[0])
+        ymax.append(y_fltr[-1])
         HWfracM.append(0.5*(ymax-ymin))
-        bin_data = bindata(x[i], xwidth, data, ymin=ymin, ymax=ymax,
+        bin_data = bindata(xmin, xmax, data, ymin=ymin[-1], ymax=ymax[-1],
                            xname=xname, yname=yname)
         std.append(bin_data[yname].std())
         filtered = filtered.append(bin_data)
@@ -89,10 +93,8 @@ def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
     return filtered, np.array(std), np.array(HWfracM)
 
 
-def bindata(x, xwidth, data, ymin=None, ymax=None, xname='x', yname='y'):
+def bindata(xmin, xmax, data, ymin=None, ymax=None, xname='x', yname='y'):
     """Return data that falls into given x bin."""
-    xmin = x-0.5*xwidth
-    xmax = x+0.5*xwidth
     cond = '%s > %s and %s < %s' % (xname, xmin, xname, xmax)
     if ymin is not None and ymax is not None:
         cond += ' and %s > %s and %s < %s' % (yname, ymin, yname, ymax)
