@@ -37,6 +37,10 @@ class Fit:
         self.y = y
         self.x_unfiltered = x_unfiltered
         self.y_unfiltered = y_unfiltered
+        self.fltr_upper_x = None
+        self.fltr_upper_y = None
+        self.fltr_lower_x = None
+        self.fltr_lower_y = None
         self.sigma = sigma
         self.xname = xname
         self.flipped = flipped
@@ -77,6 +81,10 @@ class Fit:
         if unfiltered:
             x = self.x_unfiltered
             y = self.y_unfiltered
+            if self.fltr_upper_x is not None:
+                where = 'post'
+                ax.step(self.fltr_upper_x, self.fltr_upper_y, where=where)
+                ax.step(self.fltr_lower_x, self.fltr_lower_y, where=where)
         else:
             x = self.x
             y = self.y

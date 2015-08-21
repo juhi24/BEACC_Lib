@@ -67,13 +67,13 @@ def kde(x, y):
 
 def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
     filtered = pd.DataFrame()
-    HWfracM = []
     std = []
     x = X[0, :]
     y = Y[:, 0]
     xwidth = (x[-1]-x[0])/len(x)    # TODO: check if correct
-    xmin = x-0.5*xwidth
-    xmax = x+0.5*xwidth
+    xlims = np.append(x-0.5*xwidth, x[-1]+0.5*xwidth)
+    xmin = xlims[:-1]
+    xmax = xlims[1:]
     ymin = []
     ymax = []
     for i in range(0, Z.shape[1]):
@@ -81,16 +81,17 @@ def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
         z_lim = z.max()*frac
         y_fltr = y[z > z_lim]       # FWHM when frac=0.5
         if y_fltr.size == 0:
+            ymin.append(None)
+            ymax.append(None)
             continue
         ymin.append(y_fltr[0])
         ymax.append(y_fltr[-1])
-        HWfracM.append(0.5*(ymax-ymin))
-        bin_data = bindata(xmin, xmax, data, ymin=ymin[-1], ymax=ymax[-1],
+        bin_data = bindata(xmin[i], xmax[i], data, ymin=ymin[-1], ymax=ymax[-1],
                            xname=xname, yname=yname)
         std.append(bin_data[yname].std())
         filtered = filtered.append(bin_data)
     # return filtered data, stds and half width at frac*kde_max
-    return filtered, np.array(std), np.array(HWfracM)
+    return filtered, np.array(std), xlims, ymin, ymax
 
 
 def bindata(xmin, xmax, data, ymin=None, ymax=None, xname='x', yname='y'):
@@ -885,7 +886,12 @@ class PipV(InstrumentData):
             use_curve_fit, use_kde_peak = too_few_particles(use_curve_fit,
                                                             use_kde_peak)
         elif filter_outliers:
-            data, stdarr, HWfracM = self.filter_outlier(data=data, frac=frac)
+            data, stdarr, xlims, ymin, ymax = self.filter_outlier(data=data,
+                                                             frac=frac)
+            vfit.fltr_upper_x = xlims
+            vfit.fltr_lower_x = xlims
+            vfit.fltr_upper_y = ymax + [ymax[-1]]
+            vfit.fltr_lower_y = ymin + [ymin[-1]]
             datao = self.filter_outlier(data=data, frac=frac, flip=True)[0]
             fltrcount = datao.count()[0]
             if fltrcount < 2 and (use_curve_fit or use_kde_peak):
@@ -893,11 +899,10 @@ class PipV(InstrumentData):
                                                                 use_kde_peak)
             elif name is not None:
                 stdarr.resize(self.dbins.size, refcheck=False)
-                HWfracM.resize(self.dbins.size, refcheck=False)
                 std = pd.DataFrame(pd.Series(stdarr,
                                              index=self.dbins, name=name)).T
-                hwfm = pd.DataFrame(pd.Series(HWfracM, index=self.dbins,
-                                              name=name)).T
+                # TODO: empty hwfm
+                hwfm = pd.DataFrame(pd.Series(index=self.dbins, name=name)).T
                 for df in [std, hwfm]:
                     df.index.name = 'datetime'
         else:
@@ -930,7 +935,7 @@ class PipV(InstrumentData):
             perr = vfit.perr()   # standard errors of d, v
             if try_flip and not use_kde_peak:
                 fiti = fitclass(flipped=True)
-                datai, stdarri, HWfracMi = self.filter_outlier(data=data,
+                datai, stdarri, xlimsi, ymini, ymaxi = self.filter_outlier(data=data,
                                                                frac=frac,
                                                                flip=True)
                 fiti.x = datai.Wad_Dia.values
