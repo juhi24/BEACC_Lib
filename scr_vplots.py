@@ -6,6 +6,7 @@ from snowfall import *
 import numpy as np
 import matplotlib.pyplot as plt
 from os import path
+import read
 
 dtformat_default = '%d.%m. %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
@@ -17,8 +18,11 @@ plt.close('all')
 #plt.ioff()
 plt.ion()
 
+savepath = '../results/pip2015/paper/vfit'
+
 for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.instr['pluvio'].shift_periods = -6
     c.instr['pluvio'].n_combined_intervals = 2
     c.density() # to initialize fits
     c.instr['pipv'].plot_fits(source_style='hex', unfiltered=True)
+    #plt.savefig(path.join(savepath, c.dtstr('%Y%m%d'), c.instr['pluvio'].name))
