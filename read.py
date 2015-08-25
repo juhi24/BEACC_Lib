@@ -65,18 +65,21 @@ def kde(x, y):
     return stats.gaussian_kde(values)
 
 
-def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
+def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5,
+                   bin_limit_multiplier=0.05):
     filtered = pd.DataFrame()
     std = []
     x = X[0, :]
     y = Y[:, 0]
     xwidth = (x[-1]-x[0])/len(x)    # TODO: check if correct
+    #print('xw: %s' % xwidth)
     xlims = np.append(x-0.5*xwidth, x[-1]+0.5*xwidth)
     xmin = xlims[:-1]
     xmax = xlims[1:]
     ymin = []
     ymax = []
-    for i in range(0, Z.shape[1]):
+    data_count = data.count()[0]
+    for i in range(0, Z.shape[1]):  # loop through bins
         z = Z[:, i]
         z_lim = z.max()*frac
         y_fltr = y[z > z_lim]       # FWHM when frac=0.5
@@ -88,6 +91,12 @@ def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5):
         ymax.append(y_fltr[-1])
         bin_data = bindata(xmin[i], xmax[i], data, ymin=ymin[-1], ymax=ymax[-1],
                            xname=xname, yname=yname)
+        bin_count = bin_data.count()[0]
+        count_limit = bin_limit_multiplier*xwidth*data_count
+        if bin_count < count_limit:
+            ymin[-1] = None
+            ymax[-1] = None
+            continue
         std.append(bin_data[yname].std())
         filtered = filtered.append(bin_data)
     # return filtered data, stds and half width at frac*kde_max
@@ -892,12 +901,14 @@ class PipV(InstrumentData):
             vfit.fltr_lower_x = xlims
             vfit.fltr_upper_y = ymax + [ymax[-1]]
             vfit.fltr_lower_y = ymin + [ymin[-1]]
-            datao = self.filter_outlier(data=data, frac=frac, flip=True)[0]
-            fltrcount = datao.count()[0]
-            if fltrcount < 2 and (use_curve_fit or use_kde_peak):
-                use_curve_fit, use_kde_peak = too_few_particles(use_curve_fit,
-                                                                use_kde_peak)
-            elif name is not None:
+            # TODO: Make a proper conditional to include this when needen, if needed
+            if False:
+                datao = self.filter_outlier(data=data, frac=frac, flip=True)[0]
+                fltrcount = datao.count()[0]
+                if fltrcount < 2 and (use_curve_fit or use_kde_peak):
+                    use_curve_fit, use_kde_peak = too_few_particles(use_curve_fit,
+                                                                    use_kde_peak)
+            if name is not None:
                 stdarr.resize(self.dbins.size, refcheck=False)
                 std = pd.DataFrame(pd.Series(stdarr,
                                              index=self.dbins, name=name)).T
@@ -1087,13 +1098,19 @@ class PipV(InstrumentData):
         pc = ax.pcolor(D, V, Z, cmap=plt.cm.gist_earth_r)
         return pc
 
-    def plot_fits(self, fit_type=None, **kwargs):
+    def plot_fits(self, fit_type=None, savefigs=False, path='.',
+                  fname='%Y%m%d_%H%M.eps', **kwargs):
         if fit_type is None:
             fit_type = self.default_fit.name    # as a string
         fits = self.fits[fit_type]
+        axlist = []
+        flist = []
         for i, vfit in fits.iteritems():
-            plt.figure()
-            vfit.plot(**kwargs)
+            flist.append(plt.figure())
+            axlist.append(vfit.plot(**kwargs))
+            plt.savefig(os.path.join(path, i.strftime(fname)))
+        return pd.DataFrame(index=fits.index, data={'fit':fits, 'fig':flist,
+                                                    'ax':axlist})
 
     def plot_fit(self, tstep=None, **kwargs):
         if tstep is None:

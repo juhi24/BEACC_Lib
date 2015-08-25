@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import seaborn as sns
 
+sns.set_style('ticks')
+
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
 
@@ -56,7 +58,7 @@ class Fit:
         return 0
 
     def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
-             marker='ro', linewidth=2, source_style=None, unfiltered=False,
+             linewidth=2, source_style=None, unfiltered=False,
              source_kwargs={}, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
