@@ -24,5 +24,12 @@ for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
     c.instr['pluvio'].n_combined_intervals = 2
     c.instr['pipv'].use_flip = False
     savepath = read.ensure_dir(path.join(basepath,  c.instr['pluvio'].name))
-    c.density(pip_filter=False).to_csv(path.join(savepath, c.dtstr('%Y%m%d') + '.csv'))
+    rho = c.density()
+    rho.to_csv(path.join(savepath, c.dtstr('%Y%m%d') + '.csv'))
     c.instr['pluvio'].tdelta().to_csv(savepath + 'timedelta_' + c.dtstr('%Y%m%d') + '.csv')
+    plt.figure(dpi=120)
+    rho.plot(drawstyle='steps')
+    plt.title(c.dtstr())
+    plt.xlabel('time')
+    plt.ylabel('bulk density (kg m$^{-3}$)')
+    plt.ylim((0,300))
