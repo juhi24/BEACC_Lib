@@ -27,10 +27,10 @@ comb400 = e.events.pluvio400.sum()
 del(e) # may save memory
 for comb in (comb200, comb400):
     axarr = comb.plot_vfits_in_density_ranges(separate=True,
-                                              source_style='kde',
+                                              source_style='hex',
                                               fitargs={'force_flip': False,
                                                        'try_flip': False,
-                                                       'fitclass': fit.ExpFit},
+                                                       'fitclass': fit.PolFit},
                                               unfiltered=True, parallel=False)
     plt.axis((0.25,2,0.5,2.5))
     savepath = read.ensure_dir(path.join('../results/pip2015/vfits_density_ranges',

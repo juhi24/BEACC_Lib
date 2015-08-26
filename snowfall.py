@@ -700,8 +700,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                                      separate=False, hide_high_limit=True,
                                      fitargs={}, parallel=True, **kwargs):
         limslist = [(rhomin, rholimits[i+1]) for i, rhomin in enumerate(rholimits[:-1])]
-        dlabel = 'equivalent diameter (mm)'
-        vlabel = 'fall velocity (m/s)'
+        dlabel = 'Equivalent diameter (mm)'
+        vlabel = 'Fall velocity (ms$^{-1}$)'
         fits = self.vfits_density_range(limslist, parallel=parallel, **fitargs)
         n_ranges = len(fits)
         if separate:
