@@ -598,6 +598,9 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         last_index = self.tdelta().index[-1]
         return pd.DataFrame(dtgroups[dtgroups.notnull()])[:last_index]
 
+    def groupby_interval(self, data):
+        """Group data by integration time intervals."""
+        return merge_series(data, self.grouper()).groupby('group')
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
