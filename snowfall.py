@@ -441,6 +441,15 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         dt_start, dt_end = self.dt_start_end()
         return super().cache_dir(dt_start, dt_end, self.instr['pluvio'].name)
 
+    def d(self):
+        """mean diameter"""
+        name = 'D'
+        def func():
+            d = self.instr['pluvio'].groupby_interval(self.instr['pipv'].good_data().Wad_Dia).mean
+            d.name = name
+            return d
+        return self.msger(name, func)
+
     def d_m(self):
         """mass weighted mean diameter"""
         name = 'D_m'
@@ -884,23 +893,32 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax,
                            **kwargs)
 
-    def summary(self, **kwargs):
+    def summary(self, radar=False, **kwargs):
         """Return a DataFrame of combined numerical results."""
         casename = self.series_nans().fillna(self.dtstr(**kwargs))
         casename.name = 'case'
-        data = read.merge_multiseries(self.partcount(), self.density(),
-                                      self.d_0(), self.n_t(), casename,
-                                      self.instr['pipv'].fit_params(),
-                                      self.d_m(), self.d_max(),
-                                      self.d_0_gamma(),
-                                      self.amount(params=[100], simple=True),
-                                      self.instr['pluvio'].amount(rule=self.rule),
-                                      self.eta(), self.mu(), self.lam(),
-                                      self.n_0(),
-                                      self.n_moment(0), self.n_moment(1),
-                                      self.n_moment(2),
-                                      self.Z_rayleigh_Xband(),
-                                      self.tmatrix(tm_aux.wl_X))
+        params = [self.partcount(),
+                  self.density(),
+                  self.d_0(),
+                  self.n_t(),
+                  casename,
+                  self.instr['pipv'].fit_params(),
+                  self.d(),
+                  self.d_m(),
+                  self.d_max(),
+                  self.d_0_gamma(),
+                  self.amount(params=[100], simple=True),
+                  self.instr['pluvio'].amount(rule=self.rule),
+                  self.eta(),
+                  self.mu(),
+                  self.lam(),
+                  self.n_0(),
+                  self.n_moment(0),
+                  self.n_moment(1),
+                  self.n_moment(2)]
+        if radar:
+            params.extend([self.Z_rayleigh_Xband(), self.tmatrix(tm_aux.wl_X)])
+        data = read.merge_multiseries(*params)
         data.index.name = 'datetime'
         return data.sort_index(axis=1)
 
