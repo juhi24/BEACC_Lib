@@ -119,6 +119,10 @@ def combine_datasets(*datasets):
     return combined
 
 
+def limitslist(limits):
+    return [(mini, limits[i+1]) for i, mini in enumerate(limits[:-1])]
+
+
 class MultiSeries:
     """Provide calculated parameters as one DataFrame and use it for plotting.
     """
@@ -418,15 +422,17 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         #bv = self.instr['pipv'].fit_params()['b']
         #return 3.6e-3*TAU/12*rho/RHO_W*self.n(d)*av/(dBin*(bv+4))*((d+dBin*0.5)**(bv+4)-(d-dBin*0.5)**(bv+4))
 
+    def intervalled(self, func, *args, **kwargs):
+        return func(*args, varinterval=self.varinterval,
+                    rule=self.rule, **kwargs)
+
     def v(self, d):
         """velocity wrapper"""
-        return self.instr['pipv'].v(d, varinterval=self.varinterval,
-                                    rule=self.rule)
+        return self.intervalled(self.instr['pipv'].v, d)
 
     def n(self, d):
         """N wrapper"""
-        return self.instr['dsd'].n(d, varinterval=self.varinterval,
-                                   rule=self.rule)
+        return self.intervalled(self.instr['dsd'].n, d)
 
     def n_t(self):
         """total concentration"""
@@ -445,7 +451,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """mean diameter"""
         name = 'D'
         def func():
-            d = self.instr['pluvio'].groupby_interval(self.instr['pipv'].good_data().Wad_Dia).mean
+            d = self.instr['pluvio'].groupby_interval(self.instr['pipv'].good_data().Wad_Dia).mean().Wad_Dia
             d.name = name
             return d
         return self.msger(name, func)
@@ -632,7 +638,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
                                      separate=False, hide_high_limit=True,
                                      fitargs={}, parallel=True, **kwargs):
-        limslist = [(rhomin, rholimits[i+1]) for i, rhomin in enumerate(rholimits[:-1])]
+        limslist = limitslist(rholimits)
         dlabel = 'Equivalent diameter (mm)'
         vlabel = 'Fall velocity (ms$^{-1}$)'
         fits = self.vfits_density_range(limslist, parallel=parallel, **fitargs)
