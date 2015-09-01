@@ -611,7 +611,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         grouped = read.merge_series(data, self.instr['pluvio'].grouper())
         outdata = pd.merge(grouped, pd.DataFrame(self.density()),
                            left_on='group', right_index=True)
-        return outdata.query('%s < density < %s' % (rhomin, rhomax))
+        return outdata.query('%s < density < %s' % (rhomin, rhomax)).drop(['group', 'density'], axis=1)
 
     def vfit_density_range(self, lims, **fitargs):
         rhomin = lims[0]
