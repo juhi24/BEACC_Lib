@@ -660,7 +660,7 @@ class PipDSD(InstrumentData):
         """Return array of bin centers."""
         return self.good_data().columns.values
 
-    def n(self, d, rule=None, varinterval=True):
+    def n(self, d, rule='1min', varinterval=False):
         """number concentrations for given diameter"""
         if varinterval:
             grp = self.grouped(rule=rule, varinterval=varinterval, col=d)
@@ -671,6 +671,14 @@ class PipDSD(InstrumentData):
             return ns
         return self.good_data()[d].resample(rule, how=np.mean, closed='right',
                                             label='right')
+
+    def n_all(self, **kwargs):
+        n_list = []
+        for d in self.bin_cen():
+            n = self.n(d, **kwargs)
+            n.name = d
+            n_list.append(n)
+        return merge_multiseries(*n_list)
 
     def plot(self, img=True, **kwargs):
         """Plot particle size distribution over time."""
