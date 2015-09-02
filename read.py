@@ -253,16 +253,16 @@ class InstrumentData(Cacher):
             dt = pd.datetools.to_datetime(dt)
         self.data = self.data[dt_start:dt_end]
 
-    def grouped(self, varinterval=True, rule=None, col=None):
+    def grouped(self, varinterval=False, rule=None, col=None):
         if rule is None:
             rule = self.rule
+        data = self.good_data()
+        if col is not None:
+            data = pd.DataFrame(data[col])
         if varinterval:
-            data = self.good_data()
-            if col is not None:
-                data = pd.DataFrame(data[col])
             grpd_data = pd.merge(data, rule, left_index=True, right_index=True)
             return grpd_data.groupby('group')
-        return self.good_data().groupby(pd.Grouper(freq=rule, closed='right',
+        return data.groupby(pd.Grouper(freq=rule, closed='right',
                                                    label='right'))
 
     def cache_dir(self):
@@ -660,25 +660,17 @@ class PipDSD(InstrumentData):
         """Return array of bin centers."""
         return self.good_data().columns.values
 
-    def n(self, d, rule='1min', varinterval=False):
+    def n(self, d, **kwargs):
         """number concentrations for given diameter"""
-        if varinterval:
-            grp = self.grouped(rule=rule, varinterval=varinterval, col=d)
-            n = grp.mean()
-            ns = n[n.columns[0]]
-            ns.name = 'N'
-            ns.index.name = 'datetime'
-            return ns
-        return self.good_data()[d].resample(rule, how=np.mean, closed='right',
-                                            label='right')
+        n = self.psd(col=d, **kwargs)
+        ns = n[n.columns[0]] # convert to Series
+        ns.name = 'N_' + str(d)
+        return ns
 
-    def n_all(self, **kwargs):
-        n_list = []
-        for d in self.bin_cen():
-            n = self.n(d, **kwargs)
-            n.name = d
-            n_list.append(n)
-        return merge_multiseries(*n_list)
+    def psd(self, rule='1min', varinterval=False, **kwargs):
+        grp = self.grouped(rule=rule, varinterval=varinterval, **kwargs)
+        n = grp.mean()
+        return n
 
     def plot(self, img=True, **kwargs):
         """Plot particle size distribution over time."""
