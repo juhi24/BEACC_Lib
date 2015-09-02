@@ -399,7 +399,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         """numerical integration over particle diameter"""
         dD = self.instr['dsd'].d_bin
         result = self.series_zeros()
-        for d in self.instr['dsd'].bin_cen():#good_data().columns:
+        for d in self.instr['dsd'].bin_cen():
             result = result.add(func(d, **kwargs)*dD, fill_value=0)
         return result
 
@@ -415,12 +415,20 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def r_rho(self, d, rho):
         """(mm/h)/(m/s)*m**3/mm**3 * kg/m**3 / (kg/m**3) * mm**3 * m/s * 1/(mm*m**3)
         """
-        return 3.6e-3*TAU/12*rho/RHO_W*(PIP_CORR*d)**3*self.v(d)*self.n(d)
+        return 3.6e-3*TAU/12*rho/RHO_W*(PIP_CORR*d)**3*self.n(d)*self.v(d)
         #self.v(d)
         #dBin = self.instr['dsd'].d_bin
         #av = self.instr['pipv'].fit_params()['a']
         #bv = self.instr['pipv'].fit_params()['b']
         #return 3.6e-3*TAU/12*rho/RHO_W*self.n(d)*av/(dBin*(bv+4))*((d+dBin*0.5)**(bv+4)-(d-dBin*0.5)**(bv+4))
+
+    def w_slice(self, d, **kwargs):
+        rho = self.density(**kwargs)
+        return 1e-6*TAU/12*rho*(PIP_CORR*d)**3*self.n(d)
+
+    def w(self, **kwargs):
+        """water content in g/m**3"""
+        return self.sum_over_d(self.w_slice)
 
     def intervalled(self, func, *args, **kwargs):
         return func(*args, varinterval=self.varinterval,
@@ -518,6 +526,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         n0 = self.n_moment(2)*self.lam()**(mu+3)/gamma(mu+3)
         n0.name = 'N_0'
         return n0
+
+    def n_w(self, **kwargs):
+        rho = self.density()
+        return 3.67**4*1e3*self.w()/(TAU/2*rho*self.d_0()**4)
 
     def d_0_gamma(self):
         name = 'D_0_gamma'
