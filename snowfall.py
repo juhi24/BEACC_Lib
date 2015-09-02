@@ -447,15 +447,6 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         dt_start, dt_end = self.dt_start_end()
         return super().cache_dir(dt_start, dt_end, self.instr['pluvio'].name)
 
-    def d(self):
-        """mean diameter"""
-        name = 'D'
-        def func():
-            d = self.instr['pluvio'].groupby_interval(self.instr['pipv'].good_data().Wad_Dia).mean().Wad_Dia
-            d.name = name
-            return d
-        return self.msger(name, func)
-
     def d_m(self):
         """mass weighted mean diameter"""
         name = 'D_m'
