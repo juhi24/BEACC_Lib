@@ -34,10 +34,11 @@ basepath = '../results/pip2015/paper/psd'
 for c in (comb200, comb400):
     d0 = c.d_0()
     nt = c.n_t()
-    n = c.intervalled(c.instr['dsd'].n_all)
-    y = n*d0/nt
+    nw = c.n_w()
+    n = c.intervalled(c.instr['dsd'].psd)
+    y = n/nw
     d = y*0+y.columns.values
-    x = d#/d0
+    x = d/d0
     if not separate:
         fig, axarr = plt.subplots(1, n_ranges, dpi=100, sharex=True, sharey=True,
                                   tight_layout=True, figsize=(n_ranges*6, 6))
@@ -54,9 +55,9 @@ for c in (comb200, comb400):
             ax.semilogy()
             continue
         ax.semilogy(xpart, ypart, marker='o', linestyle='None', color='black')
-        ax.set_ylabel('$N_D D_0 N_T^{-1}$')
+        ax.set_ylabel('$N_D N_w^{-1}$')
         ax.set_xlabel('$D D_0^{-1}$')
         ax.set_title('$%s < \\rho < %s$' % (rhomin, rhomax))
         ax.grid(True)
-    plt.axis([0, 5, 10e-5, 10])
+    plt.axis([0, 5, 10e-5, 1000])
     ax.set_title('$\\rho > ' + str(rhomin) + '$')
