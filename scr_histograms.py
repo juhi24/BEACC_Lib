@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from os import path
 import seaborn as sns
 
+sns.set_style('ticks')
+
 dtformat_default = '%d.%m. %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 
@@ -21,7 +23,7 @@ kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
 
 def subplots():
     return plt.subplots(e.events.pluvio400.count(), sharex=True, sharey=True,
-                        tight_layout=False)
+                        tight_layout=False, dpi=100)
 
 def remove_gaps(f):
     f.subplots_adjust(hspace=0)
@@ -42,10 +44,13 @@ for i, c in enumerate(e.events.pluvio400.values):
     axm = sns.distplot(c.mu().dropna(), ax=axarrm[i], label=c.dtstr(), bins=20,
                        hist_kws={'range':rng}, **kwargs)
     axarrm[i].set_xlim(rng)
-    rng = (0, 200000)
-    axn = sns.distplot(c.n_w().dropna(), ax=axarrn[i], label=c.dtstr(), bins=30,
-                       hist_kws={'range':rng}, **kwargs)
-    axarrn[i].set_xlim(rng)
+    axn = sns.distplot(c.n_w().dropna(), ax=axarrn[i], label=c.dtstr(),
+                       bins=10**np.linspace(0,6,20), kde=False, rug=True)
+    axarrn[i].set_xscale('log')
 
 for f in (fd, fm, fn):
     remove_gaps(f)
+
+for axarr in (axarrd, axarrm, axarrn):
+    for ax in axarr[1:]:
+        sns.despine(ax=ax, top=True, left=False, right=False, bottom=False)
