@@ -426,9 +426,15 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         rho = self.density(**kwargs)
         return 1e-6*TAU/12*rho*(PIP_CORR*d)**3*self.n(d)
 
-    def w(self, **kwargs):
+    def w(self, method='gamma', **kwargs):
         """water content in g/m**3"""
-        return self.sum_over_d(self.w_slice)
+        if method == 'integral':
+            return self.sum_over_d(self.w_slice)
+        if method == 'gamma':
+            rho = self.density(**kwargs)
+            mu = self.mu()
+            return 1e-3*TAU/12*rho*self.n_0()*gamma(mu+4)*self.d_0()**(mu+4)/((3.67+mu)**(mu+4))
+        return
 
     def intervalled(self, func, *args, **kwargs):
         return func(*args, varinterval=self.varinterval,
@@ -441,6 +447,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def n(self, d):
         """N wrapper"""
         return self.intervalled(self.instr['dsd'].n, d)
+
+    def f_mu(self):
+        mu = self.mu()
+        6/(3.67)**4*(3.67+mu)**(mu+4)/(gamma(mu+4))
 
     def n_t(self):
         """total concentration"""
@@ -497,12 +507,15 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return self.msger(name, func)
 
     def n_moment(self, n):
-        moment = lambda d: (PIP_CORR*d)**n*self.n(d)
-        #dD = self.instr['dsd'].d_bin
-        #moment = lambda d: self.n(d)*((d+dD*0.5)**(n+1.0)-(d-dD*0.5)**(n+1.0))/(dD*(n+1.0))
-        nth_mo = self.sum_over_d(moment)
-        nth_mo.name = 'M' + str(n)
-        return nth_mo
+        name = 'M' + str(n)
+        def func():
+            moment = lambda d: (PIP_CORR*d)**n*self.n(d)
+            #dD = self.instr['dsd'].d_bin
+            #moment = lambda d: self.n(d)*((d+dD*0.5)**(n+1.0)-(d-dD*0.5)**(n+1.0))/(dD*(n+1.0))
+            nth_mo = self.sum_over_d(moment)
+            nth_mo.name = name
+            return nth_mo
+        return self.msger(name, func)
 
     def eta(self):
         eta = self.n_moment(4)**2/(self.n_moment(6)*self.n_moment(2))
@@ -527,9 +540,19 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         n0.name = 'N_0'
         return n0
 
-    def n_w(self, **kwargs):
-        rho = self.density()
-        return 3.67**4*1e3*self.w()/(TAU/2*rho*self.d_0()**4)
+    def n_w(self):
+        name = 'N_w'
+        def func():
+            integrand = lambda d: d**3*self.n(d)
+            nw = 3.67**4/(6*self.d_0()**4)*self.sum_over_d(integrand)
+            nw.name = name
+            return nw
+        return self.msger(name, func)
+
+    def n_w_mu(self, **kwargs):
+        mu = self.mu()
+        # TODO: check scale
+        return 3.67**4/6*self.n_0()*gamma(mu+4)*self.d_0()**mu/(3.67+mu**(mu+4))
 
     def d_0_gamma(self):
         name = 'D_0_gamma'
