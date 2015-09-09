@@ -450,7 +450,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def f_mu(self):
         mu = self.mu()
-        6/(3.67)**4*(3.67+mu)**(mu+4)/(gamma(mu+4))
+        return 6/(3.67)**4*(3.67+mu)**(mu+4)/(gamma(mu+4))
 
     def n_t(self):
         """total concentration"""
@@ -552,7 +552,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def n_w_mu(self, **kwargs):
         mu = self.mu()
         # TODO: check scale
-        return 3.67**4/6*self.n_0()*gamma(mu+4)*self.d_0()**mu/(3.67+mu**(mu+4))
+        return self.n_0()/self.f_mu()*self.d_0()**mu
 
     def d_0_gamma(self):
         name = 'D_0_gamma'
