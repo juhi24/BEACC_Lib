@@ -38,26 +38,27 @@ for c in (comb200, comb400):
     n = c.intervalled(c.instr['dsd'].psd)
     y = n/nw
     d = y*0+y.columns.values
-    x = d/d0
-    if not separate:
-        fig, axarr = plt.subplots(1, n_ranges, dpi=100, sharex=True, sharey=True,
-                                  tight_layout=True, figsize=(n_ranges*6, 6))
-    for i, rhorange in enumerate(limslist):
-        if separate:
-            fig, ax = plt.subplots(dpi=100)
-        else:
-            ax = axarr[i]
-        rhomin = rhorange[0]
-        rhomax = rhorange[1]
-        xpart = c.data_in_density_range(x, rhomin, rhomax)
-        ypart = c.data_in_density_range(y, rhomin, rhomax)
-        if xpart.empty or ypart.empty:
-            ax.semilogy()
-            continue
-        ax.semilogy(xpart, ypart, marker='o', linestyle='None', color='black')
-        ax.set_ylabel('$N_D N_w^{-1}$')
-        ax.set_xlabel('$D D_0^{-1}$')
-        ax.set_title('$%s < \\rho < %s$' % (rhomin, rhomax))
-        ax.grid(True)
-    plt.axis([0, 5, 10e-5, 1000])
-    ax.set_title('$\\rho > ' + str(rhomin) + '$')
+    xd = {'D':d, '$D D_0^{-1}$':d/d0}
+    for xlabel, x in xd.items():
+        if not separate:
+            fig, axarr = plt.subplots(1, n_ranges, dpi=100, sharex=True, sharey=True,
+                                      tight_layout=True, figsize=(n_ranges*6, 6))
+        for i, rhorange in enumerate(limslist):
+            if separate:
+                fig, ax = plt.subplots(dpi=100)
+            else:
+                ax = axarr[i]
+            rhomin = rhorange[0]
+            rhomax = rhorange[1]
+            xpart = c.data_in_density_range(x, rhomin, rhomax)
+            ypart = c.data_in_density_range(y, rhomin, rhomax)
+            if xpart.empty or ypart.empty:
+                ax.semilogy()
+                continue
+            ax.semilogy(xpart, ypart, marker='o', linestyle='None', color='black')
+            ax.set_ylabel('$N_D N_w^{-1}$')
+            ax.set_xlabel(xlabel)
+            ax.set_title('$%s < \\rho < %s$' % (rhomin, rhomax))
+            ax.grid(True)
+        plt.axis([0, 5, 10e-5, 1000])
+        ax.set_title('$\\rho > ' + str(rhomin) + '$')
