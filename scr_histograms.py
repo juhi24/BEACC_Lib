@@ -20,6 +20,7 @@ plt.close('all')
 #plt.ioff()
 plt.ion()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
+resultsdir = read.ensure_dir('../results/pip2015/hist')
 
 def subplots(n_plots=1):
     return plt.subplots(n_plots, sharex=True, sharey=True,
@@ -82,6 +83,13 @@ for c in (comb200, comb400)
     
     for f in (fd, fm, fn, fdd, fmd, fnd):
         remove_gaps(f)
+    
+    fd.savefig(path.join(resultsdir, 'd0_cases.eps'))
+    fm.savefig(path.join(resultsdir, 'mu_cases.eps'))
+    fn.savefig(path.join(resultsdir, 'nw_cases.eps'))
+    fdd.savefig(path.join(resultsdir, 'd0_rho.eps'))
+    fmd.savefig(path.join(resultsdir, 'mu_rho.eps'))
+    fnd.savefig(path.join(resultsdir, 'nw_rho.eps'))
     
     for axarr in (axarrd, axarrm, axarrn, axarrdd, axarrmd, axarrnd):
         for ax in axarr[1:]:
