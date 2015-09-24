@@ -67,7 +67,7 @@ comb200 = e.events.pluvio200.sum()
 limslist = limitslist((0, 150, 300, 800))
 n_ranges = len(limslist)
 
-for c in (comb200, comb400)
+for c in (comb200, comb400):
     fdd, axarrdd = subplots(n_ranges)
     fmd, axarrmd = subplots(n_ranges)
     fnd, axarrnd = subplots(n_ranges)
@@ -84,12 +84,12 @@ for c in (comb200, comb400)
     for f in (fd, fm, fn, fdd, fmd, fnd):
         remove_gaps(f)
     
-    fd.savefig(path.join(resultsdir, 'd0_cases.eps'))
-    fm.savefig(path.join(resultsdir, 'mu_cases.eps'))
-    fn.savefig(path.join(resultsdir, 'nw_cases.eps'))
-    fdd.savefig(path.join(resultsdir, 'd0_rho.eps'))
-    fmd.savefig(path.join(resultsdir, 'mu_rho.eps'))
-    fnd.savefig(path.join(resultsdir, 'nw_rho.eps'))
+    fd.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'd0_cases.eps'))
+    fm.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'mu_cases.eps'))
+    fn.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'nw_cases.eps'))
+    fdd.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'd0_rho.eps'))
+    fmd.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'mu_rho.eps'))
+    fnd.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'nw_rho.eps'))
     
     for axarr in (axarrd, axarrm, axarrn, axarrdd, axarrmd, axarrnd):
         for ax in axarr[1:]:
