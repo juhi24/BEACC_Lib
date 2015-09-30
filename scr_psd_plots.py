@@ -32,23 +32,26 @@ separate = False
 
 basepath = '../results/pip2015/paper/psd'
 
-for c in (comb200, comb400):
-    d0 = c.d_0()
-    nw = np.log10(c.n_w())
-    df = read.merge_multiseries(d0, nw)
-    data = df.dropna()
-    f, ax = plt.subplots(dpi=120, tight_layout=True)
-    df.plot(kind='hexbin', x='D_0', y='N_w', logy=False, ax=ax)
-    sns.jointplot(x='D_0', y='N_w', data=data, kind='kde', stat_func=None,
-                  joint_kws={'kde_kws':{'bw':0.001}})
-    sns.jointplot(x='D_0', y='N_w', data=data, kind='hex', stat_func=None)
-    sns.jointplot(x='D_0', y='N_w', data=data, kind='scatter', stat_func=None)
+def d0_nw():
+    for c in (comb200, comb400):
+        d0 = c.d_0()
+        nw = np.log10(c.n_w())
+        df = read.merge_multiseries(d0, nw)
+        data = df.dropna()
+        f, ax = plt.subplots(dpi=120, tight_layout=True)
+        df.plot(kind='hexbin', x='D_0', y='N_w', logy=False, ax=ax)
+        sns.jointplot(x='D_0', y='N_w', data=data, kind='kde', stat_func=None,
+                      joint_kws={'kde_kws':{'bw':0.001}})
+        sns.jointplot(x='D_0', y='N_w', data=data, kind='hex', stat_func=None)
+        sns.jointplot(x='D_0', y='N_w', data=data, kind='scatter', stat_func=None)
+    return data
 
 def psds_in_rho_range():
     for c in (comb200, comb400):
         d0 = c.d_0()
         nt = c.n_t()
         nw = c.n_w()
+        #data = read.merge_multiseries(d0, nt, nw)
         n = c.intervalled(c.instr['dsd'].psd)
         y = n/nw
         d = y*0+y.columns.values
@@ -76,3 +79,5 @@ def psds_in_rho_range():
                 ax.grid(True)
             plt.axis([0, 5, 10e-5, 1000])
             ax.set_title('$\\rho > ' + str(rhomin) + '$')
+
+#psds_in_rho_range()
