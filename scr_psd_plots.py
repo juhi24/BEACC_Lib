@@ -44,7 +44,10 @@ def d0_nw():
                       joint_kws={'kde_kws':{'bw':0.001}})
         sns.jointplot(x='D_0', y='N_w', data=data, kind='hex', stat_func=None)
         sns.jointplot(x='D_0', y='N_w', data=data, kind='scatter', stat_func=None)
-    return data
+        datarho = c.group_by_density(data, [0,150,300,800])
+        sns.lmplot(x='D_0', y='N_w', data=datarho, col='rhomin', col_order=[0,150,300])
+        sns.lmplot(x='D_0', y='N_w', data=datarho, hue='rhomin', hue_order=[0,150,300])
+    return datarho
 
 def psds_in_rho_range():
     for c in (comb200, comb400):
