@@ -120,7 +120,7 @@ def combine_datasets(*datasets):
 
 
 def limitslist(limits):
-    return [(mini, limits[i+1]) for i, mini in enumerate(limits[:-1])]
+    return ((mini, limits[i+1]) for i, mini in enumerate(limits[:-1]))
 
 
 class MultiSeries:
@@ -666,16 +666,19 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return fit
 
     def vfits_density_range(self, limslist, parallel=True, **fitargs):
-        if parallel:
-            processes = min(len(limslist), os.cpu_count())
-            with Pool(processes) as p:
-                fits = p.map(self.vfit_density_range, limslist)
-            p.join()
+        name = 'vfits_density_range' + str(abs(hash(tuple(limslist))))
+        def func():
+            if parallel:
+                processes = min(len(limslist), os.cpu_count())
+                with Pool(processes) as p:
+                    fits = p.map(self.vfit_density_range, limslist)
+                p.join()
+                return fits
+            fits = []
+            for lims in limslist:
+                fits.append(self.vfit_density_range(lims, **fitargs))
             return fits
-        fits = []
-        for lims in limslist:
-            fits.append(self.vfit_density_range(lims, **fitargs))
-        return fits
+        return self.pickler(name, func)
 
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
                                      separate=False, hide_high_limit=True,
