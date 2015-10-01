@@ -15,10 +15,12 @@ import copy
 import fit
 from scipy import stats, io
 from scipy.optimize import fmin, minimize
+import pickle
 
 RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
 MSGTLD = '.msg'
+PICKLETLD = '.pkl'
 
 ns1min = 1.0*60.0*1000000000.0
 
@@ -35,6 +37,17 @@ def msg_io(msgpath, func, **kwargs):
     else:
         data = func(**kwargs)
         data.to_msgpack(msgpath)
+    return data
+
+
+def pkl_io(pklpath, func, **kwargs):
+    if os.path.exists(pklpath):
+        with open(pklpath, 'rb') as cachefile:
+            data = pickle.load(cachefile)
+    else:
+        data = func(**kwargs)
+        with open(pklpath, 'wb') as cachefile:
+            pickle.dump(data, cachefile, pickle.HIGHEST_PROTOCOL)
     return data
 
 
@@ -123,6 +136,13 @@ class Cacher:
             msgpath = os.path.join(self.cache_dir(*cache_dir_args),
                                    name + MSGTLD)
             return msg_io(msgpath, func, **kwargs)
+        return func(**kwargs)
+
+    def pickler(self, name, func, *cache_dir_args, **kwargs):
+        if self.use_cache:
+            pklpath = os.path.join(self.cache_dir(*cache_dir_args),
+                                   name + PICKLETLD)
+            return pkl_io(pklpath, func, **kwargs)
         return func(**kwargs)
 
     def cache_dir(self, dt_start, dt_end, *extra_dir_names):
