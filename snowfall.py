@@ -185,14 +185,14 @@ class EventsCollection(MultiSeries):
                                                autobias=autobias))
         self.events[data.instr['pluvio'].name] = cases
 
-    def autoimport_data(self, datafile=[H5_PATH], autoshift=False,
+    def autoimport_data(self, datafile=H5_PATH, autoshift=False,
                         autobias=False, radar=False, **casekwargs):
         """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=3)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
         data = Case.from_hdf(dt_start, dt_end, autoshift=False,
-                             filenames=datafile, radar=radar, **casekwargs)
+                             filenames=[datafile], radar=radar, **casekwargs)
         for d in data:
             if d is not None:
                 self.add_data(d, autoshift=autoshift, autobias=autobias)
