@@ -35,4 +35,4 @@ for comb in (comb200, comb400):
     plt.axis((0.25,2,0.5,2.5))
     savepath = read.ensure_dir(path.join('../results/pip2015/vfits_density_ranges',
                                          comb.instr['pluvio'].name))
-    plt.savefig(path.join(savepath, comb.instr['pluvio'].name + 'combined.eps'))
+    plt.savefig(path.join(savepath, 'combined.eps'))
