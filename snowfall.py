@@ -64,19 +64,26 @@ def datafilelist(subpath, datadir=DATA_DIR):
     return glob(os.path.join(datadir, subpath))
 
 
-def batch_import(dtstr, datadir=DATA_DIR):
+def datafilelistloop(subpath, dtstrlist, datadir=DATA_DIR):
+    listout = []
+    for dtstr in dtstrlist:
+        listout.extend(datafilelist(subpath % dtstr, datadir=datadir))
+    return listout
+
+
+def batch_import(dtstrlist, datadir=DATA_DIR):
     """Read ASCII data according to a datestring pattern."""
-    pipv_files = datafilelist(PIPV_SUBPATH % dtstr, datadir=datadir)
-    dsd_files = datafilelist(DSD_SUBPATH % dtstr, datadir=datadir)
-    pluvio200_files = datafilelist(P200_SUBPATH % dtstr, datadir=datadir)
-    pluvio400_files = datafilelist(P400_SUBPATH % dtstr, datadir=datadir)
-    xsacr_files = datafilelist(RADAR_SUBPATH % ('XSACR', 'xsacr', dtstr),
+    pipv_files = datafilelistloop(PIPV_SUBPATH, dtstrlist, datadir=datadir)
+    dsd_files = datafilelistloop(DSD_SUBPATH, dtstrlist, datadir=datadir)
+    pluvio200_files = datafilelistloop(P200_SUBPATH, dtstrlist, datadir=datadir)
+    pluvio400_files = datafilelistloop(P400_SUBPATH, dtstrlist, datadir=datadir)
+    xsacr_files = datafilelistloop(RADAR_SUBPATH, [('XSACR', 'xsacr', dtstr) for dtstr in dtstrlist],
                                datadir=datadir)
-    kasacr_files = datafilelist(RADAR_SUBPATH % ('KASACR', 'kasacr', dtstr),
+    kasacr_files = datafilelistloop(RADAR_SUBPATH, [('KASACR', 'kasacr', dtstr) for dtstr in dtstrlist],
                                 datadir=datadir)
-    kazr_files = datafilelist(RADAR_SUBPATH % ('KAZR', 'kazrge', dtstr),
+    kazr_files = datafilelistloop(RADAR_SUBPATH, [('KAZR', 'kazrge', dtstr) for dtstr in dtstrlist],
                               datadir=datadir)
-    mwacr_files = datafilelist(RADAR_SUBPATH % ('MWACR', 'mwacr', dtstr),
+    mwacr_files = datafilelistloop(RADAR_SUBPATH, [('MWACR', 'mwacr', dtstr) for dtstr in dtstrlist],
                                datadir=datadir)
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
@@ -92,9 +99,9 @@ def batch_import(dtstr, datadir=DATA_DIR):
 
 
 def batch_create_hdf(datadir=DATA_DIR, outname=H5_FILE,
-                     dtstr='20140[2-3]??'):
+                     dtstrlist=('20140[2-3]??')):
     """Read ASCII data and export to hdf."""
-    instrdict = batch_import(dtstr, datadir)
+    instrdict = batch_import(dtstrlist, datadir)
     hdf_file = os.path.join(datadir, outname)
     for key in instrdict:
         instrdict[key].to_hdf(filename=hdf_file)
