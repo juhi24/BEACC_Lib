@@ -17,6 +17,10 @@ from scipy import stats, io
 from scipy.optimize import fmin, minimize
 import pickle
 
+# general configuration
+DEBUG = True
+
+# CONFIG default paths
 RESULTS_DIR = '../results'
 CACHE_DIR = 'cache'
 MSGTLD = '.msg'
@@ -425,15 +429,18 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                         'volt',
                         't_rim']
             for filename in filenames:
-                num_lines = file_len(filename)
+                #num_lines = file_len(filename)
                 self.current_file = filename
                 try:
                     self.data = self.data.append(pd.read_csv(filename, sep=';',
                                      names=col_abbr,
-                                     skiprows=list(range(1, num_lines, 2)),
+                                     skip_blank_lines=True,
+                                     error_bad_lines=False,
+                                     warn_bad_lines=True,
                                      parse_dates={'datetime':['datestr']},
                                      date_parser=self.parse_datetime,
-                                     index_col='datetime'))
+                                     index_col='datetime',
+                                     verbose=DEBUG))
                 except NotImplementedError as err:
                     print('%s: %s' % (filename, format(err)))
             #self.data.drop(['i_rt'], 1, inplace=True) # crap format
@@ -642,6 +649,7 @@ class PipDSD(InstrumentData):
         self.name = 'pip_dsd'
         if self.data.empty:
             for filename in filenames:
+                print(filename)
                 self.current_file = filename
                 # File format changed
                 if int(os.path.split(filename)[1][3:11]) > 20140831: # TODO fixme
@@ -649,11 +657,12 @@ class PipDSD(InstrumentData):
                                                              engine='python',
                                                              sep='\t',
                                                              skiprows=8,
-                                                             skip_footer=1,
+                                                             skipfooter=1,
                                                              header=3,
                                                              parse_dates={'datetime':['hr_d', 'min_d']},
                                                              date_parser=self.parse_datetime,
-                                    index_col='datetime'))
+                                                             index_col='datetime',
+                                                             verbose=DEBUG))
                 else:
                     self.data = self.data.append(pd.read_csv(filename,
                                                              delim_whitespace=True,
@@ -661,7 +670,8 @@ class PipDSD(InstrumentData):
                                                              header=3,
                                                              parse_dates={'datetime':['hr_d', 'min_d']},
                                                              date_parser=self.parse_datetime,
-                                                             index_col='datetime'))
+                                                             index_col='datetime',
+                                                             verbose=DEBUG))
             avg = pd.read_csv(self.current_file, delim_whitespace=True, skiprows=8,
                                    nrows=1, header=None).drop([0, 1, 2, 3, 4], axis=1)
             #self.num_d = self.data[['Num_d']]
@@ -771,13 +781,16 @@ class PipV(InstrumentData):
                                           skipinitialspace=True, skiprows=8,
                                           skip_footer=1,
                                           parse_dates={'datetime':['minute_p']},
-                                          date_parser=self.parse_datetime)
+                                          date_parser=self.parse_datetime,
+                                          verbose=DEBUG)
                     newdata = newdata[newdata['RecNum'] > -99]
                 else:
                     newdata = pd.read_csv(filename,
-                                          delim_whitespace=True, skiprows=8,
+                                          delim_whitespace=True,
+                                          skiprows=8,
                                           parse_dates={'datetime':['minute_p']},
-                                          date_parser=self.parse_datetime)
+                                          date_parser=self.parse_datetime,
+                                          verbose=DEBUG)
                     newdata = newdata[newdata['RecNum']>-99]
                 if not newdata.empty:
                     newdata.rename_axis({'vel_v_1': 'vel_v',
