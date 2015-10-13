@@ -71,37 +71,41 @@ def datafilelistloop(subpath, dtstrlist, datadir=DATA_DIR):
     return listout
 
 
-def batch_import(dtstrlist, datadir=DATA_DIR):
+def batch_import(dtstrlist, datadir=DATA_DIR, radar=False):
     """Read ASCII data according to a datestring pattern."""
     pipv_files = datafilelistloop(PIPV_SUBPATH, dtstrlist, datadir=datadir)
     dsd_files = datafilelistloop(DSD_SUBPATH, dtstrlist, datadir=datadir)
     pluvio200_files = datafilelistloop(P200_SUBPATH, dtstrlist, datadir=datadir)
     pluvio400_files = datafilelistloop(P400_SUBPATH, dtstrlist, datadir=datadir)
-    xsacr_files = datafilelistloop(RADAR_SUBPATH, [('XSACR', 'xsacr', dtstr) for dtstr in dtstrlist],
-                               datadir=datadir)
-    kasacr_files = datafilelistloop(RADAR_SUBPATH, [('KASACR', 'kasacr', dtstr) for dtstr in dtstrlist],
-                                datadir=datadir)
-    kazr_files = datafilelistloop(RADAR_SUBPATH, [('KAZR', 'kazrge', dtstr) for dtstr in dtstrlist],
-                              datadir=datadir)
-    mwacr_files = datafilelistloop(RADAR_SUBPATH, [('MWACR', 'mwacr', dtstr) for dtstr in dtstrlist],
-                               datadir=datadir)
+    if radar:
+        xsacr_files = datafilelistloop(RADAR_SUBPATH, [('XSACR', 'xsacr', dtstr) for dtstr in dtstrlist],
+                                   datadir=datadir)
+        kasacr_files = datafilelistloop(RADAR_SUBPATH, [('KASACR', 'kasacr', dtstr) for dtstr in dtstrlist],
+                                    datadir=datadir)
+        kazr_files = datafilelistloop(RADAR_SUBPATH, [('KAZR', 'kazrge', dtstr) for dtstr in dtstrlist],
+                                  datadir=datadir)
+        mwacr_files = datafilelistloop(RADAR_SUBPATH, [('MWACR', 'mwacr', dtstr) for dtstr in dtstrlist],
+                                   datadir=datadir)
     pluvio200 = read.Pluvio(pluvio200_files)
     pluvio400 = read.Pluvio(pluvio400_files)
     pipv = read.PipV(pipv_files)
     dsd = read.PipDSD(dsd_files)
-    xsacr = read.Radar(xsacr_files)
-    kasacr = read.Radar(kasacr_files)
-    kazr = read.Radar(kazr_files)
-    mwacr = read.Radar(mwacr_files)
+    if radar:
+        xsacr = read.Radar(xsacr_files)
+        kasacr = read.Radar(kasacr_files)
+        kazr = read.Radar(kazr_files)
+        mwacr = read.Radar(mwacr_files)
+        return {'vel': pipv, 'dsd': dsd, 'pluvio200': pluvio200,
+                'pluvio400': pluvio400, 'xsacr': xsacr, 'kasacr': kasacr,
+                'kazr': kazr, 'mwacr': mwacr}
     return {'vel': pipv, 'dsd': dsd, 'pluvio200': pluvio200,
-            'pluvio400': pluvio400, 'xsacr': xsacr, 'kasacr': kasacr,
-            'kazr': kazr, 'mwacr': mwacr}
+            'pluvio400': pluvio400}
 
 
 def batch_create_hdf(datadir=DATA_DIR, outname=H5_FILE,
-                     dtstrlist=('20140[2-3]??')):
+                     dtstrlist=('20140[2-3]??'), **import_kws):
     """Read ASCII data and export to hdf."""
-    instrdict = batch_import(dtstrlist, datadir)
+    instrdict = batch_import(dtstrlist, datadir, **import_kws)
     hdf_file = os.path.join(datadir, outname)
     for key in instrdict:
         instrdict[key].to_hdf(filename=hdf_file)
