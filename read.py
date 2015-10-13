@@ -25,6 +25,13 @@ PICKLETLD = '.pkl'
 ns1min = 1.0*60.0*1000000000.0
 
 
+def file_len(fname):
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1
+
+
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum % 1) - datetime.timedelta(days=366)
@@ -418,7 +425,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                         'volt',
                         't_rim']
             for filename in filenames:
-                num_lines = sum(1 for line in open(filename))
+                print(filename)
+                num_lines = file_len(filename)
                 self.current_file = filename
                 self.data = self.data.append(pd.read_csv(filename, sep=';',
                                                          names=col_abbr,
