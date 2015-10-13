@@ -425,15 +425,17 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                         'volt',
                         't_rim']
             for filename in filenames:
-                print(filename)
                 num_lines = file_len(filename)
                 self.current_file = filename
-                self.data = self.data.append(pd.read_csv(filename, sep=';',
-                                                         names=col_abbr,
-                                                         skiprows=list(range(1, num_lines, 2)),
-                                                         parse_dates={'datetime':['datestr']},
-                                                         date_parser=self.parse_datetime,
-                                                         index_col='datetime'))
+                try:
+                    self.data = self.data.append(pd.read_csv(filename, sep=';',
+                                     names=col_abbr,
+                                     skiprows=list(range(1, num_lines, 2)),
+                                     parse_dates={'datetime':['datestr']},
+                                     date_parser=self.parse_datetime,
+                                     index_col='datetime'))
+                except NotImplementedError as err:
+                    print('%s: %s' % (filename, format(err)))
             #self.data.drop(['i_rt'], 1, inplace=True) # crap format
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
@@ -641,7 +643,8 @@ class PipDSD(InstrumentData):
         if self.data.empty:
             for filename in filenames:
                 self.current_file = filename
-                if int(filename[-16:-8]) > 20140831: # TODO fixme
+                # File format changed
+                if int(os.path.split(filename)[1][3:11]) > 20140831: # TODO fixme
                     self.data = self.data.append(pd.read_csv(filename,
                                                              engine='python',
                                                              sep='\t',
@@ -659,7 +662,7 @@ class PipDSD(InstrumentData):
                                                              parse_dates={'datetime':['hr_d', 'min_d']},
                                                              date_parser=self.parse_datetime,
                                                              index_col='datetime'))
-            avg = pd.read_csv(filename, delim_whitespace=True, skiprows=8,
+            avg = pd.read_csv(self.current_file, delim_whitespace=True, skiprows=8,
                                    nrows=1, header=None).drop([0, 1, 2, 3, 4], axis=1)
             #self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data, last sometimes nans
