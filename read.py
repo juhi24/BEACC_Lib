@@ -36,6 +36,14 @@ def file_len(fname):
     return i + 1
 
 
+def file_shorter_than(fname, limit):
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            if i+2>limit:
+                return False
+    return True
+
+
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum % 1) - datetime.timedelta(days=366)
@@ -649,7 +657,11 @@ class PipDSD(InstrumentData):
         self.name = 'pip_dsd'
         if self.data.empty:
             for filename in filenames:
-                print(filename)
+                if DEBUG:
+                    print(filename)
+                if file_shorter_than(filename, 14):
+                    # file has no data
+                    continue
                 self.current_file = filename
                 # File format changed
                 if int(os.path.split(filename)[1][3:11]) > 20140831: # TODO fixme
