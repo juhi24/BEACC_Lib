@@ -655,6 +655,12 @@ class PipDSD(InstrumentData):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.d_bin = d_bin
         self.name = 'pip_dsd'
+        common_csv_kws = {'skiprows': 8,
+                          'header': 3,
+                          'parse_dates': {'datetime':['hr_d', 'min_d']},
+                          'date_parser': self.parse_datetime,
+                          'index_col': 'datetime',
+                          'verbose': DEBUG}
         if self.data.empty:
             for filename in filenames:
                 if DEBUG:
@@ -668,22 +674,12 @@ class PipDSD(InstrumentData):
                     self.data = self.data.append(pd.read_csv(filename,
                                                              engine='python',
                                                              sep='\t',
-                                                             skiprows=8,
                                                              skipfooter=1,
-                                                             header=3,
-                                                             parse_dates={'datetime':['hr_d', 'min_d']},
-                                                             date_parser=self.parse_datetime,
-                                                             index_col='datetime',
-                                                             verbose=DEBUG))
+                                                             **common_csv_kws))
                 else:
                     self.data = self.data.append(pd.read_csv(filename,
                                                              delim_whitespace=True,
-                                                             skiprows=8,
-                                                             header=3,
-                                                             parse_dates={'datetime':['hr_d', 'min_d']},
-                                                             date_parser=self.parse_datetime,
-                                                             index_col='datetime',
-                                                             verbose=DEBUG))
+                                                             **common_csv_kws))
             avg = pd.read_csv(self.current_file, delim_whitespace=True, skiprows=8,
                                    nrows=1, header=None).drop([0, 1, 2, 3, 4], axis=1)
             #self.num_d = self.data[['Num_d']]
