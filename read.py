@@ -18,7 +18,7 @@ from scipy.optimize import fmin, minimize
 import pickle
 
 # general configuration
-DEBUG = True
+DEBUG = False
 
 # CONFIG default paths
 RESULTS_DIR = '../results'
@@ -437,6 +437,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                         'volt',
                         't_rim']
             for filename in filenames:
+                print('.', end='')
                 #num_lines = file_len(filename)
                 self.current_file = filename
                 try:
@@ -450,7 +451,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                                      index_col='datetime',
                                      verbose=DEBUG))
                 except NotImplementedError as err:
-                    print('%s: %s' % (filename, format(err)))
+                    print('\n%s: %s' % (filename, format(err)))
+            print()
             #self.data.drop(['i_rt'], 1, inplace=True) # crap format
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
@@ -665,6 +667,8 @@ class PipDSD(InstrumentData):
             for filename in filenames:
                 if DEBUG:
                     print(filename)
+                else:
+                    print('.', end='')
                 if file_shorter_than(filename, 14):
                     # file has no data
                     continue
@@ -680,6 +684,7 @@ class PipDSD(InstrumentData):
                     self.data = self.data.append(pd.read_csv(filename,
                                                              delim_whitespace=True,
                                                              **common_csv_kws))
+            print()
             avg = pd.read_csv(self.current_file, delim_whitespace=True, skiprows=8,
                                    nrows=1, header=None).drop([0, 1, 2, 3, 4], axis=1)
             #self.num_d = self.data[['Num_d']]
@@ -782,6 +787,7 @@ class PipV(InstrumentData):
         self.use_flip = False
         if self.data.empty:
             for filename in filenames:
+                print('.', end='')
                 self.current_file = filename
                 if int(filename[-23:-15]) > 20140831: # TODO fixme
                     newdata = pd.read_csv(filename,
@@ -811,6 +817,7 @@ class PipV(InstrumentData):
                     g = newdata.groupby(level=['datetime', 'Part_ID'])
                     newdata = g.mean()
                     self.data = self.data.append(newdata)
+            print()
             if len(self.data.index):
                 self.data = self.data[self.data.vel_v.notnull()]
             self.data.reset_index(level=1, inplace=True)

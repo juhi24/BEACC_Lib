@@ -18,7 +18,7 @@ from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
 # general configuration
-DEBUG = True
+DEBUG = False
 
 # CONFIG default paths
 DATA_DIR = '../DATA'
