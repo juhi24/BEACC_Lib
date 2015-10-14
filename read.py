@@ -194,13 +194,18 @@ def batch_import(dtstrlist, datadir=DATA_DIR, radar=False):
             'pluvio400': pluvio400}
 
 
-def batch_create_hdf(datadir=DATA_DIR, outname=H5_FILE,
-                     dtstrlist=('20140[2-3]??'), **import_kws):
+def batch_create_hdf(instrdict=None, datadir=DATA_DIR, outname=H5_FILE,
+                     dtstrlist=('20140[2-3]??')):
     """Read ASCII data and export to hdf."""
-    instrdict = batch_import(dtstrlist, datadir, **import_kws)
+    if instrdict is None:
+        instrdict = {PIPV_SUBPATH: PipV,
+                     DSD_SUBPATH: PipDSD,
+                     P200_SUBPATH: Pluvio,
+                     P400_SUBPATH: Pluvio}
     hdf_file = os.path.join(datadir, outname)
     for key in instrdict:
-        instrdict[key].to_hdf(filename=hdf_file)
+        instr = instrdict[key].from_raw(dtstrlist, subpath=key, datadir=datadir)
+        instr.to_hdf(filename=hdf_file)
 
 
 class Cacher:
