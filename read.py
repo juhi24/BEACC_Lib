@@ -312,6 +312,11 @@ class InstrumentData(Cacher):
         combined.clear_cache()
         return combined
 
+    @classmethod
+    def from_raw(cls, dtstrlist, subpath='', datadir=DATA_DIR):
+        filelist = datafilelistloop(subpath, dtstrlist, datadir=datadir)
+        return cls(filelist)
+
     def finish_init(self, dt_start, dt_end):
         """Sort and name index, cut time span."""
         self.data.sort_index(inplace=True)
@@ -549,6 +554,10 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         if self.use_bucket:
             self.noprecip_bias(self.lwc, inplace=True)
 
+    @classmethod
+    def from_raw(cls, *args, subpath=P200_SUBPATH, **kwargs):
+        return super().from_raw(*args, subpath=subpath, **kwargs)
+
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
         t = time.strptime(datestr, '%Y%m%d%H%M%S')
@@ -763,6 +772,10 @@ class PipDSD(InstrumentData):
         self.data = self.data.resample('1min').fillna(0)
         self.finish_init(dt_start, dt_end)
 
+    @classmethod
+    def from_raw(cls, *args, subpath=DSD_SUBPATH, **kwargs):
+        return super().from_raw(*args, subpath=subpath, **kwargs)
+
     def parse_datetime(self, hh, mm):
         dateline = linecache.getline(self.current_file, 6)
         datearr = [int(x) for x in dateline.split()]
@@ -933,6 +946,10 @@ class PipV(InstrumentData):
             self.store_write('hwfm', hwfm)
         else:
             self._hwfm = hwfm
+
+    @classmethod
+    def from_raw(cls, *args, subpath=PIPV_SUBPATH, **kwargs):
+        return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def v(self, d, fitclass=None, varinterval=True, rule=None):
         """velocities according to fits for given diameter"""
