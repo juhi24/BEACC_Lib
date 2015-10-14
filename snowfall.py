@@ -20,16 +20,6 @@ from pytmatrix import tmatrix_aux as tm_aux
 # general configuration
 DEBUG = False
 
-# CONFIG default paths
-DATA_DIR = '../DATA'
-H5_FILE = 'baecc.h5'
-H5_PATH = os.path.join(DATA_DIR, H5_FILE)
-PIPV_SUBPATH = 'PIP/a_Velocity_Tables/004%s/*2.dat'
-DSD_SUBPATH = 'PIP/a_DSD_Tables/004%s*.dat'
-P200_SUBPATH = 'Pluvio200/pluvio200_??_%s*.txt'
-P400_SUBPATH = 'Pluvio400/pluvio400_??_%s*.txt'
-RADAR_SUBPATH = 'Radar/%s/tmp%s*M1.a1.%s.*'
-
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 if DEBUG:
@@ -58,57 +48,6 @@ def switch_wl(x):
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days)):
         yield start_date + timedelta(n)
-
-
-def datafilelist(subpath, datadir=DATA_DIR):
-    return glob(os.path.join(datadir, subpath))
-
-
-def datafilelistloop(subpath, dtstrlist, datadir=DATA_DIR):
-    listout = []
-    for dtstr in dtstrlist:
-        listout.extend(datafilelist(subpath % dtstr, datadir=datadir))
-    return listout
-
-
-def batch_import(dtstrlist, datadir=DATA_DIR, radar=False):
-    """Read ASCII data according to a datestring pattern."""
-    pipv_files = datafilelistloop(PIPV_SUBPATH, dtstrlist, datadir=datadir)
-    dsd_files = datafilelistloop(DSD_SUBPATH, dtstrlist, datadir=datadir)
-    pluvio200_files = datafilelistloop(P200_SUBPATH, dtstrlist, datadir=datadir)
-    pluvio400_files = datafilelistloop(P400_SUBPATH, dtstrlist, datadir=datadir)
-    if radar:
-        xsacr_files = datafilelistloop(RADAR_SUBPATH, [('XSACR', 'xsacr', dtstr) for dtstr in dtstrlist],
-                                   datadir=datadir)
-        kasacr_files = datafilelistloop(RADAR_SUBPATH, [('KASACR', 'kasacr', dtstr) for dtstr in dtstrlist],
-                                    datadir=datadir)
-        kazr_files = datafilelistloop(RADAR_SUBPATH, [('KAZR', 'kazrge', dtstr) for dtstr in dtstrlist],
-                                  datadir=datadir)
-        mwacr_files = datafilelistloop(RADAR_SUBPATH, [('MWACR', 'mwacr', dtstr) for dtstr in dtstrlist],
-                                   datadir=datadir)
-    pluvio200 = read.Pluvio(pluvio200_files)
-    pluvio400 = read.Pluvio(pluvio400_files)
-    pipv = read.PipV(pipv_files)
-    dsd = read.PipDSD(dsd_files)
-    if radar:
-        xsacr = read.Radar(xsacr_files)
-        kasacr = read.Radar(kasacr_files)
-        kazr = read.Radar(kazr_files)
-        mwacr = read.Radar(mwacr_files)
-        return {'vel': pipv, 'dsd': dsd, 'pluvio200': pluvio200,
-                'pluvio400': pluvio400, 'xsacr': xsacr, 'kasacr': kasacr,
-                'kazr': kazr, 'mwacr': mwacr}
-    return {'vel': pipv, 'dsd': dsd, 'pluvio200': pluvio200,
-            'pluvio400': pluvio400}
-
-
-def batch_create_hdf(datadir=DATA_DIR, outname=H5_FILE,
-                     dtstrlist=('20140[2-3]??'), **import_kws):
-    """Read ASCII data and export to hdf."""
-    instrdict = batch_import(dtstrlist, datadir, **import_kws)
-    hdf_file = os.path.join(datadir, outname)
-    for key in instrdict:
-        instrdict[key].to_hdf(filename=hdf_file)
 
 
 def scatterplot(x, y, c=None, kind='scatter', **kwargs):
@@ -196,7 +135,7 @@ class EventsCollection(MultiSeries):
                                                autobias=autobias))
         self.events[data.instr['pluvio'].name] = cases
 
-    def autoimport_data(self, datafile=H5_PATH, autoshift=False,
+    def autoimport_data(self, datafile=read.H5_PATH, autoshift=False,
                         autobias=False, radar=False, **casekwargs):
         """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=3)
@@ -316,7 +255,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         self._ab = ab
 
     @classmethod
-    def from_hdf(cls, dt_start, dt_end, filenames=[H5_PATH], radar=False,
+    def from_hdf(cls, dt_start, dt_end, filenames=[read.H5_PATH], radar=False,
                  **kwargs):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
