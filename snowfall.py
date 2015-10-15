@@ -779,12 +779,17 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
     def dt_start_end(self):
         """case start and end time as Timestamp"""
         t = self.time_range()
+        if t.size < 1:
+            placeholder = self.instr['pluvio'].good_data().index[0]
+            return (placeholder, placeholder)
         return (t[0], t[-1])
 
     def time_range(self):
         """data time ticks on minute interval"""
-        return pd.date_range(self.instr['pluvio'].acc().index[0],
-                             self.instr['pluvio'].acc().index[-1], freq='1min')
+        dt_index = self.instr['pluvio'].acc().index
+        if dt_index.size < 1:
+            return pd.DatetimeIndex([], freq='T')
+        return pd.date_range(dt_index[0], dt_index[-1], freq='1min')
 
     def plot(self, axarr=None, kind='line', label_suffix='', pip=True,
              **kwargs):
