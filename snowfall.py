@@ -70,7 +70,7 @@ def combine_datasets(*datasets):
 
 
 def limitslist(limits):
-    return ((mini, limits[i+1]) for i, mini in enumerate(limits[:-1]))
+    return [(mini, limits[i+1]) for i, mini in enumerate(limits[:-1])]
 
 
 class MultiSeries:
