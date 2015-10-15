@@ -292,7 +292,7 @@ class PrecipMeasurer:
         r = self.amount(**kwargs)
         if tdelta is None:
             tdelta = r.index.freq.delta
-        frac = pd.datetools.timedelta(hours=1)/tdelta
+        frac = tdelta.apply(lambda t: np.timedelta64(1,'h')/t)
         return frac * r
 
 
