@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 from os import path
 import seaborn as sns
 
+plt.close('all')
+plt.ioff()
+
 dtformat_default = '%d.%m.%y %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 dtformat_paper = '%Y %b %d %H:%M'
@@ -69,9 +72,9 @@ def psds_in_rho_range(caselist):
         nw = c.n_w()
         #data = read.merge_multiseries(d0, nt, nw)
         n = c.intervalled(c.instr['dsd'].psd)
-        y = n/nw
+        y = n.div(nw, axis=0)
         d = y*0+y.columns.values
-        xd = {'D':d, '$D D_0^{-1}$':d/d0}
+        xd = {'D':d, '$D D_0^{-1}$':d.div(d0, axis=0)}
         for xlabel, x in xd.items():
             if not separate:
                 fig, axarr = plt.subplots(1, n_ranges, dpi=100, sharex=True, sharey=True,
