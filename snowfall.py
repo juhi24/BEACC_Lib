@@ -18,12 +18,16 @@ from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
 # general configuration
-DEBUG = False
+DEBUG = True
 
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 if DEBUG:
+    from memprof import *
+    from pympler.classtracker import ClassTracker
+    tracker = ClassTracker()
     warnings.simplefilter('default')
+    warnings.simplefilter('error', category=FutureWarning)
 else:
     warnings.simplefilter('ignore')
 
@@ -141,12 +145,12 @@ class EventsCollection(MultiSeries):
         timemargin = pd.datetools.timedelta(hours=3)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
-        data = Case.from_hdf(dt_start, dt_end, autoshift=False,
-                             filenames=[datafile], radar=radar, **casekwargs)
-        for d in data:
-            if d is not None:
-                self.add_data(d, autoshift=autoshift, autobias=autobias)
-        return
+        for pluvio_name in ('pluvio200', 'pluvio400'):
+            data = Case.from_hdf(dt_start, dt_end, autoshift=False,
+                                 filenames=[datafile], radar=radar,
+                                 pluvio_name=pluvio_name, **casekwargs))
+            if data is not None:
+                self.add_data(data, autoshift=autoshift, autobias=autobias)
 
     def summary(self, pluvio='pluvio200', dtformat='%Y %b %d', **kwargs):
         sumlist = []
@@ -256,33 +260,25 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     @classmethod
     def from_hdf(cls, dt_start, dt_end, filenames=[read.H5_PATH], radar=False,
-                 **kwargs):
+                 pluvio_name='pluvio200', **kwargs):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
-        pluvio200 = read.Pluvio(filenames, hdf_table='pluvio200')
-        pluvio400 = read.Pluvio(filenames, hdf_table='pluvio400')
+        pluvio = read.Pluvio(filenames, hdf_table=pluvio_name)
         dsd = read.PipDSD(filenames, hdf_table='pip_dsd')
         pipv = read.PipV(filenames, hdf_table='pip_vel')
-        instr_lst = [pluvio200, pluvio400, dsd, pipv]
         if radar:
             xsacr = read.Radar(filenames, hdf_table='XSACR')
             kasacr = read.Radar(filenames, hdf_table='KASACR')
             kazr = read.Radar(filenames, hdf_table='KAZR')
             mwacr = read.Radar(filenames, hdf_table='MWACR')
-            instr_lst = [pluvio200, pluvio400, dsd, pipv, xsacr, kasacr, kazr,
+            instr_lst = [pluvio, dsd, pipv, xsacr, kasacr, kazr,
                          mwacr]
+        else:
+            instr_lst = [pluvio, dsd, pipv]
         for instr in instr_lst:
             instr.set_span(dt_start, dt_end)
-        if radar:
-            m200 = cls(dsd, pipv, pluvio200, xsacr, kasacr, kazr, mwacr,
-                       **kwargs)
-            m400 = cls(dsd, pipv, pluvio400, xsacr, kasacr, kazr, mwacr,
-                       **kwargs)
-        else:
-            m200 = cls(dsd, pipv, pluvio200, **kwargs)
-            m400 = cls(dsd, pipv, pluvio400, **kwargs)
-        return m200, m400
+        return cls(*instr_lst, **kwargs)
 
     def dtstr(self, dtformat='%b %d'):
         """date string in simple format"""
@@ -436,7 +432,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             cumvol = dd.apply(d3n).cumsum().T
             cumvol.columns = idxd
             sumvol = cumvol.iloc[:, -1]
-            diff = cumvol-sumvol/2
+            diff = cumvol.sub(sumvol/2, axis=0)
             dmed = diff.abs().T.idxmin()
             dmed[sumvol < 0.0001] = 0
             dmed.name = name
@@ -989,3 +985,7 @@ class Snow2:
         nu_a = 1.544e-5
         re = u*d/nu_a
         return np.pi*rho_a*nu_a**2/(8*g)*Snow2.best(re)*ar*fa
+
+
+if DEBUG:    
+    tracker.track_class(Case)
