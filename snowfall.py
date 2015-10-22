@@ -18,7 +18,7 @@ from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
 # general configuration
-DEBUG = True
+DEBUG = False
 
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
@@ -148,7 +148,7 @@ class EventsCollection(MultiSeries):
         for pluvio_name in ('pluvio200', 'pluvio400'):
             data = Case.from_hdf(dt_start, dt_end, autoshift=False,
                                  filenames=[datafile], radar=radar,
-                                 pluvio_name=pluvio_name, **casekwargs))
+                                 pluvio_name=pluvio_name, **casekwargs)
             if data is not None:
                 self.add_data(data, autoshift=autoshift, autobias=autobias)
 
@@ -272,10 +272,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             kasacr = read.Radar(filenames, hdf_table='KASACR')
             kazr = read.Radar(filenames, hdf_table='KAZR')
             mwacr = read.Radar(filenames, hdf_table='MWACR')
-            instr_lst = [pluvio, dsd, pipv, xsacr, kasacr, kazr,
+            instr_lst = [dsd, pipv, pluvio, xsacr, kasacr, kazr,
                          mwacr]
         else:
-            instr_lst = [pluvio, dsd, pipv]
+            instr_lst = [dsd, pipv, pluvio]
         for instr in instr_lst:
             instr.set_span(dt_start, dt_end)
         return cls(*instr_lst, **kwargs)
