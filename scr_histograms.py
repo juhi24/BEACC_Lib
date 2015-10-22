@@ -8,13 +8,9 @@ import matplotlib.pyplot as plt
 from os import path
 import seaborn as sns
 
+from scr_snowfall import pip2015events
+
 sns.set_style('ticks')
-
-dtformat_default = '%d.%m. %H:%M'
-dtformat_snex = '%Y %d %B %H UTC'
-
-e = EventsCollection('cases/pip2015.csv', dtformat_snex)
-e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
 
 plt.close('all')
 #plt.ioff()
@@ -50,47 +46,46 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
         for ax in (axd, axm):
             ax.legend().set_visible(False)
 
-n_cases = e.events.pluvio400.count()
+e = pip2015events()
+
+n_cases = e.events.paper.count()
 fd, axarrd = subplots(n_cases)
 fm, axarrm = subplots(n_cases)
 fn, axarrn = subplots(n_cases)
 
-for i, c in enumerate(e.events.pluvio400.values):
-    c.instr['pluvio'].shift_periods = -6
-    c.instr['pluvio'].n_combined_intervals = 2
+for i, c in enumerate(e.events.paper.values):
     data = read.merge_multiseries(c.d_0(), c.mu(), c.n_w())
     plots(data, axarrd[i], axarrm[i], axarrn[i], title=c.dtstr(), y=0.85,
           fontdict={'verticalalignment': 'top', 'fontsize': 10})
 
-comb400 = e.events.pluvio400.sum()
-comb200 = e.events.pluvio200.sum()
+c = e.events.paper.sum()
+del(e)
 limslist = limitslist((0, 150, 300, 800))
 n_ranges = len(limslist)
 
-for c in (comb200, comb400):
-    fdd, axarrdd = subplots(n_ranges)
-    fmd, axarrmd = subplots(n_ranges)
-    fnd, axarrnd = subplots(n_ranges)
-    data = read.merge_multiseries(c.d_0(), c.mu(), c.n_w())
-    
-    for i, lims in enumerate(limslist):
-        dat = c.data_in_density_range(data, *lims)
-        limitstr = '$%s < \\rho < %s$' % (lims[0], lims[1])
-        plots(dat, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, y=0.9, fontdict={'verticalalignment': 'top'})
-    
-    for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
-        ax.set_title('$\\rho > %s$' % lims[0], y=0.9, fontdict={'verticalalignment': 'top'})
-    
-    for f in (fd, fm, fn, fdd, fmd, fnd):
-        remove_gaps(f)
-    
-    fd.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'd0_cases.eps'))
-    fm.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'mu_cases.eps'))
-    fn.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'nw_cases.eps'))
-    fdd.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'd0_rho.eps'))
-    fmd.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'mu_rho.eps'))
-    fnd.savefig(path.join(resultsdir, c.instr['pluvio'].name, 'nw_rho.eps'))
-    
-    for axarr in (axarrd, axarrm, axarrn, axarrdd, axarrmd, axarrnd):
-        for ax in axarr[1:]:
-            sns.despine(ax=ax, top=True, left=False, right=False, bottom=False)
+fdd, axarrdd = subplots(n_ranges)
+fmd, axarrmd = subplots(n_ranges)
+fnd, axarrnd = subplots(n_ranges)
+data = read.merge_multiseries(c.d_0(), c.mu(), c.n_w())
+
+for i, lims in enumerate(limslist):
+    dat = c.data_in_density_range(data, *lims)
+    limitstr = '$%s < \\rho < %s$' % (lims[0], lims[1])
+    plots(dat, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, y=0.9, fontdict={'verticalalignment': 'top'})
+
+for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
+    ax.set_title('$\\rho > %s$' % lims[0], y=0.9, fontdict={'verticalalignment': 'top'})
+
+for f in (fd, fm, fn, fdd, fmd, fnd):
+    remove_gaps(f)
+
+fd.savefig(path.join(resultsdir, 'd0_cases.eps'))
+fm.savefig(path.join(resultsdir, 'mu_cases.eps'))
+fn.savefig(path.join(resultsdir, 'nw_cases.eps'))
+fdd.savefig(path.join(resultsdir, 'd0_rho.eps'))
+fmd.savefig(path.join(resultsdir, 'mu_rho.eps'))
+fnd.savefig(path.join(resultsdir, 'nw_rho.eps'))
+
+for axarr in (axarrd, axarrm, axarrn, axarrdd, axarrmd, axarrnd):
+    for ax in axarr[1:]:
+        sns.despine(ax=ax, top=True, left=False, right=False, bottom=False)

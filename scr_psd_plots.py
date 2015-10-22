@@ -8,37 +8,12 @@ import matplotlib.pyplot as plt
 from os import path
 import seaborn as sns
 
+from scr_snowfall import pip2015events
+
 plt.close('all')
 plt.ioff()
 
-dtformat_default = '%d.%m.%y %H:%M'
-dtformat_snex = '%Y %d %B %H UTC'
-dtformat_paper = '%Y %b %d %H:%M'
-h5baecc_path = path.join(read.DATA_DIR, 'baecc.h5')
-h5w1415path = path.join(read.DATA_DIR, 'dec-jan1415.h5')
-
-e = EventsCollection('cases/pip2015.csv', dtformat_snex)
-e.autoimport_data(datafile=read.H5_PATH, autoshift=False, autobias=False,
-                  rule='6min', varinterval=True)
-
-for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
-    c.instr['pluvio'].shift_periods = -6
-    c.instr['pluvio'].n_combined_intervals = 2
-
-e1415 = EventsCollection('cases/pip2015_14-15.csv', dtformat_paper)
-e1415.autoimport_data(datafile=h5w1415path, autoshift=False, autobias=False,
-                  rule='6min', varinterval=True)
-
-for c in np.append(e1415.events.pluvio200.values, e1415.events.pluvio400.values):
-    c.instr['pluvio'].shift_periods = -5
-    c.instr['pluvio'].n_combined_intervals = 2
-
-e.events = e.events.append(e1415.events, ignore_index=True)
-del(e1415)
-
-e.events['paper'] = e.events.pluvio200
-e.events.paper[12] = e.events.pluvio400[12]
-
+e = pip2015events()
 comb = e.events.paper.sum()
 del(e)
 
@@ -74,7 +49,7 @@ def psds_in_rho_range(caselist):
         n = c.intervalled(c.instr['dsd'].psd)
         y = n.div(nw, axis=0)
         d = y*0+y.columns.values
-        xd = {'D':d, '$D D_0^{-1}$':d.div(d0, axis=0)}
+        xd = {'D':d, '$D D_0^{-1}$':d.div(d0.replace({0: np.nan}), axis=0)}
         for xlabel, x in xd.items():
             if not separate:
                 fig, axarr = plt.subplots(1, n_ranges, dpi=100, sharex=True, sharey=True,
