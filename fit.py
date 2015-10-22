@@ -6,6 +6,7 @@ curve fitting tools
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from scipy.stats import linregress
 import seaborn as sns
 
 sns.set_style('ticks')
@@ -144,6 +145,24 @@ class Fit:
     @classmethod
     def name(cls):
         return cls.__name__.lower()
+
+class LinFit(Fit):
+    def __init__(self, params=None, **kwargs):
+        super().__init__(params=params, name='linfit', **kwargs)
+
+    def func(self, x, a=None, b=None):
+        if a is None:
+            return self.func(x, *self.params)
+        return a*x+b
+
+    def find_fit(self, store_params=True, **kwargs):
+        if self.x is None or self.y is None:
+            return
+        x = self.x
+        y = self.y
+        a, b, r_value, p_value, std_err = linregress(x, y)
+        self.params = (a, b)
+        return self.params
 
 class ExpFit(Fit):
     """exponential fit of form a*(1-b*exp(-c*D))"""
