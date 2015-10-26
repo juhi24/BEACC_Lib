@@ -360,7 +360,7 @@ class InstrumentData(Cacher):
         """Limit data to given time interval."""
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
-        self.data = self.data[dt_start:dt_end]
+        self.data = self.data[dt_start:dt_end].copy()
 
     def grouped(self, varinterval=False, rule=None, col=None):
         if rule is None:
