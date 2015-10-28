@@ -92,7 +92,7 @@ class Fit:
             x = self.x
             y = self.y
         if source_style=='raw':
-            ax.plot(x, y, **source_kwargs)
+            ax.scatter(x, y, **source_kwargs)
         elif source_style=='kde':
             sns.kdeplot(x, y, ax=ax, shade=True, shade_lowest=False,
                         bw=.01, **source_kwargs)
@@ -146,6 +146,7 @@ class Fit:
     def name(cls):
         return cls.__name__.lower()
 
+
 class LinFit(Fit):
     def __init__(self, params=None, **kwargs):
         super().__init__(params=params, name='linfit', **kwargs)
@@ -163,6 +164,7 @@ class LinFit(Fit):
         a, b, r_value, p_value, std_err = linregress(x, y)
         self.params = (a, b)
         return self.params
+
 
 class ExpFit(Fit):
     """exponential fit of form a*(1-b*exp(-c*D))"""
@@ -189,6 +191,28 @@ class ExpFit(Fit):
     def penalty(self, params):
         return 0
         return 1000*(max(0, 0.1-params[1]) + max(0, 0.4-params[2]))
+
+
+class LogFit(Fit):
+    def __init__(self, params=None, **kwargs):
+        super().__init__(params=params, name='logfit', **kwargs)
+
+    def func(self, x, a=None, b=None):
+        if a is None:
+            return self.func(x, *self.params)
+        return a*np.log10(x) + b
+
+
+class ExponentialFit(Fit):
+    def __init__(self, params=None, base=10, **kwargs):
+        super().__init__(params=params, name='logfit', **kwargs)
+        self.base = base
+
+    def func(self, x, a=None, b=None):
+        if a is None:
+            return self.func(x, *self.params)
+        return a*self.base**(b*x)
+
 
 class PolFit(Fit):
     """power law fit of form a*D**b"""
