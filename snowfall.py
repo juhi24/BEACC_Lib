@@ -299,7 +299,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             m = copy.deepcopy(self)
         for instr in m.instr.values():
             instr.between_datetime(dt_start, dt_end, inplace=True)
-            instr.case = m
+            instr.case = m # TODO: get rid of this
         m.instr['pluvio'].bias = 0
         if autoshift:
             m.autoshift(inplace=True)
