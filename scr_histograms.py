@@ -13,14 +13,13 @@ from scr_snowfall import pip2015events
 sns.set_style('ticks')
 
 plt.close('all')
-#plt.ioff()
-plt.ion()
+plt.ioff()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
 resultsdir = read.ensure_dir('../results/pip2015/hist')
 
 def subplots(n_plots=1):
     return plt.subplots(n_plots, sharex=True, sharey=True,
-                        tight_layout=False, dpi=100)
+                        tight_layout=False, dpi=400)
 
 def remove_gaps(f):
     f.subplots_adjust(hspace=0)
@@ -32,14 +31,17 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
                  hist_kws={'range':rng}, **kwargs)
     axd.set_xlim(rng)
     axd.yaxis.set_ticks(np.arange(0.4, 2.0, 0.4))
+    axd.set_xlabel('$D_0$ (mm)')
     rng = (-2, 8)
     sns.distplot(data.mu.dropna(), ax=axm, label=label, bins=20,
                        hist_kws={'range':rng}, **kwargs)
     axm.set_xlim(rng)
     axm.yaxis.set_ticks(np.arange(0.2, 0.7, 0.2))
+    axm.set_xlabel('$\mu$')
     sns.distplot(data.N_w.dropna(), ax=axn, label=label,
                        bins=10**np.linspace(0,6,20), kde=False, rug=True)
     axn.set_xscale('log')
+    axn.set_xlabel('$N_w$')
     if title is not None:
         for ax in (axd, axm, axn):
             ax.set_title(title, **kwtitle)
@@ -67,24 +69,27 @@ fdd, axarrdd = subplots(n_ranges)
 fmd, axarrmd = subplots(n_ranges)
 fnd, axarrnd = subplots(n_ranges)
 data = read.merge_multiseries(c.d_0(), c.mu(), c.n_w())
+titlekws = {'y': 0.9, 'fontdict': {'verticalalignment': 'top'}}
 
 for i, lims in enumerate(limslist):
     dat = c.data_in_density_range(data, *lims)
     limitstr = '$%s < \\rho < %s$' % (lims[0], lims[1])
-    plots(dat, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, y=0.9, fontdict={'verticalalignment': 'top'})
+    plots(dat, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, **titlekws)
 
 for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
-    ax.set_title('$\\rho > %s$' % lims[0], y=0.9, fontdict={'verticalalignment': 'top'})
+    ax.set_title('$\\rho > %s$' % lims[0], **titlekws)
 
 for f in (fd, fm, fn, fdd, fmd, fnd):
     remove_gaps(f)
 
-fd.savefig(path.join(resultsdir, 'd0_cases.eps'))
-fm.savefig(path.join(resultsdir, 'mu_cases.eps'))
-fn.savefig(path.join(resultsdir, 'nw_cases.eps'))
-fdd.savefig(path.join(resultsdir, 'd0_rho.eps'))
-fmd.savefig(path.join(resultsdir, 'mu_rho.eps'))
-fnd.savefig(path.join(resultsdir, 'nw_rho.eps'))
+tld = '.png'
+
+fd.savefig(path.join(resultsdir, 'd0_cases' + tld))
+fm.savefig(path.join(resultsdir, 'mu_cases' + tld))
+fn.savefig(path.join(resultsdir, 'nw_cases' + tld))
+fdd.savefig(path.join(resultsdir, 'd0_rho' + tld))
+fmd.savefig(path.join(resultsdir, 'mu_rho' + tld))
+fnd.savefig(path.join(resultsdir, 'nw_rho' + tld))
 
 for axarr in (axarrd, axarrm, axarrn, axarrdd, axarrmd, axarrnd):
     for ax in axarr[1:]:

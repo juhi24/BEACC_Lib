@@ -87,15 +87,15 @@ class MultiSeries:
         pass
 
     def plot_pairs(self, x='a', y='b', c=None, sizecol=None, scale=1,
-                   kind='scatter', grouped=True, pluvio=None, query=None,
+                   kind='scatter', grouped=True, col=None, query=None,
                    ax=None, colorbar=False, markers='os^vD*p><',
                    edgecolors='none', dtformat='%Y %b %d', **kwargs):
         """Easily plot parameters against each other."""
         sumkwargs = {}
         if ax is None:
             ax = plt.gca()
-        if pluvio is not None:
-            sumkwargs['pluvio'] = pluvio
+        if col is not None:
+            sumkwargs['col'] = col
         data = self.summary(dtformat=dtformat, **sumkwargs)
         if query is not None:
             data = data.query(query)
@@ -152,11 +152,21 @@ class EventsCollection(MultiSeries):
             if data is not None:
                 self.add_data(data, autoshift=autoshift, autobias=autobias)
 
-    def summary(self, pluvio='pluvio200', dtformat='%Y %b %d', **kwargs):
+    def summary(self, col='pluvio200', dtformat='%Y %b %d', **kwargs):
         sumlist = []
-        for c in self.events[pluvio]:
+        for c in self.events[col]:
             sumlist.append(c.summary(dtformat=dtformat))
         return pd.concat(sumlist, **kwargs)
+
+    def split_index(self, date=pd.datetime(2014,7,1),
+                    names=('first', 'second')):
+        isfirst = self.events.start < date
+        idf = isfirst.copy()
+        idf[isfirst] = names[0]
+        idf[-isfirst] = names[1]
+        tuples = list(zip(*(idf.values, idf.index.values)))
+        index = pd.MultiIndex.from_tuples(tuples, names=('winter', 'i'))
+        self.events.index = index
 
 
 class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
@@ -987,5 +997,5 @@ class Snow2:
         return np.pi*rho_a*nu_a**2/(8*g)*Snow2.best(re)*ar*fa
 
 
-if DEBUG:    
+if DEBUG:
     tracker.track_class(Case)
