@@ -37,6 +37,8 @@ def pip2015events():
     e.events.paper[12] = e.events.pluvio400[12]
     return e
 
+#e = pip2015events()
+
 #plt.close('all')
 #plt.ioff()
 #plt.ion()
