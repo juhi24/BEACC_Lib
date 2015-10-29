@@ -39,6 +39,28 @@ RHO_W = 1000
 PIP_CORR = 1/0.9    # Davide
 
 
+def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
+    isfirst = df.index < date
+    idf = pd.Series(isfirst, index=df.index)
+    idf[isfirst] = names[0]
+    idf[-isfirst] = names[1]
+    tuples = list(zip(*(idf.values, idf.index.values)))
+    index = pd.MultiIndex.from_tuples(tuples, names=('winter', 'datetime'))
+    df.index = index
+    return df
+
+def remove_subplot_gaps(f, axis='row'):
+    adjust_kws = {}
+    if axis=='row':
+        adjust_kws['wspace'] = 0
+        labels = [a.get_yticklabels() for a in f.axes[1:]]
+    elif axis=='col':
+        adjust_kws['hspace'] = 0
+        labels = [a.get_xticklabels() for a in f.axes[:-1]]
+    f.subplots_adjust(**adjust_kws)
+    plt.setp(labels, visible=False)
+
+
 def deprecation(message, stacklevel=2):
     """Issue DeprecationWarning"""
     warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)

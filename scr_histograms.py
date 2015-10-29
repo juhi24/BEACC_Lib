@@ -21,10 +21,6 @@ def subplots(n_plots=1):
     return plt.subplots(n_plots, sharex=True, sharey=True,
                         tight_layout=False, dpi=400)
 
-def remove_gaps(f):
-    f.subplots_adjust(hspace=0)
-    plt.setp([a.get_xticklabels() for a in f.axes[:-1]], visible=False)
-
 def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
     rng = (0,6)
     sns.distplot(data.D_0.dropna(), ax=axd, label=label, bins=17, 
@@ -80,7 +76,7 @@ for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
     ax.set_title('$\\rho > %s$' % lims[0], **titlekws)
 
 for f in (fd, fm, fn, fdd, fmd, fnd):
-    remove_gaps(f)
+    remove_subplot_gaps(f, axis='col')
 
 tld = '.png'
 

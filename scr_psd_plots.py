@@ -11,7 +11,7 @@ import fit
 
 from scr_snowfall import pip2015events
 
-plt.close('all')
+#plt.close('all')
 plt.ion()
 
 e = pip2015events()
@@ -29,8 +29,8 @@ def d0_nw_data(c):
     nw = c.n_w()
     nw_log = np.log10(nw)
     nw_log.name = 'log_nw'
-    df = read.merge_multiseries(d0, nw, nw_log)
-    return df.dropna()
+    df = read.merge_multiseries(d0, nw, nw_log).dropna()
+    return split_index(df)
 
 def d0_nw_datarho(c, rholimits=[0,150,300,800]):
     data = d0_nw_data(c)
@@ -39,22 +39,23 @@ def d0_nw_datarho(c, rholimits=[0,150,300,800]):
 def d0_nw_paper(c, rholimits=[0,150,300,800]):
     rhopairs = limitslist(rholimits)
     data = d0_nw_datarho(c=c, rholimits=rholimits)
-    fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=100, figsize=(14,5),
-                              tight_layout=True, sharex=True, sharey=True)
+    fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(14,5),
+                              sharex=True, sharey=True, tight_layout=True)
     for i, (rhomin, rhomax) in enumerate(rhopairs):
         ax = axarr[i]
-        datarho = data[data.rhomin==rhomin]
+        datarho = data[data.rhomin==rhomin]#.loc['second']
         #datarho.plot(kind='scatter', x='D_0', y='N_w', ax=axarr[i], logy=True)
-        #datarho.plot(kind='scatter', x='D_0', y='log_nw', ax=axarr[i])
+        datarho.plot(kind='scatter', x='D_0', y='log_nw', c='', ax=axarr[i])
         lfit = fit.LinFit(x=datarho.D_0, y=datarho.log_nw, xname='D_0')
         lfit.find_fit()
-        lfit.plot(source_style='raw', ax=ax)
+        lfit.plot(source_style=None, ax=ax)
         #efit = fit.ExponentialFit(x=datarho.D_0, y=datarho.N_w)
         #efit.find_fit()
         #efit.plot(source_style='raw', ax=ax)
         ax.legend()
         ax.set_xlabel('$D_0$')
-        ax.set_ylabel('$log(N_w)$')
+    axarr[0].set_ylabel('$log(N_w)$')
+    #remove_subplot_gaps(fig, axis='row')
     return fig, axarr
 
 def d0_nw_plots(c):
