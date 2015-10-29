@@ -42,15 +42,20 @@ def d0_nw_paper(c, rholimits=[0,150,300,800]):
     fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=100, figsize=(14,5),
                               tight_layout=True, sharex=True, sharey=True)
     for i, (rhomin, rhomax) in enumerate(rhopairs):
+        ax = axarr[i]
         datarho = data[data.rhomin==rhomin]
         #datarho.plot(kind='scatter', x='D_0', y='N_w', ax=axarr[i], logy=True)
         #datarho.plot(kind='scatter', x='D_0', y='log_nw', ax=axarr[i])
-        lfit = fit.LinFit(x=datarho.D_0, y=datarho.log_nw)
+        lfit = fit.LinFit(x=datarho.D_0, y=datarho.log_nw, xname='D_0')
         lfit.find_fit()
-        lfit.plot(source_style='raw', ax=axarr[i])
+        lfit.plot(source_style='raw', ax=ax)
         #efit = fit.ExponentialFit(x=datarho.D_0, y=datarho.N_w)
         #efit.find_fit()
         #efit.plot(source_style='raw', ax=ax)
+        ax.legend()
+        ax.set_xlabel('$D_0$')
+        ax.set_ylabel('$log(N_w)$')
+    return fig, axarr
 
 def d0_nw_plots(c):
     data = d0_nw_data()
@@ -102,4 +107,4 @@ def psds_in_rho_range(c):
 #psds_in_rho_range(comb)
 #datarho = d0_nw_plots(comb)
 data = d0_nw_datarho(comb)
-d0_nw_paper(comb)
+fig, axarr = d0_nw_paper(comb)
