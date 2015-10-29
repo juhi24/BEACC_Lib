@@ -47,6 +47,15 @@ class Fit:
         self.sigma = sigma
         self.xname = xname
         self.flipped = flipped
+        self.str_fmt = ''
+
+    def __repr__(self):
+        if self.params is None:
+            paramstr = 'abcdefghij'[:self.str_fmt.count('%')]
+        else:
+            paramstr = ['{0:.3f}'.format(p) for p in self.params]
+        s = self.str_fmt % tuple(paramstr)
+        return s.replace('--', '+')
 
     def func(self, x, a=None):
         """Fit function. If no coefficients are given use stored ones."""
@@ -150,6 +159,7 @@ class Fit:
 class LinFit(Fit):
     def __init__(self, params=None, **kwargs):
         super().__init__(params=params, name='linfit', **kwargs)
+        self.str_fmt = '%s' + self.xname + '+%s'
 
     def func(self, x, a=None, b=None):
         if a is None:
@@ -171,15 +181,7 @@ class ExpFit(Fit):
     def __init__(self, params=None, **kwargs):
         super().__init__(params=params, name='expfit', **kwargs)
         self.quess = (1., 1., 1.)
-
-    def __repr__(self):
-        if self.params is None:
-            paramstr = 'abc'
-        else:
-            paramstr = ['{0:.3f}'.format(p) for p in self.params]
-        s = '%s(1-%s\exp(-%s%s))' % (paramstr[0], paramstr[1], paramstr[2],
-                                     self.xname)
-        return s.replace('--', '+')
+        self.str_fmt = '%s(1-%s\exp(-%s' + self.xname + '))'
 
     def func(self, x, a=None, b=None, c=None):
         if a is None:
@@ -207,6 +209,7 @@ class ExponentialFit(Fit):
     def __init__(self, params=None, base=10, **kwargs):
         super().__init__(params=params, name='logfit', **kwargs)
         self.base = base
+        self.str_fmt = '%s' + str(base) + '^{%s' + self.xname + '}'
 
     def func(self, x, a=None, b=None):
         if a is None:
@@ -219,13 +222,7 @@ class PolFit(Fit):
     def __init__(self, params=None, **kwargs):
         super().__init__(params=params, name='polfit', **kwargs)
         self.quess = (1., 1.)
-
-    def __repr__(self):
-        if self.params is None:
-            paramstr = 'ab'
-        else:
-            paramstr = ['{0:.3f}'.format(p) for p in self.params]
-        return '%s%s^{%s}' % (paramstr[0], self.xname, paramstr[1])
+        self.str_fmt = '%s' + self.xname + '^{%s}'
 
     def func(self, x, a=None, b=None):
         if a is None:
