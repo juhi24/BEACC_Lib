@@ -35,6 +35,7 @@ def pip2015events():
 
     e.events['paper'] = e.events.pluvio200
     e.events.paper[12] = e.events.pluvio400[12]
+    e.events.pluvio200[12] = None
 
     e.split_index()
     return e

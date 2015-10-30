@@ -18,7 +18,8 @@ e = pip2015events()
 comb = e.events.paper.sum()
 del(e)
 
-limslist = limitslist((0, 150, 300, 800))
+rholims = (0, 150, 300, 800)
+limslist = limitslist(rholims)
 n_ranges = len(limslist)
 separate = False
 
@@ -42,6 +43,7 @@ def d0_nw_paper(c, rholimits=[0,150,300,800]):
     fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(14,5),
                               sharex=True, sharey=True, tight_layout=True)
     for i, (rhomin, rhomax) in enumerate(rhopairs):
+        limitstr = '$%s < \\rho < %s$' % (rhomin, rhomax)
         ax = axarr[i]
         datarho = data[data.rhomin==rhomin]#.loc['second']
         #datarho.plot(kind='scatter', x='D_0', y='N_w', ax=axarr[i], logy=True)
@@ -54,13 +56,16 @@ def d0_nw_paper(c, rholimits=[0,150,300,800]):
         #efit.plot(source_style='raw', ax=ax)
         ax.legend()
         ax.set_xlabel('$D_0$')
+        ax.set_title(limitstr)
     axarr[0].set_ylabel('$log(N_w)$')
+    axarr[-1].set_title('$\\rho > %s$' % rhomin)
+    plt.axis([0, 5, 1, 7])
     #remove_subplot_gaps(fig, axis='row')
     return fig, axarr
 
-def d0_nw_plots(c):
+def d0_nw_plots(c, rholimits):
     data = d0_nw_data()
-    datarho = c.group_by_density(data, [0,150,300,800])
+    datarho = c.group_by_density(data, rholimits)
     f, ax = plt.subplots(dpi=120, tight_layout=True)
     nwcol = 'log_nw'
     df.plot(kind='hexbin', x='D_0', y=nwcol, logy=False, ax=ax)
@@ -106,6 +111,6 @@ def psds_in_rho_range(c):
         ax.set_title('$\\rho > ' + str(rhomin) + '$')
 
 #psds_in_rho_range(comb)
-#datarho = d0_nw_plots(comb)
-data = d0_nw_datarho(comb)
-fig, axarr = d0_nw_paper(comb)
+#datarho = d0_nw_plots(comb, rholims)
+data = d0_nw_datarho(comb, rholimits=rholims)
+fig, axarr = d0_nw_paper(comb, rholimits=rholims)

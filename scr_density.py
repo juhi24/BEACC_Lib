@@ -7,43 +7,43 @@ import numpy as np
 from datetime import datetime
 from os import path
 
-dtformat_default = '%d.%m. %H:%M'
-dtformat_snex = '%Y %d %B %H UTC'
+from scr_snowfall import pip2015events
 
-e = EventsCollection('cases/pip2015.csv', dtformat_snex)
-e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
-
-plt.close('all')
+#plt.close('all')
 #plt.ioff()
 plt.ion()
 
-basepath = '../results/pip2015/paper/density'
+basepath = read.ensure_dir('../results/pip2015/paper/density')
 dtfmt = '%Y%m%d'
 
-for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
-    c.instr['pluvio'].shift_periods = -6
-    c.instr['pluvio'].n_combined_intervals = 2
-    c.instr['pipv'].use_flip = False
-    savepath = read.ensure_dir(path.join(basepath,  c.instr['pluvio'].name))
+e = pip2015events()
+
+rho_label = 'bulk density (kg m$^{-3}$)'
+t_label = 'time'
+
+for c in e.events.paper.values:
+    savepath = basepath
     rho = c.density()
     rho.to_csv(path.join(savepath, c.dtstr(dtfmt) + '.csv'))
     c.instr['pluvio'].tdelta().to_csv(path.join(savepath, 'timedelta_' + c.dtstr(dtfmt) + '.csv'))
     plt.figure(dpi=120)
     rho.plot(drawstyle='steps')
     plt.title(c.dtstr())
-    plt.xlabel('time')
-    plt.ylabel('bulk density (kg m$^{-3}$)')
+    plt.xlabel(t_label)
+    plt.ylabel(rho_label)
     plt.ylim((0,500))
-    plt.savefig(path.join(savepath, c.dtstr(dtfmt) + '.eps'))
+    plt.savefig(path.join(savepath, c.dtstr(dtfmt) + '_single.eps'))
 
 for i, ev in e.events.iterrows():
     plt.figure(dpi=120)
     for c in (ev.pluvio200, ev.pluvio400):
+        if c is None:
+            continue
         rho = c.density()
         rho.plot(drawstyle='steps', label=c.instr['pluvio'].name)
     plt.title(c.dtstr())
-    plt.xlabel('time')
-    plt.ylabel('bulk density (kg m$^{-3}$)')
+    plt.xlabel(t_label)
+    plt.ylabel(rho_label)
     plt.ylim((0,500))
     plt.legend(loc='lower right')
     plt.savefig(path.join(basepath, c.dtstr(dtfmt) + '.eps'))
