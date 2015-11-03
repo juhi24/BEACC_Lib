@@ -38,6 +38,8 @@ def pip2015events():
     e.events.pluvio200[12] = None
 
     e.split_index()
+    e.events = before_after_col(e.events, date=pd.datetime(2014,7,1),
+                                datecol='start')
     return e
 
 #e = pip2015events()

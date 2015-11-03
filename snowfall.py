@@ -49,6 +49,18 @@ def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
     df.index = index
     return df
 
+
+def before_after_col(df, date=pd.datetime(2014,7,1), colname='winter',
+                     datecol=None):
+    if datecol is None:
+        dates = df.index
+    else:
+        dates = df[datecol]
+    isfirst = dates > date
+    df[colname] = isfirst.astype(int)
+    return df
+
+
 def remove_subplot_gaps(f, axis='row'):
     adjust_kws = {}
     if axis=='row':
@@ -937,7 +949,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
                   self.n_t(),
                   casename,
                   self.instr['pipv'].fit_params(),
-                  self.d(),
+                  #self.d(),
                   self.d_m(),
                   self.d_max(),
                   self.d_0_gamma(),
@@ -954,7 +966,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             params.extend([self.Z_rayleigh_Xband(), self.tmatrix(tm_aux.wl_X)])
         data = read.merge_multiseries(*params)
         data.index.name = 'datetime'
-        return data.sort_index(axis=1)
+        return data#.sort_index(axis=1) # TODO int col names?
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
         """Plot cross-correlation between lwc estimate and pluvio intensity.
