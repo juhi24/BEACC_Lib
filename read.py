@@ -707,6 +707,15 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         delta.name = 'tdelta'
         return delta[self.dt_start():self.dt_end()].fillna(longest_delta)
 
+    def start_time(self):
+        """timestep starting times"""
+        tdelta = self.tdelta()
+        td = pd.DataFrame(tdelta)
+        td['end'] = td.index
+        start = td.end.sub(tdelta)
+        start.name = 'start'
+        return start
+
     def grouper(self, shift=True):
         """data group names (timestamp) for each data timestamp"""
         ticks = self.good_data()[self.amount_col].astype(bool)
