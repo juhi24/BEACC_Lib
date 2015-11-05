@@ -3,38 +3,39 @@
 @author: Jussi Tiira
 """
 from snowfall import *
-import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 import read
 
-dtformat_default = '%d.%m. %H:%M'
-dtformat_snex = '%Y %d %B %H UTC'
+from scr_snowfall import pip2015events
 
-e = EventsCollection('cases/pip2015.csv', dtformat_snex)
-e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
-
-plt.close('all')
+#plt.close('all')
 plt.ioff()
+
+e = pip2015events()
 
 basepath = '../results/pip2015/paper/vfit'
 fname = '%Y%m%d_%H%M.eps'
+date_format = '%d. %m. %Y'
+time_format = '%H:%M'
 
-for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
-    c.instr['pluvio'].shift_periods = -6
-    c.instr['pluvio'].n_combined_intervals = 2
+for c in e.events.paper.values:
     c.density() # to initialize fits
-    savepath = read.ensure_dir(path.join(basepath, c.dtstr('%Y%m%d'), c.instr['pluvio'].name))
+    savepath = read.ensure_dir(path.join(basepath, c.dtstr('%Y%m%d')))
     fits = c.instr['pipv'].fits.polfit
+    start_time = c.instr['pluvio'].start_time()
     axlist = []
     flist = []
     for i, vfit in fits.iteritems():
-        flist.append(plt.figure(dpi=120, figsize=(4,3)))
+        flist.append(plt.figure(dpi=150, figsize=(4,3)))
         ax = vfit.plot(source_style='hex', unfiltered=True)
         axlist.append(ax)
-        plt.axis([None, 5, 0.5, 2.5])
-        plt.legend(loc='lower right')
-        plt.xlabel('Equivalent diameter (mm)')
-        plt.ylabel('Fall velocity (ms$^{-1}$)')
+        ax.axis([None, 5, 0.5, 2.5])
+        ax.legend(loc='lower right')
+        ax.set_xlabel('Equivalent diameter (mm)')
+        ax.set_ylabel('Fall velocity (ms$^{-1}$)')
+        tstr_start = start_time[i].strftime(time_format)
+        tstr_end = i.strftime(time_format)
+        ax.set_title('%s - %s' % (tstr_start, tstr_end))
         plt.tight_layout()
         plt.savefig(os.path.join(savepath, i.strftime(fname)))

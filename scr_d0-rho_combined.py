@@ -6,6 +6,7 @@ from snowfall import *
 import numpy as np
 import matplotlib.pyplot as plt
 from os import path
+import fit
 
 from scr_snowfall import pip2015events
 
@@ -37,7 +38,7 @@ fig4 = plt.figure(dpi=150)
 e.plot_pairs(**plotkws)
 plt.tight_layout()
 
-brandes = read.PolFit(params=[178, -0.922])
+brandes = fit.PolFit(params=[178, -0.922])
 brandes.plot(ax=ax4, label='Brandes et al.')
 
 s = e.summary(col=col)

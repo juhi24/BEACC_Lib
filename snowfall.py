@@ -672,7 +672,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
 
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
                                      separate=False, hide_high_limit=True,
-                                     fitargs={}, parallel=True, **kwargs):
+                                     fitargs={}, parallel=True, dpi=180,
+                                     **kwargs):
         limslist = limitslist(rholimits)
         dlabel = 'Equivalent diameter (mm)'
         vlabel = 'Fall velocity (ms$^{-1}$)'
@@ -680,8 +681,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         n_ranges = len(fits)
         if separate:
             fig, axarr = plt.subplots(1, n_ranges, sharex=True,
-                                      sharey=True, dpi=100, tight_layout=True,
-                                      figsize=(n_ranges*6, 6))
+                                      sharey=True, dpi=dpi, tight_layout=True,
+                                      figsize=(n_ranges*3, 3))
         else:
             fig, ax = plt.subplots(tight_layout=True)
         for i, fit in enumerate(fits):
@@ -695,8 +696,10 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             fit.plot(ax=ax, label=fitstr, **kwargs)
             handles, labels = ax.get_legend_handles_labels()
             ax.legend(handles, labels, loc='lower right')
-            ax.set_xlabel(dlabel)
+            #ax.set_xlabel(dlabel)
             ax.set_title(limitstr)
+        middle_ax = axarr[len(axarr)/2+1]
+        middle_ax.set_xlabel(dlabel)
         if hide_high_limit:
             limitstr = '$\\rho > ' + str(rhomin) + '$'
             ax.set_title(limitstr)
@@ -706,8 +709,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             ax.set_ylabel(vlabel)
             ax.set_title(self.dtstr())
         if separate:
-            return axarr
-        return ax
+            return fig, axarr
+        return fig, ax
 
     def z(self, radarname='XSACR'):
         """Radar reflectivity wrapper"""
