@@ -94,9 +94,11 @@ class Fit:
             x = self.x_unfiltered
             y = self.y_unfiltered
             if self.fltr_upper_x is not None:
-                where = 'post'
-                ax.step(self.fltr_upper_x, self.fltr_upper_y, where=where)
-                ax.step(self.fltr_lower_x, self.fltr_lower_y, where=where)
+                fltr_kws = {'where': 'post',
+                            'linestyle': 'dotted',
+                            'color': 'red'}
+                ax.step(self.fltr_upper_x, self.fltr_upper_y, **fltr_kws)
+                ax.step(self.fltr_lower_x, self.fltr_lower_y, **fltr_kws)
         else:
             x = self.x
             y = self.y
