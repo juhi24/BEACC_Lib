@@ -9,12 +9,13 @@ import matplotlib.pyplot as plt
 from os import path
 import fit
 
-from scr_snowfall import pip2015events
+from scr_snowfall import pip2015events, test_events
 
 #plt.close('all')
 plt.ion()
 
-e = pip2015events()
+#e = pip2015events()
+e = test_events()
 comb = e.events.paper.sum()
 del(e)
 

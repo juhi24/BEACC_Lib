@@ -16,6 +16,7 @@ import fit
 from scipy import stats, io
 from scipy.optimize import fmin, minimize
 import pickle
+import warnings
 from glob import glob
 
 # general configuration
@@ -252,7 +253,8 @@ class Cacher:
             try:
                 with pd.HDFStore(self.store_path()) as store:
                     return store.get(tablename)
-            except KeyError:
+            except KeyError as err:
+                warnings.warn("KeyError: {0} Using default value.".format(err))
                 return default_value
         return nocache_value
 

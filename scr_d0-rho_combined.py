@@ -35,7 +35,7 @@ plotkws = {'x': 'D_0_gamma',
            'ylim': [0,500]}
 
 fig4 = plt.figure(dpi=150)
-e.plot_pairs(**plotkws)
+ax4 = e.plot_pairs(**plotkws)
 plt.tight_layout()
 
 brandes = fit.PolFit(params=[178, -0.922])
