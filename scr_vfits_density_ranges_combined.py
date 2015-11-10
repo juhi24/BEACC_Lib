@@ -11,11 +11,16 @@ import fit
 
 from scr_snowfall import pip2015events, test_events
 
+debug = False
+
+if debug:
+    e = test_events()
+else:
+    e = pip2015events()
+
 #plt.close('all')
 plt.ion()
 
-#e = pip2015events()
-e = test_events()
 comb = e.events.paper.sum()
 del(e)
 
@@ -27,5 +32,9 @@ fig, axarr = comb.plot_vfits_in_density_ranges(separate=True,
                                                    'fitclass': fit.PolFit},
                                           unfiltered=True, parallel=False)
 plt.axis((0.25,2.8,0.5,1.8))
-savepath = read.ensure_dir('../results/pip2015/vfits_density_ranges')
+
+savepath = '../results/pip2015/vfits_density_ranges'
+if debug:
+    savepath += '/test'
+read.ensure_dir(savepath)
 plt.savefig(path.join(savepath, 'combined.eps'))

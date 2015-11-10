@@ -7,14 +7,21 @@ import matplotlib.pyplot as plt
 from os import path
 import read
 
-from scr_snowfall import pip2015events
+from scr_snowfall import pip2015events, test_events
+
+debug = True
+
+if debug:
+    e = test_events()
+else:
+    e = pip2015events()
 
 #plt.close('all')
 plt.ioff()
 
-e = pip2015events()
-
 basepath = '../results/pip2015/paper/vfit'
+if debug:
+    basepath += '/test'
 fname = '%Y%m%d_%H%M.eps'
 date_format = '%d. %m. %Y'
 time_format = '%H:%M'
