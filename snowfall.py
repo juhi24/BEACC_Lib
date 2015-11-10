@@ -40,6 +40,10 @@ RHO_W = 1000
 PIP_CORR = 1/0.9    # Davide
 
 
+def fingerprint(string):
+    return hashlib.sha256(string.encode('utf-8')).hexdigest()[-12:]
+
+
 def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
     isfirst = df.index < date
     idf = pd.Series(isfirst, index=df.index)
