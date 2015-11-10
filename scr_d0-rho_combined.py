@@ -10,7 +10,7 @@ import fit
 
 from scr_snowfall import pip2015events, test_events
 
-debug = True
+debug = False
 
 if debug:
     e = test_events()
@@ -68,3 +68,9 @@ brandes = fit.PolFit(params=[178, -0.922])
 brandes.plot(ax=ax4, label='Brandes et al.')
 
 plt.legend()
+
+savepath = '../results/pip2015/paper'
+if debug:
+    savepath += '/test'
+read.ensure_dir(savepath)
+plt.savefig(path.join(savepath, 'rho_d0_combined.eps'))

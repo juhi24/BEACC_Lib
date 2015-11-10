@@ -29,7 +29,8 @@ fig, axarr = comb.plot_vfits_in_density_ranges(separate=True,
                                           source_style='kde',
                                           fitargs={'force_flip': False,
                                                    'try_flip': False,
-                                                   'fitclass': fit.PolFit},
+                                                   'fitclass': fit.PolFit,
+                                                   'nofilter': True},
                                           unfiltered=True, parallel=False)
 plt.axis((0.25,2.8,0.5,1.8))
 

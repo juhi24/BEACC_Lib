@@ -113,4 +113,9 @@ def psds_in_rho_range(c):
 #psds_in_rho_range(comb)
 #datarho = d0_nw_plots(comb, rholims)
 #data = d0_nw_datarho(comb, rholimits=rholims)
-#fig, axarr = d0_nw_paper(comb, rholimits=rholims)
+fig, axarr = d0_nw_paper(comb, rholimits=rholims)
+savepath = '../results/pip2015/paper'
+if debug:
+    savepath += '/test'
+read.ensure_dir(savepath)
+fig.savefig(path.join(savepath, 'nw_d0.eps'))
