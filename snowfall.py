@@ -13,6 +13,7 @@ import copy
 import locale
 import os
 import warnings
+import hashlib
 
 from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
@@ -111,34 +112,20 @@ def limitslist(limits):
     return [(mini, limits[i+1]) for i, mini in enumerate(limits[:-1])]
 
 
-class MultiSeries:
-    """Provide calculated parameters as one DataFrame and use it for plotting.
-    """
-    def __init__(self):
-        pass
-
-    def summary():
-        pass
-
-    def plot_pairs(self, x='a', y='b', c=None, sizecol=None, scale=1,
-                   kind='scatter', grouped=True, col=None, query=None,
+def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
+                   kind='scatter', groupby=None,
                    ax=None, colorbar=False, markers='os^vD*p><',
-                   edgecolors='none', dtformat='%Y %b %d', **kwargs):
+                   edgecolors='none', dtformat='%Y %b %d',
+                   split_date=None, **kwargs):
         """Easily plot parameters against each other."""
-        sumkwargs = {}
         if ax is None:
             ax = plt.gca()
-        if col is not None:
-            sumkwargs['col'] = col
-        data = self.summary(dtformat=dtformat, **sumkwargs)
-        if query is not None:
-            data = data.query(query)
         if c is not None:
             kwargs['c'] = c
         if sizecol is not None:
             kwargs['s'] = scale*np.sqrt(data[sizecol])
-        if grouped:
-            groups = data.groupby('case')
+        if groupby is not None:
+            groups = data.groupby(groupby)
             for (name, group), marker in zip(groups, cycle(markers)):
                 colorbar = groups.case.first().iloc[0] == name and colorbar
                 group.plot(ax=ax, x=x, y=y, marker=marker, kind=kind,
@@ -149,7 +136,7 @@ class MultiSeries:
                          edgecolors=edgecolors, **kwargs)
 
 
-class EventsCollection(MultiSeries):
+class EventsCollection:
     """Manage multiple snow/rain events."""
     def __init__(self, csv, dtformat='%d %B %H UTC'):
         """Read event metadata from a csv file."""
@@ -186,11 +173,12 @@ class EventsCollection(MultiSeries):
             if data is not None:
                 self.add_data(data, autoshift=autoshift, autobias=autobias)
 
-    def summary(self, col='pluvio200', dtformat='%Y %b %d', **kwargs):
+    def summary(self, col='pluvio200', dtformat='%Y %b %d', concatkws={},
+                **kwargs):
         sumlist = []
         for c in self.events[col]:
-            sumlist.append(c.summary(dtformat=dtformat))
-        return pd.concat(sumlist, **kwargs)
+            sumlist.append(c.summary(dtformat=dtformat, **kwargs))
+        return pd.concat(sumlist, **concatkws)
 
     def split_index(self, date=pd.datetime(2014,7,1),
                     names=('first', 'second')):
@@ -203,7 +191,7 @@ class EventsCollection(MultiSeries):
         self.events.index = index
 
 
-class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
+class Case(read.PrecipMeasurer, read.Cacher):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, xsacr=None, kasacr=None,
                  kazr=None, mwacr=None, varinterval=True, unbias=False,
@@ -942,7 +930,7 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
         return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax,
                            **kwargs)
 
-    def summary(self, radar=False, **kwargs):
+    def summary(self, radar=False, split_date=None, **kwargs):
         """Return a DataFrame of combined numerical results."""
         casename = self.series_nans().fillna(self.dtstr(**kwargs))
         casename.name = 'case'
@@ -969,6 +957,8 @@ class Case(read.PrecipMeasurer, read.Cacher, MultiSeries):
             params.extend([self.Z_rayleigh_Xband(), self.tmatrix(tm_aux.wl_X)])
         data = read.merge_multiseries(*params)
         data.index.name = 'datetime'
+        if split_date is not None:
+            data = split_index(data, date=split_date)
         return data#.sort_index(axis=1) # TODO int col names?
 
     def xcorr(self, rule='1min', ax=None, **kwargs):
