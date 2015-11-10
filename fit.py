@@ -120,12 +120,16 @@ class Fit:
             cost += 1/sig**2*(y - self.func(x, *params))**2 + self.penalty(params)
         return cost
 
-    def find_fit(self, store_params=True, **kwargs):
+    def find_fit(self, store_params=True, nofilter=False, **kwargs):
         if self.x is None or self.y is None:
             return
         if self.sigma is not None:
             kwargs['sigma'] = self.sigma
-        if self.flipped:
+        if nofilter:
+            print('Finding fits for unfiltered data.')
+            x = self.x_unfiltered
+            y = self.y_unfiltered
+        elif self.flipped:
             x = self.y
             y = self.x
         else:
