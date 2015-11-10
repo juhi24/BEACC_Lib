@@ -116,6 +116,10 @@ def limitslist(limits):
     return [(mini, limits[i+1]) for i, mini in enumerate(limits[:-1])]
 
 
+def subplot_ts(data, cols):
+    pass
+
+
 def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
                    kind='scatter', groupby=None,
                    ax=None, colorbar=False, markers='os^vD*p><',
@@ -948,7 +952,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
                   self.d_m(),
                   self.d_max(),
                   self.d_0_gamma(),
-                  self.amount(params=[100], simple=True),
+                  #self.amount(params=[100], simple=True), # What is this?
                   self.instr['pluvio'].amount(rule=self.rule),
                   self.eta(),
                   self.mu(),
