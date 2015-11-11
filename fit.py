@@ -68,7 +68,7 @@ class Fit:
         return 0
 
     def plot(self, xmin=None, xmax=None, samples=1000, ax=None, label=None,
-             linewidth=2, source_style=None, unfiltered=False,
+             linewidth=2, source_style=None, unfiltered=False, hide_filter=False,
              source_kwargs={}, **kwargs):
         """Plot fit curve and fitted data."""
         if ax is None:
@@ -93,7 +93,7 @@ class Fit:
         if unfiltered:
             x = self.x_unfiltered
             y = self.y_unfiltered
-            if self.fltr_upper_x is not None:
+            if self.fltr_upper_x is not None and not hide_filter:
                 fltr_kws = {'where': 'post',
                             'linestyle': 'dotted',
                             'color': 'red'}
@@ -126,7 +126,7 @@ class Fit:
         if self.sigma is not None:
             kwargs['sigma'] = self.sigma
         if nofilter:
-            print('Finding fits for unfiltered data.')
+            print('Fitting unfiltered data.')
             x = self.x_unfiltered
             y = self.y_unfiltered
         elif self.flipped:
