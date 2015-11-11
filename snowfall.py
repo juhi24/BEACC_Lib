@@ -652,7 +652,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return fit
 
     def vfits_density_range(self, limslist, parallel=True, **fitargs):
-        name = 'vfits_density_range' + str(abs(hash(tuple(limslist))))
+        params_id = tuple(limslist) + tuple(fitargs.values()) + tuple(fitargs.keys())
+        name = 'vfits_density_range' + str(abs(hash(params_id)))
         def func():
             if parallel:
                 processes = min(len(limslist), os.cpu_count())
