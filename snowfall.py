@@ -695,7 +695,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             ax.legend(handles, labels, loc='lower right')
             #ax.set_xlabel(dlabel)
             ax.set_title(limitstr)
-        middle_ax = axarr[len(axarr)/2+1]
+        middle_ax = axarr[len(axarr)/2]
         middle_ax.set_xlabel(dlabel)
         if hide_high_limit:
             limitstr = '$\\rho > ' + str(rhomin) + '$'

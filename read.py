@@ -1072,7 +1072,7 @@ class PipV(InstrumentData):
                 for df in [std, hwfm]:
                     df.index.name = 'datetime'
         else:
-            print('Could not apply filter.')
+            print('Did not apply filter.')
         if use_kde_peak:
             d, v = self.kde_peak(data=data)
         else:
