@@ -1020,15 +1020,15 @@ class PipV(InstrumentData):
         vdata = self.good_data()
         return vdata[vdata.Wad_Dia > d].vel_v.count()/vdata[vdata.Wad_Dia < d].vel_v.count()
 
-    def d_cut(self, frac=0.05, d0=2):
+    def d_cut(self, frac=0.05, d_guess=2):
         """Return d for which given fraction of particles are larger."""
         dcost = lambda d: abs(self.frac_larger(d[0])-frac)
-        return fmin(dcost, d0)[0]
+        return fmin(dcost, d_guess)[0]
 
     def find_fit(self, fitclass=None, data=None, use_kde_peak=False,
                  cut_d=False, frac=0.5, use_curve_fit=True, bin_num_min=5,
                  filter_outliers=True, name=None, try_flip=True,
-                 plot_flip=False, force_flip=False, **kwargs):
+                 plot_flip=False, force_flip=False, cut_kws={}, **kwargs):
         """Find and store a fit for either raw data or kde."""
         # TODO: clean this mess
         def too_few_particles(use_curve_fit, use_kde_peak):
@@ -1079,7 +1079,7 @@ class PipV(InstrumentData):
             d = data.Wad_Dia.values
             v = data.vel_v.values
         if cut_d:
-            dcut = self.d_cut(**kwargs)
+            dcut = self.d_cut(**cut_kws)
             d = d[d < dcut]
             v = v[d < dcut]
         if use_kde_peak:
@@ -1097,7 +1097,7 @@ class PipV(InstrumentData):
         vfit.x_unfiltered = origdata.Wad_Dia.values
         vfit.y_unfiltered = origdata.vel_v.values
         if use_curve_fit:
-            params, pcov = vfit.find_fit()
+            params, pcov = vfit.find_fit(**kwargs)
             perr = vfit.perr()   # standard errors of d, v
             if try_flip and not use_kde_peak:
                 fiti = fitclass(flipped=True)
@@ -1108,7 +1108,7 @@ class PipV(InstrumentData):
                 fiti.y = datai.vel_v.values
                 fiti.x_unfiltered = origdata.Wad_Dia.values
                 fiti.y_unfiltered = origdata.vel_v.values
-                paramsi, pcovi = fiti.find_fit()
+                paramsi, pcovi = fiti.find_fit(**kwargs)
                 perri = fiti.perr()
                 if plot_flip:
                     f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12, 6))
