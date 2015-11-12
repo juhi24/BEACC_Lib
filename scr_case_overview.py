@@ -27,10 +27,11 @@ params = ['intensity', 'density', 'D_0', 'N_0', 'N_w', '']
 axarr = data.loc[:, params].plot(subplots=True, drawstyle='steps')
 axdict = dict(zip(params, axarr))
 fig = axarr[0].get_figure()
-vap.plot(ax=axarr[-1], label='lwp')
+vap.plot(ax=axarr[-1], label='LWP')
 
 
 for param in ['N_0', 'N_w']:
     axdict[param].set_yscale('log')
 
+plt.legend()
 plt.tight_layout()
