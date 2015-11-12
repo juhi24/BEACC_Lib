@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 import seaborn as sns
+import locale
 
+locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 sns.set_style('ticks')
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)

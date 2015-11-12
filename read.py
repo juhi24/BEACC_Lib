@@ -18,6 +18,10 @@ from scipy.optimize import fmin, minimize
 import pickle
 import warnings
 from glob import glob
+import locale
+import netCDF4 as nc
+
+locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 # general configuration
 DEBUG = False
@@ -37,6 +41,16 @@ MSGTLD = '.msg'
 PICKLETLD = '.pkl'
 
 ns1min = 1.0*60.0*1000000000.0
+
+
+def cdf_to_series(path, vname, tname='time'):
+    cdf = nc.Dataset(path)
+    h = cdf.variables[vname]
+    t = cdf.variables[tname]
+    dt = nc.num2date(t[:], t.units)
+    hs = pd.Series(h[:], index=dt)
+    hs.name = vname
+    return hs
 
 
 def file_len(fname):
