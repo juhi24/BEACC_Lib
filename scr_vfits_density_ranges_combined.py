@@ -11,7 +11,9 @@ import fit
 
 from scr_snowfall import pip2015events, test_events
 
-debug = False
+debug = True
+unfiltered = False
+tld = '.eps'
 
 if debug:
     e = test_events()
@@ -24,18 +26,27 @@ plt.ion()
 comb = e.events.paper.sum()
 del(e)
 
+kws = {}
+fitargs = {'force_flip': False,
+           'try_flip': False,
+           'fitclass': fit.PolFit,
+           'frac': 0.1}
+if unfiltered:
+    fitargs['filter_outliers'] = False
 fig, axarr = comb.plot_vfits_in_density_ranges(separate=True,
-                                          rholimits=(0, 150, 300, 800),
-                                          source_style='kde',
-                                          fitargs={'force_flip': False,
-                                                   'try_flip': False,
-                                                   'fitclass': fit.PolFit,
-                                                   'nofilter': True},
-                                          unfiltered=True, parallel=False)
+                                               rholimits=(0, 150, 300, 800),
+                                               source_style='kde',
+                                               fitargs=fitargs,
+                                               unfiltered=True,
+                                               parallel=False,
+                                               **kws)
 plt.axis((0.25,2.8,0.5,1.8))
 
 savepath = '../results/pip2015/vfits_density_ranges'
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)
-plt.savefig(path.join(savepath, 'combined.eps'))
+fname = 'combined'
+if unfiltered:
+    fname += '_unfiltered'
+plt.savefig(path.join(savepath, fname + tld))
