@@ -17,7 +17,12 @@ else:
     e = pip2015events()
 
 case = e.events.paper[0]
-
 data = case.summary()
 
-data.loc[:,['density', 'D_0', 'N_0']].plot(subplots=True, drawstyle='steps')
+params = ['intensity', 'density', 'D_0', 'N_0', 'N_w']
+axarr = data.loc[:, params].plot(subplots=True, drawstyle='steps')
+
+axdict = dict(zip(params, axarr))
+
+for param in ['N_0', 'N_w']:
+    axdict[param].set_yscale('log')
