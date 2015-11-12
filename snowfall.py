@@ -943,6 +943,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         """Return a DataFrame of combined numerical results."""
         casename = self.series_nans().fillna(self.dtstr(**kwargs))
         casename.name = 'case'
+        pluvio = self.instr['pluvio']
         params = [self.partcount(),
                   self.density(),
                   self.d_0(),
@@ -954,11 +955,13 @@ class Case(read.PrecipMeasurer, read.Cacher):
                   self.d_max(),
                   self.d_0_gamma(),
                   #self.amount(params=[100], simple=True), # What is this?
-                  self.instr['pluvio'].amount(rule=self.rule),
+                  pluvio.amount(),
+                  pluvio.intensity(),
                   self.eta(),
                   self.mu(),
                   self.lam(),
                   self.n_0(),
+                  self.n_w(),
                   self.n_moment(0),
                   self.n_moment(1),
                   self.n_moment(2)]
