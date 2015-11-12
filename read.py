@@ -283,11 +283,15 @@ class PrecipMeasurer:
 
     def amount(self, **kwargs):
         """timestep precipitation in mm"""
-        return self.acc(**kwargs).diff()
+        am = self.acc(**kwargs).diff()
+        am.name = 'amount'
+        return am
 
     def acc(self, **kwargs):
         """precipitation accumulation in mm"""
-        return self.amount(**kwargs).cumsum()
+        acc = self.amount(**kwargs).cumsum()
+        acc.name = 'accumulation'
+        return acc
 
     def intensity(self, tdelta=None, **kwargs):
         """precipitation intensity in mm/h"""
@@ -295,7 +299,9 @@ class PrecipMeasurer:
         if tdelta is None:
             tdelta = r.index.freq.delta
         frac = tdelta.apply(lambda t: np.timedelta64(1,'h')/t)
-        return frac * r
+        intensity = frac * r
+        intensity.name = 'intensity'
+        return intensity
 
 
 class InstrumentData(Cacher):
