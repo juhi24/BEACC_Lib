@@ -17,7 +17,7 @@ if debug:
 else:
     e = pip2015events()
 
-basedir = '/home/jussitii/results/pip2015'
+basedir = '../results/pip2015'
 
 #plt.close('all')
 plt.ion()
