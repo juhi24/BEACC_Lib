@@ -55,5 +55,5 @@ docs/_build/
 *~
 
 #CUSTOM
-cases/*.csv
+cases/do_not_track/*.csv
 cache/*

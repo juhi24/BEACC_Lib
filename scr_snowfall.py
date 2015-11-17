@@ -20,7 +20,7 @@ def test_events():
 
 def events(casesfile_baecc='cases/pip2015.csv',
            casesfile_1415='cases/pip2015_14-15.csv'):
-    e = EventsCollection(casesfile_baecc, dtformat_snex)
+    e = EventsCollection(casesfile_baecc, dtformat_paper)
     e.autoimport_data(datafile=read.H5_PATH, autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
 
