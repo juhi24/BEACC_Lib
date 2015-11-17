@@ -8,14 +8,24 @@ import matplotlib.pyplot as plt
 from os import path
 import seaborn as sns
 
-from scr_snowfall import pip2015events
+from scr_snowfall import pip2015events, test_events
+
+debug = True
 
 sns.set_style('ticks')
 
 plt.close('all')
 plt.ioff()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
-resultsdir = read.ensure_dir('../results/pip2015/hist')
+resultsdir = '../results/pip2015/hist'
+if debug:
+    resultsdir += '/test'
+read.ensure_dir(resultsdir)
+
+def split_hist(data, **kwargs):
+    data = split_index(data, names=('first', 'second'))
+    return plt.hist([data.loc['first'], data.loc['second']], stacked=True,
+                    rwidth=1, **kwargs)
 
 def subplots(n_plots=1):
     return plt.subplots(n_plots, sharex=True, sharey=True,
@@ -44,7 +54,10 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
         for ax in (axd, axm):
             ax.legend().set_visible(False)
 
-e = pip2015events()
+if debug:
+    e = test_events()
+else:
+    e = pip2015events()
 
 n_cases = e.events.paper.count()
 fd, axarrd = subplots(n_cases)
