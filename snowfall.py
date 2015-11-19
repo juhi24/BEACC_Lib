@@ -619,19 +619,6 @@ class Case(read.PrecipMeasurer, read.Cacher):
             return rho.replace(np.inf, np.nan)
         return self.msger(name, func)
 
-    def data_in_density_range(self, data, rhomin, rhomax, drop_grouper=True,
-                              append_limits=False):
-        grouped = read.merge_series(data, self.instr['pluvio'].grouper())
-        outdata = pd.merge(grouped, pd.DataFrame(self.density()),
-                           left_on='group', right_index=True)
-        result = outdata.query('%s < density < %s' % (rhomin, rhomax))
-        if append_limits:
-            result['rhomin'] = rhomin
-            result['rhomax'] = rhomax
-        if drop_grouper:
-            return result.drop(['group', 'density'], axis=1)
-        return result
-
     def group_by_density(self, data, rholimits):
         limslist = limitslist(rholimits)
         datalist = []
@@ -640,6 +627,24 @@ class Case(read.PrecipMeasurer, read.Cacher):
                                                        append_limits=True))
         out = pd.concat(datalist)
         return out.sort()
+
+    def group(self, data, merger, drop_grouper=True):
+        grouped = read.merge_series(data, self.instr['pluvio'].grouper())
+        result = pd.merge(grouped, pd.DataFrame(merger),
+                           left_on='group', right_index=True)
+        if drop_grouper:
+            return result.drop(['group', merger.name], axis=1)
+        return result
+
+    def data_in_density_range(self, data, rhomin, rhomax, drop_grouper=True,
+                              append_limits=False, **rhokws):
+        rho = self.density(**rhokws)
+        outdata = self.group(data, rho, drop_grouper)
+        result = outdata.query('%s < %s < %s' % (rhomin, rho.name, rhomax))
+        if append_limits:
+            result['rhomin'] = rhomin
+            result['rhomax'] = rhomax
+        return result
 
     def vfit_density_range(self, lims, **fitargs):
         rhomin = lims[0]
