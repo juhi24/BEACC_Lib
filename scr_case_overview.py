@@ -11,7 +11,7 @@ from scr_snowfall import pip2015events, test_events
 
 plt.close('all')
 plt.ion()
-debug = True
+debug = False
 include_vap = False
 savedir = '../results/pip2015/case_overview'
 
