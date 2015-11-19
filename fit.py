@@ -127,7 +127,7 @@ class Fit:
             return
         if self.sigma is not None:
             kwargs['sigma'] = self.sigma
-        elif self.flipped:
+        if self.flipped:
             x = self.y
             y = self.x
         else:
