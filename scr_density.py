@@ -10,7 +10,6 @@ from os import path
 from scr_snowfall import pip2015events
 
 #plt.close('all')
-#plt.ioff()
 plt.ion()
 
 basepath = read.ensure_dir('../results/pip2015/paper/density')
