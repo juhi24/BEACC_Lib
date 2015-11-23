@@ -648,9 +648,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             return result.drop(rho.name, axis=1)
         return result
 
-    def vfit_density_range(self, lims, **fitargs):
-        rhomin = lims[0]
-        rhomax = lims[1]
+    def vfit_density_range(self, rhomin, rhomax, **fitargs):
         data = self.data_in_density_range(self.instr['pipv'].good_data(),
                                           rhomin, rhomax)
         fit = self.instr['pipv'].find_fit(data=data, **fitargs)[0]
@@ -658,30 +656,24 @@ class Case(read.PrecipMeasurer, read.Cacher):
         fit.y_unfiltered = data.vel_v.values
         return fit
 
-    def vfits_density_range(self, limslist, parallel=True, **fitargs):
+    def vfits_density_range(self, limslist, **fitargs):
         params_id = tuple(limslist) + tuple(fitargs.values()) + tuple(fitargs.keys())
         name = 'vfits_density_range' + str(abs(hash(params_id)))
         def func():
-            if parallel:
-                processes = min(len(limslist), os.cpu_count())
-                with Pool(processes) as p:
-                    fits = p.map(self.vfit_density_range, limslist)
-                p.join()
-                return fits
             fits = []
             for lims in limslist:
-                fits.append(self.vfit_density_range(lims, **fitargs))
+                fits.append(self.vfit_density_range(*lims, **fitargs))
             return fits
         return self.pickler(name, func)
 
     def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
                                      separate=False, hide_high_limit=True,
-                                     fitargs={}, parallel=True, dpi=180,
+                                     fitargs={}, dpi=180,
                                      **kwargs):
         limslist = limitslist(rholimits)
         dlabel = 'Equivalent diameter (mm)'
         vlabel = 'Fall velocity (ms$^{-1}$)'
-        fits = self.vfits_density_range(limslist, parallel=parallel, **fitargs)
+        fits = self.vfits_density_range(limslist, **fitargs)
         n_ranges = len(fits)
         if separate:
             fig, axarr = plt.subplots(1, n_ranges, sharex=True,

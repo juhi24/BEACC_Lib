@@ -38,7 +38,6 @@ fig, axarr = comb.plot_vfits_in_density_ranges(separate=True,
                                                source_style='kde',
                                                fitargs=fitargs,
                                                unfiltered=True,
-                                               parallel=False,
                                                **kws)
 plt.axis((0.25,2.8,0.5,1.8))
 
