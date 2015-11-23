@@ -633,17 +633,19 @@ class Case(read.PrecipMeasurer, read.Cacher):
         result = pd.merge(grouped, pd.DataFrame(merger),
                            left_on='group', right_index=True)
         if drop_grouper:
-            return result.drop(['group', merger.name], axis=1)
+            return result.drop('group', axis=1)
         return result
 
     def data_in_density_range(self, data, rhomin, rhomax, drop_grouper=True,
                               append_limits=False, **rhokws):
         rho = self.density(**rhokws)
-        outdata = self.group(data, rho, drop_grouper)
+        outdata = self.group(data, rho, drop_grouper=drop_grouper)
         result = outdata.query('%s < %s < %s' % (rhomin, rho.name, rhomax))
         if append_limits:
             result['rhomin'] = rhomin
             result['rhomax'] = rhomax
+        if drop_grouper:
+            return result.drop(rho.name, axis=1)
         return result
 
     def vfit_density_range(self, lims, **fitargs):
