@@ -3,6 +3,7 @@
 @author: Jussi Tiira
 """
 from snowfall import *
+from fit import set_plot_style
 import numpy as np
 import matplotlib.pyplot as plt
 from os import path
@@ -12,10 +13,12 @@ from scr_snowfall import pip2015events, test_events
 
 debug = True
 
-sns.set_style('ticks')
+major_size = 8
+set_plot_style(**{'xtick.major.size': major_size,
+                  'ytick.major.size': major_size})
 
 plt.close('all')
-plt.ioff()
+plt.ion()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
 resultsdir = '../results/pip2015/hist'
 if debug:
@@ -29,20 +32,20 @@ def split_hist(data, **kwargs):
 
 def subplots(n_plots=1):
     return plt.subplots(n_plots, sharex=True, sharey=True,
-                        tight_layout=False, dpi=400)
+                        tight_layout=False, figsize=(4,5))
 
 def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
     rng = (0,6)
-    sns.distplot(data.D_0.dropna(), ax=axd, label=label, bins=17, 
+    sns.distplot(data.D_0.dropna(), ax=axd, label=label, bins=12, 
                  hist_kws={'range':rng}, **kwargs)
     axd.set_xlim(rng)
-    axd.yaxis.set_ticks(np.arange(0.4, 2.0, 0.4))
+    axd.yaxis.set_ticks(np.arange(0.5, 1.5, 0.5))
     axd.set_xlabel('$D_0$ (mm)')
     rng = (-2, 8)
     sns.distplot(data.mu.dropna(), ax=axm, label=label, bins=20,
                        hist_kws={'range':rng}, **kwargs)
     axm.set_xlim(rng)
-    axm.yaxis.set_ticks(np.arange(0.2, 0.7, 0.2))
+    axm.yaxis.set_ticks(np.arange(0, 0.7, 0.2))
     axm.set_xlabel('$\mu$')
     sns.distplot(data.N_w.dropna(), ax=axn, label=label,
                        bins=10**np.linspace(0,6,20), kde=False, rug=True)
@@ -92,13 +95,14 @@ for f in (fd, fm, fn, fdd, fmd, fnd):
     remove_subplot_gaps(f, axis='col')
 
 tld = '.png'
+savekws = {'dpi': 400}
 
-fd.savefig(path.join(resultsdir, 'd0_cases' + tld))
-fm.savefig(path.join(resultsdir, 'mu_cases' + tld))
-fn.savefig(path.join(resultsdir, 'nw_cases' + tld))
-fdd.savefig(path.join(resultsdir, 'd0_rho' + tld))
-fmd.savefig(path.join(resultsdir, 'mu_rho' + tld))
-fnd.savefig(path.join(resultsdir, 'nw_rho' + tld))
+fd.savefig(path.join(resultsdir, 'd0_cases' + tld), **savekws)
+fm.savefig(path.join(resultsdir, 'mu_cases' + tld), **savekws)
+fn.savefig(path.join(resultsdir, 'nw_cases' + tld), **savekws)
+fdd.savefig(path.join(resultsdir, 'd0_rho' + tld), **savekws)
+fmd.savefig(path.join(resultsdir, 'mu_rho' + tld), **savekws)
+fnd.savefig(path.join(resultsdir, 'nw_rho' + tld), **savekws)
 
 for axarr in (axarrd, axarrm, axarrn, axarrdd, axarrmd, axarrnd):
     for ax in axarr[1:]:

@@ -9,7 +9,7 @@ import read
 
 from scr_snowfall import pip2015events, test_events
 
-debug = False
+debug = True
 
 if debug:
     e = test_events()
