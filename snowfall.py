@@ -40,6 +40,28 @@ RHO_W = 1000
 PIP_CORR = 1/0.9    # Davide
 
 
+def make_hash(o):
+    """
+    Makes a hash from a dictionary, list, tuple or set to any level,
+    that contains only other hashable types
+    (including any lists, tuples, sets, and dictionaries).
+    """
+    if isinstance(o, (set, tuple, list)):
+        return tuple([make_hash(e) for e in o])
+    elif not isinstance(o, dict):
+        if isinstance(o, (pd.DataFrame, pd.Series)):
+            return hash(str(o))
+        return hash(o)
+    new_o = copy.deepcopy(o)
+    for k, v in new_o.items():
+        new_o[k] = make_hash(v)
+    return hash(tuple(frozenset(sorted(new_o.items()))))
+
+
+def hash_dict(d):
+    return fingerprint(str(sorted(d.items())))
+
+
 def fingerprint(string):
     return hashlib.sha256(string.encode('utf-8')).hexdigest()[-12:]
 
@@ -648,17 +670,18 @@ class Case(read.PrecipMeasurer, read.Cacher):
             return result.drop(rho.name, axis=1)
         return result
 
-    def vfit_density_range(self, rhomin, rhomax, **fitargs):
-        data = self.data_in_density_range(self.instr['pipv'].good_data(),
-                                          rhomin, rhomax)
-        fit = self.instr['pipv'].find_fit(data=data, **fitargs)[0]
-        fit.x_unfiltered = data.Wad_Dia.values
-        fit.y_unfiltered = data.vel_v.values
+    def vfit_density_range(self, rhomin, rhomax, data=None, **fitargs):
+        if data is None:
+            data = self.instr['pipv'].good_data()
+        data_in_range = self.data_in_density_range(data, rhomin, rhomax)
+        fit = self.instr['pipv'].find_fit(data=data_in_range, **fitargs)[0]
+        fit.x_unfiltered = data_in_range.Wad_Dia.values
+        fit.y_unfiltered = data_in_range.vel_v.values
         return fit
 
     def vfits_density_range(self, limslist, **fitargs):
-        params_id = tuple(limslist) + tuple(fitargs.values()) + tuple(fitargs.keys())
-        name = 'vfits_density_range' + str(abs(hash(params_id)))
+        params_id = str(limslist) + hash_dict(fitargs)
+        name = 'vfits_density_range' + fingerprint(params_id)
         def func():
             fits = []
             for lims in limslist:
