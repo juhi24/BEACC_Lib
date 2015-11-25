@@ -13,12 +13,13 @@ from scr_snowfall import pip2015events, test_events
 
 debug = True
 
+#sns.set_context('talk')
 major_size = 8
 set_plot_style(**{'xtick.major.size': major_size,
                   'ytick.major.size': major_size})
 
 plt.close('all')
-plt.ion()
+plt.ioff()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
 resultsdir = '../results/pip2015/hist'
 if debug:
@@ -51,6 +52,7 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
                        bins=10**np.linspace(0,6,20), kde=False, rug=True)
     axn.set_xscale('log')
     axn.set_xlabel('$N_w$')
+    axn.yaxis.get_major_ticks()[-1].label1.set_visible(False)
     if title is not None:
         for ax in (axd, axm, axn):
             ax.set_title(title, **kwtitle)
@@ -81,7 +83,7 @@ fdd, axarrdd = subplots(n_ranges)
 fmd, axarrmd = subplots(n_ranges)
 fnd, axarrnd = subplots(n_ranges)
 data = read.merge_multiseries(c.d_0(), c.mu(), c.n_w())
-titlekws = {'y': 0.9, 'fontdict': {'verticalalignment': 'top'}}
+titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
 for i, lims in enumerate(limslist):
     dat = c.data_in_density_range(data, *lims)
