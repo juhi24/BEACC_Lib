@@ -13,7 +13,6 @@ import copy
 import locale
 import os
 import warnings
-import hashlib
 
 from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
@@ -38,32 +37,6 @@ RHO_W = 1000
 # Wood et al. 2013 Characterization of video disdrometer uncertainties ...
 #PIP_CORR = 1.0/0.82
 PIP_CORR = 1/0.9    # Davide
-
-
-def make_hash(o):
-    """
-    Makes a hash from a dictionary, list, tuple or set to any level,
-    that contains only other hashable types
-    (including any lists, tuples, sets, and dictionaries).
-    """
-    if isinstance(o, (set, tuple, list)):
-        return tuple([make_hash(e) for e in o])
-    elif not isinstance(o, dict):
-        if isinstance(o, (pd.DataFrame, pd.Series)):
-            return hash(str(o))
-        return hash(o)
-    new_o = copy.deepcopy(o)
-    for k, v in new_o.items():
-        new_o[k] = make_hash(v)
-    return hash(tuple(frozenset(sorted(new_o.items()))))
-
-
-def hash_dict(d):
-    return fingerprint(str(sorted(d.items())))
-
-
-def fingerprint(string):
-    return hashlib.sha256(string.encode('utf-8')).hexdigest()[-12:]
 
 
 def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
@@ -255,17 +228,19 @@ class Case(read.PrecipMeasurer, read.Cacher):
         read.Cacher.__init__(self)
 
     def __repr__(self):
+        start, end = self.dt_start_end()
+        return '%s case from %s to %s, %s, %s' % (self.casetype(), start, end,
+                                                  self.intervalstr())
+
+    def casetype(self):
         if self.liquid:
-            casetype = 'rain'
-        else:
-            casetype = 'snow'
-        dt_start, dt_end = self.dt_start_end()
+            return 'rain'
+        return 'snow'
+
+    def intervalstr(self):
         if self.varinterval:
-            sampling_label = 'adaptive'
-        else:
-            sampling_label = self.rule
-        return '%s case from %s to %s, %s' % (casetype, dt_start,
-                                              dt_end, sampling_label)
+            return 'adaptive'
+        return self.rule
 
     def __add__(self, other):
         combined = copy.deepcopy(self)
@@ -341,6 +316,12 @@ class Case(read.PrecipMeasurer, read.Cacher):
         for instr in instr_lst:
             instr.set_span(dt_start, dt_end)
         return cls(*instr_lst, **kwargs)
+
+    def fingerprint(self):
+        idstr = str(self.dt_start_end()) + self.casetype() + self.intervalstr()
+        for instr in self.instr.values():
+            idstr += instr.fingerprint()
+        return read.fingerprint(idstr)
 
     def dtstr(self, dtformat='%b %d'):
         """date string in simple format"""
@@ -468,10 +449,6 @@ class Case(read.PrecipMeasurer, read.Cacher):
             nt.name = name
             return nt
         return self.msger(name, func)
-
-    def cache_dir(self):
-        dt_start, dt_end = self.dt_start_end()
-        return super().cache_dir(dt_start, dt_end, self.instr['pluvio'].name)
 
     def d_m(self):
         """mass weighted mean diameter"""
@@ -680,8 +657,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return fit
 
     def vfits_density_range(self, limslist, **fitargs):
-        params_id = str(limslist) + hash_dict(fitargs)
-        name = 'vfits_density_range' + fingerprint(params_id)
+        params_id = str(limslist) + read.hash_dict(fitargs)
+        name = 'vfits_density_range' + read.fingerprint(params_id)
         def func():
             fits = []
             for lims in limslist:

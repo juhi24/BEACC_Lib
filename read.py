@@ -20,6 +20,7 @@ import warnings
 from glob import glob
 import locale
 import netCDF4 as nc
+import hashlib
 
 locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
@@ -41,6 +42,14 @@ MSGTLD = '.msg'
 PICKLETLD = '.pkl'
 
 ns1min = 1.0*60.0*1000000000.0
+
+
+def hash_dict(d):
+    return fingerprint(str(sorted(d.items())))
+
+
+def fingerprint(string):
+    return hashlib.sha256(string.encode('utf-8')).hexdigest()[-12:]
 
 
 def cdf_to_series(path, vname, tname='time'):
@@ -232,33 +241,31 @@ class Cacher:
     def msger(self, name, func, *cache_dir_args, **kwargs):
         """Read from msgpack if caching is in use."""
         if self.use_cache:
-            msgpath = os.path.join(self.cache_dir(*cache_dir_args),
+            msgpath = os.path.join(self.cache_dir(),
                                    name + MSGTLD)
             return msg_io(msgpath, func, **kwargs)
         return func(**kwargs)
 
     def pickler(self, name, func, *cache_dir_args, **kwargs):
         if self.use_cache:
-            pklpath = os.path.join(self.cache_dir(*cache_dir_args),
+            pklpath = os.path.join(self.cache_dir(),
                                    name + PICKLETLD)
             return pkl_io(pklpath, func, **kwargs)
         return func(**kwargs)
 
-    def cache_dir(self, dt_start, dt_end, *extra_dir_names):
+    def cache_dir(self):
         """Return full path to cache directory."""
-        dtstrformat = '%Y%m%d%H%M'
-        dtstr = dt_start.strftime(dtstrformat) + '-' + dt_end.strftime(dtstrformat)
-        cache_dir = os.path.join(CACHE_DIR, dtstr, *extra_dir_names)
+        cache_dir = os.path.join(CACHE_DIR, self.fingerprint())
         ensure_dir(cache_dir)
         return cache_dir
 
-    def msgpath(self, name, *cache_dir_args):
+    def msgpath(self, name):
         """wrapper for full msgpack file path"""
-        return os.path.join(self.cache_dir(*cache_dir_args), name + MSGTLD)
+        return os.path.join(self.cache_dir(), name + MSGTLD)
 
     def store_path(self, *cache_dir_args):
         """Return full path to hdf store file."""
-        return os.path.join(self.cache_dir(*cache_dir_args),
+        return os.path.join(self.cache_dir(),
                             self.storefilename)
 
     def store_read(self, tablename, default_value=None, nocache_value=None):
@@ -287,6 +294,10 @@ class Cacher:
             filelist.extend(extra_files)
         for f in filelist:
             os.remove(f)
+
+    def fingerprint(self):
+        """state-aware object identifier, immutable between sessions"""
+        pass
 
 
 class PrecipMeasurer:
@@ -344,6 +355,9 @@ class InstrumentData(Cacher):
         filelist = datafilelistloop(subpath, dtstrlist, datadir=datadir)
         return cls(filelist)
 
+    def fingerprint(self):
+        return fingerprint(str(self.data))
+
     def finish_init(self, dt_start, dt_end):
         """Sort and name index, cut time span."""
         self.data.sort_index(inplace=True)
@@ -395,13 +409,6 @@ class InstrumentData(Cacher):
             return grpd_data.groupby('group')
         return data.groupby(pd.Grouper(freq=rule, closed='right',
                                                    label='right'))
-
-    def cache_dir(self):
-        if self.case is None:
-            return
-        dt_start, dt_end = self.case.dt_start_end()
-        return super().cache_dir(dt_start, dt_end,
-                                 self.case.instr['pluvio'].name)
 
 
 class Radar(InstrumentData):
@@ -494,12 +501,12 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self._shift_periods = 0
         self._shift_freq = '1min'
         self.lwc = None
-        self.col_suffix = 'nrt'
         self.use_bucket = False
         self._varinterval = True
         self.n_combined_intervals = 1
-        self.amount_col = 'acc_' + self.col_suffix
-        self.bucket_col = 'bucket_' + self.col_suffix
+        col_suffix = 'nrt'
+        self.amount_col = 'acc_' + col_suffix
+        self.bucket_col = 'bucket_' + col_suffix
         if self.data.empty:
             self.name = os.path.basename(os.path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
@@ -584,6 +591,14 @@ class Pluvio(InstrumentData, PrecipMeasurer):
     @classmethod
     def from_raw(cls, *args, subpath=P200_SUBPATH, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
+
+    def fingerprint(self):
+        identifiers = [self.name, self.shift_periods, self.shift_freq,
+                       self.varinterval]
+        if self.varinterval:
+            identifiers.extend([self.n_combined_intervals])
+        idstr = ''.join(tuple(map(str, identifiers)))
+        return fingerprint(super().fingerprint() + idstr)
 
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
@@ -893,7 +908,7 @@ class PipV(InstrumentData):
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
         self.default_fit = fit.PolFit
-        self.use_flip = False
+        self.flip = False
         if self.data.empty:
             for filename in filenames:
                 print('.', end='')
@@ -986,6 +1001,11 @@ class PipV(InstrumentData):
     @classmethod
     def from_raw(cls, *args, subpath=PIPV_SUBPATH, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
+
+    def fingerprint(self):
+        identifiers = (self.flip, self.dbins)
+        idstr = ''.join(tuple(map(str, identifiers)))
+        return fingerprint(super().fingerprint() + idstr)
 
     def v(self, d, fitclass=None, varinterval=True, rule=None):
         """velocities according to fits for given diameter"""
@@ -1181,7 +1201,7 @@ class PipV(InstrumentData):
         for name, group in self.grouped(rule=rule, varinterval=varinterval):
             try:
                 newfit, std, hwfm = self.find_fit(data=group, name=name,
-                                                  try_flip=self.use_flip,
+                                                  try_flip=self.flip,
                                                   **kwargs)
             except RuntimeError as err:
                 print('%s: %s' % (name, err))
