@@ -82,27 +82,6 @@ def datenum2datetime(matlab_datenum):
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum % 1) - datetime.timedelta(days=366)
 
 
-def msg_io(msgpath, func, **kwargs):
-    """Read data from msgpack. If not available, calculate and store."""
-    if os.path.exists(msgpath):
-        data = pd.read_msgpack(msgpath)
-    else:
-        data = func(**kwargs)
-        data.to_msgpack(msgpath)
-    return data
-
-
-def pkl_io(pklpath, func, **kwargs):
-    if os.path.exists(pklpath):
-        with open(pklpath, 'rb') as cachefile:
-            data = pickle.load(cachefile)
-    else:
-        data = func(**kwargs)
-        with open(pklpath, 'wb') as cachefile:
-            pickle.dump(data, cachefile, pickle.HIGHEST_PROTOCOL)
-    return data
-
-
 def ensure_dir(directory):
     """Make sure the directory exists. If not, create it."""
     if not os.path.exists(directory):
@@ -238,35 +217,27 @@ class Cacher:
         self.use_cache = use_cache
         self.storefilename = storefilename
 
-    def msger(self, name, func, *cache_dir_args, **kwargs):
+    def msger(self, name, func, **kwargs):
         """Read from msgpack if caching is in use."""
         if self.use_cache:
-            msgpath = os.path.join(self.cache_dir(),
-                                   name + MSGTLD)
-            return msg_io(msgpath, func, **kwargs)
+            return self.msg_io(name, func, **kwargs)
         return func(**kwargs)
 
-    def pickler(self, name, func, *cache_dir_args, **kwargs):
+    def pickler(self, name, func, **kwargs):
         if self.use_cache:
-            pklpath = os.path.join(self.cache_dir(),
-                                   name + PICKLETLD)
-            return pkl_io(pklpath, func, **kwargs)
+            return self.pkl_io(name, func, **kwargs)
         return func(**kwargs)
 
     def cache_dir(self):
         """Return full path to cache directory."""
         cache_dir = os.path.join(CACHE_DIR, self.fingerprint())
-        ensure_dir(cache_dir)
         return cache_dir
 
-    def msgpath(self, name):
-        """wrapper for full msgpack file path"""
-        return os.path.join(self.cache_dir(), name + MSGTLD)
-
-    def store_path(self, *cache_dir_args):
+    def store_path(self):
         """Return full path to hdf store file."""
-        return os.path.join(self.cache_dir(),
-                            self.storefilename)
+        cd = self.cache_dir()
+        ensure_dir(cd)
+        return os.path.join(cd, self.storefilename)
 
     def store_read(self, tablename, default_value=None, nocache_value=None):
         """Read from hdf store if using caching."""
@@ -284,9 +255,34 @@ class Cacher:
         with pd.HDFStore(self.store_path()) as store:
                 store[tablename] = data
 
-    def clear_cache(self, *cache_dir_args, extra_files=None):
+    def msg_io(self, name, func, **kwargs):
+        """Read data from msgpack. If not available, calculate and store."""
+        cd = self.cache_dir()
+        msgpath = os.path.join(cd, name + MSGTLD)
+        if os.path.exists(msgpath):
+            data = pd.read_msgpack(msgpath)
+        else:
+            ensure_dir(cd)
+            data = func(**kwargs)
+            data.to_msgpack(msgpath)
+        return data
+
+    def pkl_io(self, name, func, **kwargs):
+        cd = self.cache_dir()
+        pklpath = os.path.join(cd, name + PICKLETLD)
+        if os.path.exists(pklpath):
+            with open(pklpath, 'rb') as cachefile:
+                data = pickle.load(cachefile)
+        else:
+            ensure_dir(cd)
+            data = func(**kwargs)
+            with open(pklpath, 'wb') as cachefile:
+                pickle.dump(data, cachefile, pickle.HIGHEST_PROTOCOL)
+        return data
+
+    def clear_cache(self, extra_files=None):
         """Remove cache files used by the Cacher object."""
-        store = self.store_path(*cache_dir_args)
+        store = self.store_path()
         filelist = []
         if os.path.exists(store):
             filelist.append(store)
