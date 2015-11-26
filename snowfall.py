@@ -319,7 +319,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
 
     def fingerprint(self):
         idstr = str(self.dt_start_end()) + self.casetype() + self.intervalstr()
-        for instr in self.instr.values():
+        for key, instr in sorted(self.instr.items()):
             idstr += instr.fingerprint()
         return read.fingerprint(idstr)
 
