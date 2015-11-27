@@ -235,13 +235,12 @@ class Cacher:
 
     def store_path(self):
         """Return full path to hdf store file."""
-        cd = self.cache_dir()
-        ensure_dir(cd)
-        return os.path.join(cd, self.storefilename)
+        return os.path.join(self.cache_dir(), self.storefilename)
 
     def store_read(self, tablename, default_value=None, nocache_value=None):
         """Read from hdf store if using caching."""
         if self.use_cache:
+            ensure_dir(self.cache_dir())
             try:
                 with pd.HDFStore(self.store_path()) as store:
                     return store.get(tablename)
@@ -252,6 +251,7 @@ class Cacher:
 
     def store_write(self, tablename, data):
         """Write data to hdf store."""
+        ensure_dir(self.cache_dir())
         with pd.HDFStore(self.store_path()) as store:
                 store[tablename] = data
 
