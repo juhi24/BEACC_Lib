@@ -232,7 +232,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
 
     def __repr__(self):
         start, end = self.dt_start_end()
-        return '%s case from %s to %s, %s, %s' % (self.casetype(), start, end,
+        return '%s case from %s to %s, %s' % (self.casetype(), start, end,
                                                   self.intervalstr())
 
     def casetype(self):
