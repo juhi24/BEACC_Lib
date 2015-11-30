@@ -7,7 +7,6 @@ from scipy.optimize import minimize
 from scipy.special import gamma
 from glob import glob
 from itertools import cycle
-from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import copy
 import locale
@@ -34,9 +33,13 @@ else:
 TAU = 2*np.pi
 RHO_W = 1000
 
-# Wood et al. 2013 Characterization of video disdrometer uncertainties ...
-#PIP_CORR = 1.0/0.82
-PIP_CORR = 1/0.9    # Davide
+
+def d_corr_pip(d):
+    """disdrometer-observed particle size to the true maximum dimension
+    See Characterization of video disdrometer uncertainties and impacts on
+    estimates of snowfall rate and radar reflectivity (Wood et al. 2013)"""
+    phi = 0.9 # Davide
+    return d/phi
 
 
 def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
@@ -395,7 +398,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
     def r_ab(self, d, alpha, beta):
         """(mm/h)/(m/s)*kg/mg / kg/m**3 * mg/mm**beta * mm**beta * m/s * 1/(mm*m**3)
         """
-        return 3.6/RHO_W*alpha*(PIP_CORR*d)**beta*self.v(d)*self.n(d)
+        return 3.6/RHO_W*alpha*d_corr_pip(d)**beta*self.v(d)*self.n(d)
         #dBin = self.instr['dsd'].d_bin
         #av = self.instr['pipv'].fit_params()['a']
         #bv = self.instr['pipv'].fit_params()['b']
@@ -404,7 +407,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
     def r_rho(self, d, rho):
         """(mm/h)/(m/s)*m**3/mm**3 * kg/m**3 / (kg/m**3) * mm**3 * m/s * 1/(mm*m**3)
         """
-        return 3.6e-3*TAU/12*rho/RHO_W*(PIP_CORR*d)**3*self.n(d)*self.v(d)
+        return 3.6e-3*TAU/12*rho/RHO_W*d_corr_pip(d)**3*self.n(d)*self.v(d)
         #self.v(d)
         #dBin = self.instr['dsd'].d_bin
         #av = self.instr['pipv'].fit_params()['a']
@@ -413,7 +416,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
 
     def w_slice(self, d, **kwargs):
         rho = self.density(**kwargs)
-        return 1e-6*TAU/12*rho*(PIP_CORR*d)**3*self.n(d)
+        return 1e-6*TAU/12*rho*d_corr_pip(d)**3*self.n(d)
 
     def w(self, method='gamma', **kwargs):
         """water content in g/m**3"""
@@ -466,7 +469,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             idxd = self.instr['dsd'].good_data().columns
             dd = pd.Series(idxd)
             dD = self.instr['dsd'].d_bin
-            d3n = lambda d: (PIP_CORR*d)**3*self.n(d)*dD
+            d3n = lambda d: d_corr_pip(d)**3*self.n(d)*dD
             #d3n = lambda d: dD*self.n(d)*((d+dD*0.5)**4.0-(d-dD*0.5)**4.0)/(dD*4.0)
             cumvol = dd.apply(d3n).cumsum().T
             cumvol.columns = idxd
@@ -486,17 +489,29 @@ class Case(read.PrecipMeasurer, read.Cacher):
             dd = pd.Series(idxd)
             nd = dd.apply(self.n).T
             nd.columns = idxd
-            dmax = (PIP_CORR*nd[nd > 0.0001].T.apply(pd.Series.last_valid_index).fillna(0))
-            dmax.name = name
-            return dmax
+            dmax = nd[nd > 0.0001].T.apply(pd.Series.last_valid_index).fillna(0)
+            dmax_corr = d_corr_pip(dmax)
+            dmax_corr.name = name
+            return dmax_corr
         return self.msger(name, func)
 
     def n_moment(self, n):
         name = 'M' + str(n)
         def func():
-            moment = lambda d: (PIP_CORR*d)**n*self.n(d)
-            #dD = self.instr['dsd'].d_bin
-            #moment = lambda d: self.n(d)*((d+dD*0.5)**(n+1.0)-(d-dD*0.5)**(n+1.0))/(dD*(n+1.0))
+            moment = lambda d: d_corr_pip(d)**n*self.n(d)
+            nth_mo = self.sum_over_d(moment)
+            nth_mo.name = name
+            return nth_mo
+        return self.msger(name, func)
+    
+    #TODO: What is the difference between this and n_moment?
+    def mom_n(self, n):
+        name = 'mom' + str(n)
+        def func():
+            dD = self.instr['dsd'].d_bin
+            d_high = d_corr_pip(d+dD*0.5)
+            d_low = d_corr_pip(d-dD*0.5)
+            moment = lambda d: self.n(d)*(d_high**(n+1)-d_low**(n+1))/(dD*(n+1))
             nth_mo = self.sum_over_d(moment)
             nth_mo.name = name
             return nth_mo
@@ -528,7 +543,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
     def n_w(self):
         name = 'N_w'
         def func():
-            integrand = lambda d: d**3*self.n(d)
+            integrand = lambda d: d_corr_pip(d)**3*self.n(d)
             nw = 3.67**4/(6*self.d_0()**4)*self.sum_over_d(integrand)
             nw.name = name
             return nw
@@ -742,10 +757,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
         """Calculate volume averaged bulk density for the given density size realation"""
         name = "rho3"
         def density_func(d):
-            return density_size((PIP_CORR*d))*self.n(d)    # I am experimenting with precise integration leaved d**3
-        def mom3(d):
-            return ((PIP_CORR*(d+0.5*self.instr['dsd'].d_bin))**4-(PIP_CORR*(d-0.5*self.instr['dsd'].d_bin))**4)*self.n(d)/(self.instr['dsd'].d_bin*4)
-        density = self.sum_over_d(density_func)/self.sum_over_d(mom3)
+            return density_size(d_corr_pip(d))*self.n(d)    # I am experimenting with precise integration leaved d**3
+        density = self.sum_over_d(density_func)/self.mom_n(3)
         density[density.isnull()] = 0
         density.name = name
         return density
@@ -757,10 +770,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
         name = "rho6"
         def density_func(d):
             # I am experimenting with precise integration leaved d**6 and squares
-            return density_size((PIP_CORR*d))*self.n(d)
-        def mom6(d):
-            return ((PIP_CORR*(d+0.5*self.instr['dsd'].d_bin))**7-(PIP_CORR*(d-0.5*self.instr['dsd'].d_bin))**7)*self.n(d)/(self.instr['dsd'].d_bin*7)
-        density = self.sum_over_d(density_func)/self.sum_over_d(mom6)
+            return density_size(d_corr_pip(d))*self.n(d)
+        density = self.sum_over_d(density_func)/self.mom_n(6)
         density.name = name
         density[density.isnull()] = 0
         return np.sqrt(density)
@@ -774,7 +785,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
                                    pip_filter=pip_filter)
         Zserie = pd.Series(density)
         dBin = self.instr['dsd'].d_bin
-        edges = PIP_CORR*self.instr['dsd'].data.columns.values+0.5*dBin
+        edges = d_corr_pip(self.instr['dsd'].data.columns.values)+0.5*dBin
         grp = self.instr['dsd'].grouped(rule=self.rule,
                                         varinterval=self.varinterval,
                                         col=self.dsd.bin_cen())
