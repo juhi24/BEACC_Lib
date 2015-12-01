@@ -9,14 +9,14 @@ import read
 
 from scr_snowfall import pip2015events, test_events
 
-debug = True
+debug = False
 
 if debug:
     e = test_events()
 else:
     e = pip2015events()
 
-#plt.close('all')
+plt.close('all')
 plt.ioff()
 
 basepath = '../results/pip2015/paper/vfit'

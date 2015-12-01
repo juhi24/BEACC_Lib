@@ -55,4 +55,4 @@ fname = 'combined'
 if unfiltered:
     fname += '_unfiltered'
 fig.savefig(path.join(savepath, fname + tld))
-fig_fltr.savefig(path.join(savepath, fname + '_d0fltr'))
+fig_fltr.savefig(path.join(savepath, fname + '_d0fltr' + tld))
