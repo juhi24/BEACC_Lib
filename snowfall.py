@@ -222,28 +222,18 @@ class Case(read.PrecipMeasurer, read.Cacher):
             self._rule = rule
         self.liquid = liquid
         self._ab = None         # alpha, beta
-        for instr in self.instr.values():
-            instr.case = self   # maybe this is kind of silly
         if autoshift:
             self.autoshift()
         if unbias:
             self.noprecip_bias()
         read.Cacher.__init__(self)
+        for instr in self.instr.values():
+            instr.parent = self
 
     def __repr__(self):
         start, end = self.dt_start_end()
         return '%s case from %s to %s, %s' % (self.casetype(), start, end,
                                                   self.intervalstr())
-
-    def casetype(self):
-        if self.liquid:
-            return 'rain'
-        return 'snow'
-
-    def intervalstr(self):
-        if self.varinterval:
-            return 'adaptive'
-        return self.rule
 
     def __add__(self, other):
         combined = copy.deepcopy(self)
@@ -319,6 +309,16 @@ class Case(read.PrecipMeasurer, read.Cacher):
         for instr in instr_lst:
             instr.set_span(dt_start, dt_end)
         return cls(*instr_lst, **kwargs)
+
+    def casetype(self):
+        if self.liquid:
+            return 'rain'
+        return 'snow'
+
+    def intervalstr(self):
+        if self.varinterval:
+            return 'adaptive'
+        return self.rule
 
     def fingerprint(self):
         idstr = str(self.dt_start_end()) + self.casetype() + self.intervalstr()

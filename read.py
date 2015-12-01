@@ -213,9 +213,11 @@ def batch_create_hdf(instrdict=None, datadir=DATA_DIR, outname=H5_FILE,
 
 class Cacher:
     """common methods to use msg cache"""
-    def __init__(self, use_cache=True, storefilename='store.h5'):
+    def __init__(self, use_cache=True, storefilename='store.h5',
+                 parent=None):
         self.use_cache = use_cache
         self.storefilename = storefilename
+        self.parent = parent
 
     def msger(self, name, func, **kwargs):
         """Read from msgpack if caching is in use."""
@@ -230,8 +232,10 @@ class Cacher:
 
     def cache_dir(self):
         """Return full path to cache directory."""
-        cache_dir = os.path.join(CACHE_DIR, self.fingerprint())
-        return cache_dir
+        if self.parent is None:
+            return os.path.join(CACHE_DIR, self.fingerprint())
+        return os.path.join(CACHE_DIR, self.parent.fingerprint(),
+                            self.fingerprint())
 
     def store_path(self):
         """Return full path to hdf store file."""
@@ -328,17 +332,16 @@ class PrecipMeasurer:
 class InstrumentData(Cacher):
     """Parent for instrument data classes."""
     # TODO: Separate read_csv and __init__
-    def __init__(self, filenames, hdf_table=None, use_cache=True, case=None):
+    def __init__(self, filenames, hdf_table=None, use_cache=True):
         """Read from either ASCII data file or hdf5."""
         self.filenames = filenames
         self.data = pd.DataFrame()
-        self.use_cache = use_cache
-        self.case = case                # to be used only for msg cache!
         # if filtered data needed often, keep in memory
         self.stored_good_data = None    # set to None to disable
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
+        Cacher.__init__(self, use_cache=use_cache)
 
     def __add__(self, other):
         combined = copy.deepcopy(self)
@@ -899,7 +902,11 @@ class PipV(InstrumentData):
         self.dmin = 0.375   # shortest diameter where data is good
         self._fits = pd.DataFrame()
         # num=511 --> binwidth 0.05
-        self.dbins = np.linspace(self.dmin, 25.875, num=204)
+        if DEBUG:
+            num = 103
+        else:
+            num = 409
+        self.dbins = np.linspace(self.dmin, 25.875, num=num)
         self._std = pd.DataFrame(columns=self.dbins)
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
