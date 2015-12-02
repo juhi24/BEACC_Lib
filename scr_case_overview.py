@@ -4,6 +4,7 @@
 """
 from snowfall import *
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from os import path
 import read
 
@@ -34,7 +35,7 @@ def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
                   axlist=None):
     data.density[data.density>800] = np.nan
     if axlist is None:
-        axlist = data.loc[:, params].plot(figsize=(5,7), subplots=True,
+        axlist = data.loc[:, params].plot(figsize=(5, 7), subplots=True,
                                          drawstyle='steps')
     else:
         for i, param in enumerate(params):
@@ -50,9 +51,45 @@ def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
     gray_out(data, axdict)
     return fig, axlist
 
+params=['intensity', 'density', 'D_0', 'N_w']
+
 for case in e.events.paper.values:
     data = case.summary()
-    fig, axlist = plot_overview(data)
+    fig, axlist = plot_overview(data, params=params)
     plt.legend()
     plt.tight_layout()
     fig.savefig(path.join(savedir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
+fig = plt.figure(figsize=(6, 9))
+extent = (0.375, 5, 0.5, 2.5)
+dtlist = ['2015-01-14 02:53:00', '2015-01-14 03:30:00', '2015-01-14 03:40:00']
+series_ax = []
+fit_ax = []
+gs = gridspec.GridSpec(2, 1, height_ratios=[3,1])
+gs_series = gridspec.GridSpecFromSubplotSpec(4, 1, subplot_spec=gs[0],
+                                             hspace=0.15)
+gs_fit = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[1],
+                                          wspace=0.05)
+for i in range(4):
+    series_ax.append(plt.subplot(gs_series[i]))
+for i, dt in enumerate(dtlist):
+    vfit = case.instr['pipv'].fits.polfit[dt]
+    ax = plt.subplot(gs_fit[i])
+    vfit.plot(source_style='hex', unfiltered=True, ax=ax,
+              source_kws={'gridsize': 40, 'extent': extent})
+    ax.axis(extent)
+    fit_ax.append(ax)
+plot_overview(data, axlist=series_ax, params=params)
+for ax in fit_ax:
+    ax.legend()
+for ax in series_ax + fit_ax:
+    ax.set_xlabel('')
+fit_ax[0].set_ylabel('Fall velocity (m/s)')
+fit_ax[1].set_xlabel('Equivalent diameter (mm)')
+labels = [a.get_xticklabels() for a in series_ax[:-1]]
+labels.extend([a.get_yticklabels() for a in fit_ax[1:]])
+plt.setp(labels, visible=False)
+axdict = dict(zip(params, series_ax))
+axdict['intensity'].set_ylabel('$R$ (mm/h)')
+axdict['density'].set_ylabel('$\\rho$ (kg/m$^3$)')
+axdict['D_0'].set_ylabel('$D_0$ (mm)')
+axdict['N_w'].set_ylabel('$N_w$')
