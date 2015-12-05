@@ -13,7 +13,7 @@ from scr_snowfall import pip2015events, test_events
 
 plt.close('all')
 plt.ion()
-debug = True
+debug = False
 include_vap = False
 savedir = '../results/pip2015/case_overview'
 
@@ -25,6 +25,11 @@ else:
 
 read.ensure_dir(savedir)
 
+
+def select_rows(data, dtlist):
+    return data.loc[tuple(map(pd.to_datetime, dtlist)),:]
+
+
 def gray_out(data, axdict, fltr_label='d0_fltr', labels=['D_0', 'density']):
     for t_end, row in data[data[fltr_label]].iterrows():
         for label in labels:
@@ -32,10 +37,17 @@ def gray_out(data, axdict, fltr_label='d0_fltr', labels=['D_0', 'density']):
             ax.axvspan(row.start, t_end, edgecolor='none', facecolor='0.8',
                        alpha=0.8)
 
-def d0fltr(data, case):
-    data = read.merge_series(data, case.instr['pluvio'].start_time())
+
+def markers(data, ax, ycol='density', labelcol='label'):
+    for t_end, row in data.iterrows():
+        ax.text(row.middle, row[ycol], row[labelcol], ha='center', va='bottom',
+                weight='heavy')
+
+
+def d0fltr(data):
     data['d0_fltr'] = data.D_0 < 0.63
     return data
+
 
 def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
                   axlist=None):
@@ -52,21 +64,34 @@ def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
     #axdict['density'].axis((None, None, 0, 600))
     for param in ['N_w']:
         axdict[param].set_yscale('log')
-    data = d0fltr(data, case)
+    data = d0fltr(data)
     gray_out(data, axdict)
     return fig, axdict
 
+
+def all_cases_simple_overview(e):
+    for case in e.events.paper.values:
+        data = case.summary()
+        fig, axlist = plot_overview(data, params=params)
+        plt.legend()
+        plt.tight_layout()
+        sdir = read.ensure_dir(path.join(savedir, 'simple'))
+        fig.savefig(path.join(sdir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
+
 params=['intensity', 'density', 'D_0', 'N_w']
 
-for case in e.events.paper.values:
-    data = case.summary()
-    fig, axlist = plot_overview(data, params=params)
-    plt.legend()
-    plt.tight_layout()
-    fig.savefig(path.join(savedir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
+#all_cases_simple_overview(e)
+if debug:
+    case = e.events.paper[-1]
+if not debug:
+    case = e.events.paper[3]
+data = case.summary()
 fig = plt.figure(figsize=(6, 9))
 extent = (0.375, 5, 0.5, 2.5)
-dtlist = ['2015-01-14 02:53:00', '2015-01-14 03:30:00', '2015-01-14 03:40:00']
+if debug:
+    dtlist = ('2015-01-14 02:53:00', '2015-01-14 03:30:00', '2015-01-14 03:40:00')
+else:
+    dtlist = ('2014-02-21 18:12:00', '2014-02-21 18:58:00', '2014-02-21 20:25:00')
 series_ax = []
 fit_ax = []
 gs = gridspec.GridSpec(2, 1, height_ratios=[3,1])
@@ -90,14 +115,22 @@ for ax in fit_ax:
     ax.legend()
 for ax in series_ax + fit_ax:
     ax.set_xlabel('')
-fit_ax[0].set_ylabel('Fall velocity (m/s)')
-fit_ax[1].set_xlabel('Equivalent diameter (mm)')
+sample=data.loc[tuple(map(pd.to_datetime, dtlist)),:]
+sample['label'] = ['a', 'b', 'c']
+sample['ax'] = fit_ax
+for i, row in sample.iterrows():
+    row.ax.text(extent[1]-0.2, extent[2], row.label, ha='right', va='bottom',
+                weight='heavy')
+markers(sample, ax=axdict['density'])
+fit_ax[0].set_ylabel('Fall velocity, m$\,$s$^{-1}$')
+fit_ax[1].set_xlabel('Equivalent diameter, mm')
 labels = [a.get_xticklabels() for a in series_ax[:-1]]
 labels.extend([a.get_yticklabels() for a in fit_ax[1:]])
 plt.setp(labels, visible=False)
-axdict['intensity'].set_ylabel('$R$ (mm/h)')
-axdict['density'].set_ylabel('$\\rho$ (kg/m$^3$)')
+axdict['intensity'].set_ylabel('$R$, mm$\,$h$^{-1}$')
+axdict['density'].set_ylabel('$\\rho$, kg$\,$m$^{-3}$')
 axdict['D_0'].set_ylabel('mm')
 axdict['N_w'].set_ylabel('$N_w$')
 tfmt = DateFormatter('%H:%M')
 series_ax[-1].xaxis.set_major_formatter(tfmt)
+fig.savefig(path.join(savedir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
