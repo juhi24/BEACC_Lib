@@ -967,6 +967,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
                   #self.amount(params=[100], simple=True), # What is this?
                   pluvio.amount(),
                   pluvio.intensity(),
+                  pluvio.start_time(),
+                  pluvio.half_time(),
                   self.eta(),
                   self.mu(),
                   self.lam(),
