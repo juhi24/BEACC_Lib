@@ -19,7 +19,7 @@ from pytmatrix import tmatrix_aux as tm_aux
 # general configuration
 DEBUG = False
 
-locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
+locale.setlocale(locale.LC_ALL, 'C')
 
 if DEBUG:
     from memprof import *
@@ -328,6 +328,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
 
     def dtstr(self, dtformat='%b %d'):
         """date string in simple format"""
+        locale.setlocale(locale.LC_ALL, 'C')
         start, end = self.dt_start_end()
         dtstr = start.strftime(dtformat)
         if start.date() != end.date():
@@ -686,8 +687,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
                                      fitargs={}, dpi=180,
                                      **kwargs):
         limslist = limitslist(rholimits)
-        dlabel = 'Equivalent diameter (mm)'
-        vlabel = 'Fall velocity (ms$^{-1}$)'
+        dlabel = 'Particle diameter, mm'
+        vlabel = 'Fall velocity, ms$^{-1}$'
         fits = self.vfits_density_range(limslist, **fitargs)
         n_ranges = len(fits)
         if separate:

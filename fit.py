@@ -8,13 +8,11 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 import seaborn as sns
-import locale
 
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
 
 def set_plot_style(tickdirection='in', **kws):
-    locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
     styledict = {'xtick.direction': tickdirection,
                  'ytick.direction': tickdirection}
     styledict.update(kws)

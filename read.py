@@ -18,11 +18,8 @@ from scipy.optimize import fmin, minimize
 import pickle
 import warnings
 from glob import glob
-import locale
 import netCDF4 as nc
 import hashlib
-
-locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
 # general configuration
 DEBUG = False
