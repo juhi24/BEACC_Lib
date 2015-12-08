@@ -79,58 +79,75 @@ def all_cases_simple_overview(e):
         fig.savefig(path.join(sdir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
 
 params=['intensity', 'density', 'D_0', 'N_w']
+extent = (0.375, 5, 0.5, 2.5)
 
 #all_cases_simple_overview(e)
-if debug:
-    case = e.events.paper[-1]
-if not debug:
-    case = e.events.paper[3]
-data = case.summary()
-fig = plt.figure(figsize=(6, 9))
-extent = (0.375, 5, 0.5, 2.5)
-if debug:
-    dtlist = ('2015-01-14 02:53:00', '2015-01-14 03:30:00', '2015-01-14 03:40:00')
-else:
-    dtlist = ('2014-02-21 18:12:00', '2014-02-21 18:58:00', '2014-02-21 20:25:00')
-series_ax = []
-fit_ax = []
-gs = gridspec.GridSpec(2, 1, height_ratios=[3,1])
-gs_series = gridspec.GridSpecFromSubplotSpec(len(params), 1, subplot_spec=gs[0],
-                                             hspace=0.15)
-gs_fit = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[1],
-                                          wspace=0.05)
-for i in range(len(params)):
-    series_ax.append(plt.subplot(gs_series[i]))
-for i, dt in enumerate(dtlist):
-    vfit = case.instr['pipv'].fits.polfit[dt]
-    ax = plt.subplot(gs_fit[i])
-    vfit.plot(source_style='hex', unfiltered=True, ax=ax,
-              source_kws={'gridsize': 40, 'extent': extent})
-    ax.axis(extent)
-    fit_ax.append(ax)
-fig, axdict = plot_overview(data, axlist=series_ax, params=params)
-data['D_max'].plot(ax=axdict['D_0'], drawstyle='steps', label='$D_{max}$')
-axdict['D_0'].legend()
-for ax in fit_ax:
-    ax.legend()
-for ax in series_ax + fit_ax:
-    ax.set_xlabel('')
-sample=data.loc[tuple(map(pd.to_datetime, dtlist)),:]
-sample['label'] = ['a', 'b', 'c']
-sample['ax'] = fit_ax
-for i, row in sample.iterrows():
-    row.ax.text(extent[1]-0.2, extent[2], row.label, ha='right', va='bottom',
-                weight='heavy')
-markers(sample, ax=axdict['density'])
-fit_ax[0].set_ylabel('Fall velocity, m$\,$s$^{-1}$')
-fit_ax[1].set_xlabel('Equivalent diameter, mm')
-labels = [a.get_xticklabels() for a in series_ax[:-1]]
-labels.extend([a.get_yticklabels() for a in fit_ax[1:]])
-plt.setp(labels, visible=False)
-axdict['intensity'].set_ylabel('$R$, mm$\,$h$^{-1}$')
-axdict['density'].set_ylabel('$\\rho$, kg$\,$m$^{-3}$')
-axdict['D_0'].set_ylabel('mm')
-axdict['N_w'].set_ylabel('$N_w$')
-tfmt = DateFormatter('%H:%M')
-series_ax[-1].xaxis.set_major_formatter(tfmt)
-fig.savefig(path.join(savedir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
+
+for icase, case in e.events.paper.iteritems():
+    data = case.summary()
+    fig = plt.figure(figsize=(6, 9))
+    if debug:
+        dtlistlist = (('', '', ''),
+                      ('', '', ''),
+                      ('2015-01-14 02:53:00', '2015-01-14 03:30:00', '2015-01-14 03:40:00'))
+    else:
+        dtlistlist = (('2014-02-01 00:21:00', '2014-02-01 01:05:00', '2014-02-01 01:55:00'),
+                      ('2014-02-12 06:21:00', '2014-02-12 07:28:00', '2014-02-12 07:42:00'),
+                      ('2014-02-15 22:50:00', '2014-02-15 23:33:00', '2014-02-15 23:48:00'),
+                      ('2014-02-21 18:12:00', '2014-02-21 18:58:00', '2014-02-21 20:25:00'),
+                      ('2014-03-18 09:37:00', '2014-03-18 10:19:00', '2014-03-18 16:39:00'),
+                      ('2014-03-20 17:27:00', '2014-03-20 18:31:00', '2014-03-20 19:11:00'),
+                      ('2014-12-18 15:55:00', '2014-12-18 16:14:00', '2014-12-18 16:43:00'),
+                      ('2014-12-30 04:41:00', '2014-12-30 07:24:00', '2014-12-30 08:26:00'),
+                      ('2015-01-03 14:21:00', '2015-01-03 15:46:00', '2015-01-03 19:46:00'),
+                      ('2015-01-08 11:56:00', '2015-01-08 12:18:00', '2015-01-08 13:16:00'),
+                      ('2015-01-09 20:24:00', '2015-01-09 21:02:00', '2015-01-09 23:48:00'),
+                      ('2015-01-11 05:23:00', '2015-01-11 05:23:00', '2015-01-11 05:23:00'),
+                      ('2015-01-14 03:07:00', '2015-01-14 03:34:00', '2015-01-14 04:03:00'),
+                      ('2015-01-18 17:08:00', '2015-01-18 18:11:00', '2015-01-18 19:17:00'),
+                      ('2015-01-22 22:30:00', '2015-01-23 01:16:00', '2015-01-23 02:14:00'),
+                      ('2015-01-23 16:07:00', '2015-01-23 18:49:00', '2015-01-23 20:16:00'),
+                      ('2015-01-25 10:12:00', '2015-01-25 12:33:00', '2015-01-25 13:36:00'))
+    dtlist = dtlistlist[icase[1]]
+    series_ax = []
+    fit_ax = []
+    gs = gridspec.GridSpec(2, 1, height_ratios=[3,1])
+    gs_series = gridspec.GridSpecFromSubplotSpec(len(params), 1, subplot_spec=gs[0],
+                                                 hspace=0.15)
+    gs_fit = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[1],
+                                              wspace=0.05)
+    for i in range(len(params)):
+        series_ax.append(plt.subplot(gs_series[i]))
+    for i, dt in enumerate(dtlist):
+        vfit = case.instr['pipv'].fits.polfit[dt]
+        ax = plt.subplot(gs_fit[i])
+        vfit.plot(source_style='hex', unfiltered=True, ax=ax,
+                  source_kws={'gridsize': 40, 'extent': extent})
+        ax.axis(extent)
+        fit_ax.append(ax)
+    fig, axdict = plot_overview(data, axlist=series_ax, params=params)
+    data['D_max'].plot(ax=axdict['D_0'], drawstyle='steps', label='$D_{max}$')
+    axdict['D_0'].legend()
+    for ax in fit_ax:
+        ax.legend()
+    for ax in series_ax + fit_ax:
+        ax.set_xlabel('')
+    sample=data.loc[tuple(map(pd.to_datetime, dtlist)),:]
+    sample['label'] = ['a', 'b', 'c']
+    sample['ax'] = fit_ax
+    for i, row in sample.iterrows():
+        row.ax.text(extent[1]-0.2, extent[2], row.label, ha='right', va='bottom',
+                    weight='heavy')
+    markers(sample, ax=axdict['density'])
+    fit_ax[0].set_ylabel('Fall velocity, m$\,$s$^{-1}$')
+    fit_ax[1].set_xlabel('Equivalent diameter, mm')
+    labels = [a.get_xticklabels() for a in series_ax[:-1]]
+    labels.extend([a.get_yticklabels() for a in fit_ax[1:]])
+    plt.setp(labels, visible=False)
+    axdict['intensity'].set_ylabel('$R$, mm$\,$h$^{-1}$')
+    axdict['density'].set_ylabel('$\\rho$, kg$\,$m$^{-3}$')
+    axdict['D_0'].set_ylabel('mm')
+    axdict['N_w'].set_ylabel('$N_w$')
+    tfmt = DateFormatter('%H:%M')
+    series_ax[-1].xaxis.set_major_formatter(tfmt)
+    fig.savefig(path.join(savedir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
