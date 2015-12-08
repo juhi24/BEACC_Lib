@@ -13,8 +13,7 @@ from scr_snowfall import pip2015events, test_events
 
 plt.close('all')
 plt.ion()
-debug = False
-include_vap = False
+debug = True
 savedir = '../results/pip2015/case_overview'
 
 if debug:
@@ -79,7 +78,7 @@ def all_cases_simple_overview(e):
         fig.savefig(path.join(sdir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
 
 params=['intensity', 'density', 'D_0', 'N_w']
-extent = (0.375, 5, 0.5, 2.5)
+extent = (0.375, 5, 0.5, 2.0)
 
 #all_cases_simple_overview(e)
 
@@ -87,14 +86,14 @@ for icase, case in e.events.paper.iteritems():
     data = case.summary()
     fig = plt.figure(figsize=(6, 9))
     if debug:
-        dtlistlist = (('', '', ''),
-                      ('', '', ''),
+        dtlistlist = (('2014-03-20 17:27:00', '2014-03-20 18:31:00', '2014-03-20 19:11:00'),
+                      ('2014-12-18 15:55:00', '2014-12-18 16:14:00', '2014-12-18 16:43:00'),
                       ('2015-01-14 02:53:00', '2015-01-14 03:30:00', '2015-01-14 03:40:00'))
     else:
-        dtlistlist = (('2014-02-01 00:21:00', '2014-02-01 01:05:00', '2014-02-01 01:55:00'),
+        dtlistlist = (('2014-02-01 00:21:00', '2014-02-01 01:55:00', '2014-02-01 02:19:00'),
                       ('2014-02-12 06:21:00', '2014-02-12 07:28:00', '2014-02-12 07:42:00'),
                       ('2014-02-15 22:50:00', '2014-02-15 23:33:00', '2014-02-15 23:48:00'),
-                      ('2014-02-21 18:12:00', '2014-02-21 18:58:00', '2014-02-21 20:25:00'),
+                      ('2014-02-21 19:04:00', '2014-02-21 23:35:00', '2014-02-22 00:31:00'),
                       ('2014-03-18 09:37:00', '2014-03-18 10:19:00', '2014-03-18 16:39:00'),
                       ('2014-03-20 17:27:00', '2014-03-20 18:31:00', '2014-03-20 19:11:00'),
                       ('2014-12-18 15:55:00', '2014-12-18 16:14:00', '2014-12-18 16:43:00'),
@@ -139,12 +138,13 @@ for icase, case in e.events.paper.iteritems():
         row.ax.text(extent[1]-0.2, extent[2], row.label, ha='right', va='bottom',
                     weight='heavy')
     markers(sample, ax=axdict['density'])
+    series_ax[0].set_title(case.dtstr())
     fit_ax[0].set_ylabel('Fall velocity, m$\,$s$^{-1}$')
     fit_ax[1].set_xlabel('Equivalent diameter, mm')
     labels = [a.get_xticklabels() for a in series_ax[:-1]]
     labels.extend([a.get_yticklabels() for a in fit_ax[1:]])
     plt.setp(labels, visible=False)
-    axdict['intensity'].set_ylabel('$R$, mm$\,$h$^{-1}$')
+    axdict['intensity'].set_ylabel('$LWE$, mm$\,$h$^{-1}$')
     axdict['density'].set_ylabel('$\\rho$, kg$\,$m$^{-3}$')
     axdict['D_0'].set_ylabel('mm')
     axdict['N_w'].set_ylabel('$N_w$')
