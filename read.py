@@ -1150,6 +1150,10 @@ class PipV(InstrumentData):
                 datai, stdarri, xlimsi, ymini, ymaxi = self.filter_outlier(data=data,
                                                                frac=frac,
                                                                flip=True)
+                fiti.fltr_upper_y = xlimsi
+                fiti.fltr_lower_y = xlimsi
+                fiti.fltr_upper_x = ymaxi + [ymaxi[-1]]
+                fiti.fltr_lower_x = ymini + [ymini[-1]]
                 fiti.x = datai.Wad_Dia.values
                 fiti.y = datai.vel_v.values
                 fiti.x_unfiltered = origdata.Wad_Dia.values
