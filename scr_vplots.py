@@ -9,7 +9,7 @@ import read
 
 from scr_snowfall import pip2015events, test_events
 
-debug = False
+debug = True
 
 if debug:
     e = test_events()
@@ -22,7 +22,7 @@ plt.ioff()
 basepath = '../results/pip2015/paper/vfit'
 if debug:
     basepath += '/test'
-fname = '%Y%m%d_%H%M.eps'
+fname = '%Y%m%d_%H%M'
 date_format = '%d. %m. %Y'
 time_format = '%H:%M'
 
@@ -36,6 +36,10 @@ for c in e.events.paper.values:
     axlist = []
     flist = []
     for i, vfit in fits.iteritems():
+        if vfit.flipped:
+            flipstr = '_flipped'
+        else:
+            flipstr = ''
         flist.append(plt.figure(dpi=150, figsize=(4,3)))
         ax = vfit.plot(source_style='hex', unfiltered=True,
                        source_kws={'gridsize': 40, 'extent': extent})
@@ -48,4 +52,4 @@ for c in e.events.paper.values:
         tstr_end = i.strftime(time_format)
         ax.set_title('%s - %s' % (tstr_start, tstr_end))
         plt.tight_layout()
-        plt.savefig(os.path.join(savepath, i.strftime(fname)))
+        plt.savefig(os.path.join(savepath, i.strftime(fname) + flipstr + '.eps'))
