@@ -142,6 +142,13 @@ def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
                          edgecolors=edgecolors, **kwargs)
 
 
+def d0fltr(df, limit=0.63, drop=False, colname='d0_fltr'):
+    df[colname] = df.D_0 < limit
+    if drop:
+        return df[-df[colname]].copy()
+    return df
+
+
 class EventsCollection:
     """Manage multiple snow/rain events."""
     def __init__(self, csv, dtformat='%d %B %H UTC'):
@@ -688,7 +695,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
                                      **kwargs):
         limslist = limitslist(rholimits)
         dlabel = '$D$, mm'
-        vlabel = '$v$, ms$^{-1}$'
+        vlabel = '$v$, m$\,$s$^{-1}$'
         fits = self.vfits_density_range(limslist, **fitargs)
         n_ranges = len(fits)
         if separate:
