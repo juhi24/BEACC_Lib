@@ -12,8 +12,8 @@ import read
 from scr_snowfall import pip2015events, test_events
 
 plt.close('all')
-plt.ion()
-debug = True
+plt.ioff()
+debug = False
 savedir = '../results/pip2015/case_overview'
 
 if debug:
@@ -78,7 +78,8 @@ def all_cases_simple_overview(e):
         fig.savefig(path.join(sdir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
 
 params=['intensity', 'density', 'D_0', 'N_w']
-extent = (0.375, 5, 0.5, 2.0)
+extent = (0.375, 4, 0.5, 1.5)
+xtick_pos = (1, 2, 3, 4)
 
 #all_cases_simple_overview(e)
 
@@ -121,13 +122,17 @@ for icase, case in e.events.paper.iteritems():
         vfit = case.instr['pipv'].fits.polfit[dt]
         ax = plt.subplot(gs_fit[i])
         vfit.plot(source_style='hex', unfiltered=True, ax=ax,
-                  source_kws={'gridsize': 40, 'extent': extent})
+                  source_kws={'gridsize': 20, 'extent': extent})
         ax.axis(extent)
         fit_ax.append(ax)
     fig, axdict = plot_overview(data, axlist=series_ax, params=params)
     data['D_max'].plot(ax=axdict['D_0'], drawstyle='steps', label='$D_{max}$')
-    axdict['D_0'].legend()
+    # Reverse label order to match line order
+    handles, labels = axdict['D_0'].get_legend_handles_labels()
+    axdict['D_0'].legend(handles[::-1], labels[::-1], loc='upper left', frameon=False)
     for ax in fit_ax:
+        ax.set_xticks(xtick_pos)
+        ax.tick_params(axis='both', direction='out', length=4)
         ax.legend()
     for ax in series_ax + fit_ax:
         ax.set_xlabel('')
@@ -139,8 +144,8 @@ for icase, case in e.events.paper.iteritems():
                     weight='heavy')
     markers(sample, ax=axdict['density'])
     series_ax[0].set_title(case.dtstr())
-    fit_ax[0].set_ylabel('Fall velocity, m$\,$s$^{-1}$')
-    fit_ax[1].set_xlabel('Equivalent diameter, mm')
+    fit_ax[0].set_ylabel('$v$, m$\,$s$^{-1}$')
+    fit_ax[1].set_xlabel('$D$, mm')
     labels = [a.get_xticklabels() for a in series_ax[:-1]]
     labels.extend([a.get_yticklabels() for a in fit_ax[1:]])
     plt.setp(labels, visible=False)
@@ -150,4 +155,5 @@ for icase, case in e.events.paper.iteritems():
     axdict['N_w'].set_ylabel('$N_w$')
     tfmt = DateFormatter('%H:%M')
     series_ax[-1].xaxis.set_major_formatter(tfmt)
-    fig.savefig(path.join(savedir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
+    fig.savefig(path.join(savedir, case.dtstr('%Y%m%d') + '.eps'), dpi=150,
+                bbox_inches='tight')

@@ -687,8 +687,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
                                      fitargs={}, dpi=180,
                                      **kwargs):
         limslist = limitslist(rholimits)
-        dlabel = 'Particle diameter, mm'
-        vlabel = 'Fall velocity, ms$^{-1}$'
+        dlabel = '$D$, mm'
+        vlabel = '$v$, ms$^{-1}$'
         fits = self.vfits_density_range(limslist, **fitargs)
         n_ranges = len(fits)
         if separate:
@@ -707,7 +707,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             fitstr = '$' + str(fit) + '$'
             fit.plot(ax=ax, label=fitstr, **kwargs)
             handles, labels = ax.get_legend_handles_labels()
-            ax.legend(handles, labels, loc='lower right')
+            ax.legend(handles, labels, loc='upper right')
             #ax.set_xlabel(dlabel)
             ax.set_title(limitstr)
         middle_ax = axarr[len(axarr)/2]
