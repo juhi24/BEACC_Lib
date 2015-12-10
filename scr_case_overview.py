@@ -43,11 +43,6 @@ def markers(data, ax, ycol='density', labelcol='label'):
                 weight='heavy')
 
 
-def d0fltr(data):
-    data['d0_fltr'] = data.D_0 < 0.63
-    return data
-
-
 def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
                   axlist=None):
     data.density[data.density>800] = np.nan

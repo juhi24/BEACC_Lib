@@ -17,7 +17,7 @@ if debug:
 else:
     e = pip2015events()
 
-basedir = '../results/pip2015'
+savepath = '../results/pip2015'
 
 #plt.close('all')
 plt.ion()
@@ -40,8 +40,8 @@ def plot_d0_rho(data):
     rho_d0_data = data.loc[:, rho_d0_cols].dropna()
     rho_d0_data_baecc = rho_d0_data.loc['first']
     rho_d0_data_1415 = rho_d0_data.loc['second']
-    rho_d0 = fit.PolFit(x=rho_d0_data.D_0_gamma, y=rho_d0_data.density,
-                        sigma=1/rho_d0_data['count'], xname='D_0')
+    #rho_d0 = fit.PolFit(x=rho_d0_data.D_0_gamma, y=rho_d0_data.density,
+    #                    sigma=1/rho_d0_data['count'], xname='D_0')
     rho_d0_baecc = fit.PolFit(x=rho_d0_data_baecc.D_0_gamma,
                               y=rho_d0_data_baecc.density,
                               sigma=1/rho_d0_data_baecc['count'], xname='D_0')
@@ -56,6 +56,8 @@ def plot_d0_rho(data):
     rho_d0_1415.plot(ax=ax)
     brandes = fit.PolFit(params=[178, -0.922])
     brandes.plot(ax=ax, label='Brandes et al.')
+    ax.set_ylabel('$\\rho$, kg$\,$m$^{-3}$')
+    ax.set_xlabel('$D_{0,\gamma}$, mm')
     plt.legend()
     return ax
 
@@ -67,12 +69,12 @@ data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
 data = data.query('density<600 & count>1000 & b>0')
 data_fltr = data[data.D_0 > 0.63]
 
-fig = plt.figure(dpi=150)
+figkws = {'dpi': 150, 'figsize': (5,6)}
+fig = plt.figure(**figkws)
 ax = plot_d0_rho(data)
-fig_fltr = plt.figure(dpi=150)
+fig_fltr = plt.figure(**figkws)
 ax_fltr = plot_d0_rho(data_fltr)
 
-savepath = '../results/pip2015/paper'
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)

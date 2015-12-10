@@ -23,7 +23,7 @@ limslist = limitslist(rholims)
 n_ranges = len(limslist)
 separate = False
 
-basepath = '../results/pip2015/paper/psd'
+savepath = '../results/pip2015/psd'
 
 def d0_nw_data(c):
     d0 = c.d_0()
@@ -31,6 +31,7 @@ def d0_nw_data(c):
     nw_log = np.log10(nw)
     nw_log.name = 'log_nw'
     df = read.merge_multiseries(d0, nw, nw_log).dropna()
+    df = d0fltr(data, drop=True)
     return split_index(df)
 
 def d0_nw_datarho(c, rholimits=[0,150,300,800]):
@@ -79,9 +80,7 @@ def d0_nw_plots(c, rholimits):
 
 def psds_in_rho_range(c):
     d0 = c.d_0()
-    nt = c.n_t()
     nw = c.n_w()
-    #data = read.merge_multiseries(d0, nt, nw)
     n = c.intervalled(c.instr['dsd'].psd)
     y = n.div(nw, axis=0)
     d = y*0+y.columns.values
@@ -114,7 +113,6 @@ def psds_in_rho_range(c):
 #datarho = d0_nw_plots(comb, rholims)
 #data = d0_nw_datarho(comb, rholimits=rholims)
 fig, axarr = d0_nw_paper(comb, rholimits=rholims)
-savepath = '../results/pip2015/paper'
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)

@@ -11,7 +11,7 @@ import seaborn as sns
 
 from scr_snowfall import pip2015events, test_events
 
-debug = True
+debug = False
 
 #sns.set_context('talk')
 major_size = 8
@@ -59,6 +59,10 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
         for ax in (axd, axm):
             ax.legend().set_visible(False)
 
+def hist_data(case):
+    data = read.merge_multiseries(case.d_0(), case.mu(), case.n_w())
+    return d0fltr(data, drop=True)
+
 if debug:
     e = test_events()
 else:
@@ -70,7 +74,7 @@ fm, axarrm = subplots(n_cases)
 fn, axarrn = subplots(n_cases)
 
 for i, c in enumerate(e.events.paper.values):
-    data = read.merge_multiseries(c.d_0(), c.mu(), c.n_w())
+    data = hist_data(c)
     plots(data, axarrd[i], axarrm[i], axarrn[i], title=c.dtstr(), y=0.85,
           fontdict={'verticalalignment': 'top', 'fontsize': 10})
 
@@ -82,7 +86,7 @@ n_ranges = len(limslist)
 fdd, axarrdd = subplots(n_ranges)
 fmd, axarrmd = subplots(n_ranges)
 fnd, axarrnd = subplots(n_ranges)
-data = read.merge_multiseries(c.d_0(), c.mu(), c.n_w())
+data = hist_data(c)
 titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
 for i, lims in enumerate(limslist):
