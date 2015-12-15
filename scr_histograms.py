@@ -100,7 +100,7 @@ for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
     ax.set_title('$\\rho > %s$' % lims[0], **titlekws)
 
 for ax in (axarrdd[1], axarrmd[1]):
-    ax.set_ylabel('Density')
+    ax.set_ylabel('PDF')
 axarrnd[1].set_ylabel('Frequency')
 
 for f in (fd, fm, fn, fdd, fmd, fnd):
