@@ -26,6 +26,8 @@ separate = False
 
 savepath = '../results/pip2015/psd'
 
+rhorangestr = '$%s < \\rho \leq %s$'
+
 def d0_nw_data(c):
     d0 = c.d_0()
     nw = c.n_w()
@@ -45,7 +47,7 @@ def d0_nw_paper(c, rholimits=[0,150,300,800]):
     fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(11,4),
                               sharex=True, sharey=True, tight_layout=True)
     for i, (rhomin, rhomax) in enumerate(rhopairs):
-        limitstr = '$%s < \\rho < %s$' % (rhomin, rhomax)
+        limitstr = rhorangestr % (rhomin, rhomax)
         ax = axarr[i]
         datarho = data[data.rhomin==rhomin]#.loc['second']
         #datarho.plot(kind='scatter', x='D_0', y='N_w', ax=axarr[i], logy=True)
@@ -106,7 +108,7 @@ def psds_in_rho_range(c):
             ax.semilogy(xpart, ypart, marker='o', linestyle='None', color='black')
             ax.set_ylabel('$N_D N_w^{-1}$')
             ax.set_xlabel(xlabel)
-            ax.set_title('$%s < \\rho < %s$' % (rhomin, rhomax))
+            ax.set_title(rhorangestr % (rhomin, rhomax))
             ax.grid(True)
         plt.axis([0, 5, 10e-5, 1000])
         ax.set_title('$\\rho > ' + str(rhomin) + '$')

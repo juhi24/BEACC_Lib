@@ -19,7 +19,7 @@ set_plot_style(**{'xtick.major.size': major_size,
                   'ytick.major.size': major_size})
 
 plt.close('all')
-plt.ioff()
+plt.ion()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
 resultsdir = '../results/pip2015/hist'
 if debug:
@@ -40,14 +40,16 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
     sns.distplot(data.D_0.dropna(), ax=axd, label=label, bins=12, 
                  hist_kws={'range':rng}, **kwargs)
     axd.set_xlim(rng)
-    axd.yaxis.set_ticks(np.arange(0.5, 1.5, 0.5))
+    axd.yaxis.set_ticks(np.arange(0, 1, 0.5))
     axd.set_xlabel('$D_0$ (mm)')
     rng = (-2, 8)
+    axd.axis([None, None, None, 1])
     sns.distplot(data.mu.dropna(), ax=axm, label=label, bins=20,
                        hist_kws={'range':rng}, **kwargs)
     axm.set_xlim(rng)
     axm.yaxis.set_ticks(np.arange(0, 0.7, 0.2))
     axm.set_xlabel('$\mu$')
+    axm.axis([None, None, None, 0.38])
     sns.distplot(data.N_w.dropna(), ax=axn, label=label,
                        bins=10**np.linspace(0,6,20), kde=False, rug=True)
     axn.set_xscale('log')
@@ -91,11 +93,15 @@ titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
 for i, lims in enumerate(limslist):
     dat = c.data_in_density_range(data, *lims)
-    limitstr = '$%s < \\rho < %s$' % (lims[0], lims[1])
+    limitstr = '$%s < \\rho \leq %s$' % (lims[0], lims[1])
     plots(dat, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, **titlekws)
 
 for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
     ax.set_title('$\\rho > %s$' % lims[0], **titlekws)
+
+for ax in (axarrdd[1], axarrmd[1]):
+    ax.set_ylabel('Density')
+axarrnd[1].set_ylabel('Frequency')
 
 for f in (fd, fm, fn, fdd, fmd, fnd):
     remove_subplot_gaps(f, axis='col')
