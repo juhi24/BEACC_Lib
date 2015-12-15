@@ -927,7 +927,6 @@ class PipV(InstrumentData):
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime,
                                           verbose=DEBUG)
-                    newdata = newdata[newdata['RecNum'] > -99]
                 else:
                     newdata = pd.read_csv(filename,
                                           delim_whitespace=True,
@@ -935,7 +934,7 @@ class PipV(InstrumentData):
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime,
                                           verbose=DEBUG)
-                    newdata = newdata[newdata['RecNum']>-99]
+                newdata = newdata[newdata['RecNum']>-99]
                 if not newdata.empty:
                     newdata.rename_axis({'vel_v_1': 'vel_v',
                                          'vel_h_1': 'vel_h',
