@@ -710,7 +710,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             lims = limslist[i]
             rhomin = lims[0]
             rhomax = lims[1]
-            limitstr = '$%s < \\rho < %s$' % (rhomin, rhomax)
+            limitstr = '$%s < \\rho \leq %s$' % (rhomin, rhomax)
             fitstr = '$' + str(fit) + '$'
             fit.plot(ax=ax, label=fitstr, **kwargs)
             handles, labels = ax.get_legend_handles_labels()
