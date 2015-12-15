@@ -11,8 +11,9 @@ import fit
 
 from scr_snowfall import pip2015events
 
-#plt.close('all')
+plt.close('all')
 plt.ion()
+debug = False
 
 e = pip2015events()
 comb = e.events.paper.sum()
@@ -31,7 +32,7 @@ def d0_nw_data(c):
     nw_log = np.log10(nw)
     nw_log.name = 'log_nw'
     df = read.merge_multiseries(d0, nw, nw_log).dropna()
-    df = d0fltr(data, drop=True)
+    df = d0fltr(df, drop=True)
     return split_index(df)
 
 def d0_nw_datarho(c, rholimits=[0,150,300,800]):
@@ -41,7 +42,7 @@ def d0_nw_datarho(c, rholimits=[0,150,300,800]):
 def d0_nw_paper(c, rholimits=[0,150,300,800]):
     rhopairs = limitslist(rholimits)
     data = d0_nw_datarho(c=c, rholimits=rholimits)
-    fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(14,5),
+    fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(11,4),
                               sharex=True, sharey=True, tight_layout=True)
     for i, (rhomin, rhomax) in enumerate(rhopairs):
         limitstr = '$%s < \\rho < %s$' % (rhomin, rhomax)
@@ -56,11 +57,12 @@ def d0_nw_paper(c, rholimits=[0,150,300,800]):
         #efit.find_fit()
         #efit.plot(source_style='raw', ax=ax)
         ax.legend()
-        ax.set_xlabel('$D_0$')
         ax.set_title(limitstr)
+        ax.set_xlabel('')
     axarr[0].set_ylabel('$log(N_w)$')
+    axarr[1].set_xlabel('$D_0$, mm')
     axarr[-1].set_title('$\\rho > %s$' % rhomin)
-    plt.axis([0, 5, 1, 7])
+    plt.axis([0, 5, 1, 6])
     #remove_subplot_gaps(fig, axis='row')
     return fig, axarr
 
