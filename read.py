@@ -894,7 +894,8 @@ class PipDSD(InstrumentData):
             data = self.filter_cats_and_dogs(data=data, **kwargs)
         bin_cen = self.data.columns.values
         too_small = bin_cen[bin_cen < 0.3]
-        return gain_correction*data.drop(too_small, 1)
+        too_large = bin_cen[bin_cen > 25]
+        return gain_correction*data.drop(too_small, 1).drop(too_large, 1)
 
 
 class PipV(InstrumentData):
