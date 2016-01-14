@@ -773,11 +773,10 @@ class Pluvio(InstrumentData, PrecipMeasurer):
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
-    def __init__(self, filenames, dt_start=None, dt_end=None, d_bin=.25, **kwargs):
+    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
         """Create a PipDSD object using data from a list of PIP DSD table files."""
         print('Reading PIP PSD data...')
         InstrumentData.__init__(self, filenames, **kwargs)
-        self.d_bin = d_bin
         self.name = 'pip_dsd'
         common_csv_kws = {'skiprows': 8,
                           'header': 3,
@@ -811,8 +810,6 @@ class PipDSD(InstrumentData):
                                    nrows=1, header=None).drop([0, 1, 2, 3, 4], axis=1)
             #self.num_d = self.data[['Num_d']]
             # 1st size bin is crap data, last sometimes nans
-            self.d_bin = float(linecache.getline(self.current_file,
-                                                 11).split()[5])
             self.data.drop(['day_time', 'Num_d', 'Bin_cen'], 1,
                            inplace=True)
             self.data.columns = pd.Index([float(i) for i in self.data.columns])
@@ -839,6 +836,11 @@ class PipDSD(InstrumentData):
     def bin_cen(self):
         """Return array of bin centers."""
         return self.good_data().columns.values
+
+    def bin_width(self):
+        """as a Series"""
+        # TODO: should be calculated using actual bin edges
+        return pd.Series(self.bin_cen(), index=self.bin_cen()).diff().bfill()
 
     def n(self, d, **kwargs):
         """number concentrations for given diameter"""

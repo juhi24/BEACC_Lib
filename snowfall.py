@@ -397,10 +397,10 @@ class Case(read.PrecipMeasurer, read.Cacher):
 
     def sum_over_d(self, func, **kwargs):
         """numerical integration over particle diameter"""
-        dD = self.instr['dsd'].d_bin
+        dD = self.instr['dsd'].bin_width()
         result = self.series_zeros()
         for d in self.instr['dsd'].bin_cen():
-            result = result.add(func(d, **kwargs)*dD, fill_value=0)
+            result = result.add(func(d, **kwargs)*dD[d], fill_value=0)
         return result
 
     def r_ab(self, d, alpha, beta):
@@ -476,9 +476,9 @@ class Case(read.PrecipMeasurer, read.Cacher):
         def func():
             idxd = self.instr['dsd'].good_data().columns
             dd = pd.Series(idxd)
-            dD = self.instr['dsd'].d_bin
-            d3n = lambda d: d_corr_pip(d)**3*self.n(d)*dD
-            #d3n = lambda d: dD*self.n(d)*((d+dD*0.5)**4.0-(d-dD*0.5)**4.0)/(dD*4.0)
+            dD = self.instr['dsd'].bin_width()
+            d3n = lambda d: d_corr_pip(d)**3*self.n(d)*dD[d]
+            #d3n = lambda d: dD[d]*self.n(d)*((d+dD[d]*0.5)**4.0-(d-dD[d]*0.5)**4.0)/(dD[d]*4.0)
             cumvol = dd.apply(d3n).cumsum().T
             cumvol.columns = idxd
             sumvol = cumvol.iloc[:, -1]
@@ -516,10 +516,10 @@ class Case(read.PrecipMeasurer, read.Cacher):
     def mom_n(self, n):
         name = 'mom' + str(n)
         def func():
-            dD = self.instr['dsd'].d_bin
-            d_high = d_corr_pip(d+dD*0.5)
-            d_low = d_corr_pip(d-dD*0.5)
-            moment = lambda d: self.n(d)*(d_high**(n+1)-d_low**(n+1))/(dD*(n+1))
+            dD = self.instr['dsd'].bin_width()
+            d_high = lambda d: d_corr_pip(d+dD[d]*0.5)
+            d_low =  lambda d: d_corr_pip(d-dD[d]*0.5)
+            moment = lambda d: self.n(d)*(d_high(d)**(n+1)-d_low(d)**(n+1))/(dD[d]*(n+1))
             nth_mo = self.sum_over_d(moment)
             nth_mo.name = name
             return nth_mo
@@ -791,13 +791,13 @@ class Case(read.PrecipMeasurer, read.Cacher):
         if density is None:
             density = self.density(pluvio_filter=pluvio_filter,
                                    pip_filter=pip_filter)
-        Zserie = pd.Series(density)
-        dBin = self.instr['dsd'].d_bin
-        edges = d_corr_pip(self.instr['dsd'].data.columns.values)+0.5*dBin
+        z_serie = pd.Series(density)
+        dBin = self.instr['dsd'].bin_width()
+        edges = d_corr_pip(self.instr['dsd'].bin_cen())+0.5*dBin
         grp = self.instr['dsd'].grouped(rule=self.rule,
                                         varinterval=self.varinterval,
                                         col=self.dsd.bin_cen())
-        PSDvalues = grp.mean()
+        psd_values = grp.mean()
         for item in density.iteritems():
             if item[1] > 0.0:
                 ref = refractive.mi(wl, 0.001*item[1])
@@ -807,14 +807,14 @@ class Case(read.PrecipMeasurer, read.Cacher):
                 flake.psd_integrator = psd.PSDIntegrator()
                 flake.psd_integrator.D_max = 35.0
                 flake.psd = psd.BinnedPSD(bin_edges=edges,
-                                          bin_psd=PSDvalues.loc[item[0]].values)
+                                          bin_psd=psd_values.loc[item[0]].values)
                 flake.psd_integrator.init_scatter_table(flake)
                 Z = 10.0*np.log10(radar.refl(flake))
             else:
                 Z = np.nan
-            Zserie.loc[item[0]] = Z
-        Zserie.name = name
-        return Zserie
+            z_serie.loc[item[0]] = Z
+        z_serie.name = name
+        return z_serie
 
     def minimize(self, method='SLSQP', **kwargs):
         """Legacy method for determining alpha and beta."""
