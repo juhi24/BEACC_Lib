@@ -441,7 +441,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
                     rule=self.rule, **kwargs)
 
     def v(self, d):
-        """velocity wrapper"""
+        """velocity wrapper, m/s"""
         return self.intervalled(self.instr['pipv'].v, d)
 
     def n(self, d):
@@ -462,7 +462,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return self.msger(name, func)
 
     def d_m(self):
-        """mass weighted mean diameter"""
+        """mass weighted mean diameter, mm"""
         name = 'D_m'
         def func():
             dm = self.n_moment(4)/self.n_moment(3)
@@ -471,7 +471,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return self.msger(name, func)
 
     def d_0(self):
-        """median volume diameter"""
+        """median volume diameter, mm"""
         name = 'D_0'
         def func():
             idxd = self.instr['dsd'].good_data().columns
@@ -490,7 +490,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return self.msger(name, func)
 
     def d_max(self):
-        """maximum diameter from PSD tables"""
+        """maximum diameter from PSD tables, mm"""
         name = 'D_max'
         def func():
             idxd = self.instr['dsd'].good_data().columns
