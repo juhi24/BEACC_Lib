@@ -21,10 +21,12 @@ set_plot_style(**{'xtick.major.size': major_size,
 plt.close('all')
 plt.ion()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
-resultsdir = '../results/pip2015/hist'
+resultsdir = '../results/pip2015'
+paperdir = read.ensure_dir(path.join(resultsdir, 'paper'))
+savedir = path.join(resultsdir, 'hist')
 if debug:
-    resultsdir += '/test'
-read.ensure_dir(resultsdir)
+    savedir += '/test'
+read.ensure_dir(savedir)
 
 def split_hist(data, **kwargs):
     data = split_index(data, names=('first', 'second'))
@@ -40,20 +42,20 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
     sns.distplot(data.D_0.dropna(), ax=axd, label=label, bins=12, 
                  hist_kws={'range':rng}, **kwargs)
     axd.set_xlim(rng)
-    axd.yaxis.set_ticks(np.arange(0, 1, 0.5))
-    axd.set_xlabel('$D_0$ (mm)')
+    axd.yaxis.set_ticks(np.arange(0, 1.5, 0.5))
+    axd.set_xlabel('$D_0$, mm')
     rng = (-2, 8)
-    axd.axis([None, None, None, 1])
+    axd.axis([None, None, None, 1.5])
     sns.distplot(data.mu.dropna(), ax=axm, label=label, bins=20,
                        hist_kws={'range':rng}, **kwargs)
     axm.set_xlim(rng)
     axm.yaxis.set_ticks(np.arange(0, 0.7, 0.2))
     axm.set_xlabel('$\mu$')
-    axm.axis([None, None, None, 0.38])
+    axm.axis([None, None, None, 0.5])
     sns.distplot(data.N_w.dropna(), ax=axn, label=label,
                        bins=10**np.linspace(0,6,20), kde=False, rug=True)
     axn.set_xscale('log')
-    axn.set_xlabel('$N_w$')
+    axn.set_xlabel('$N_w$, mm$^{-1}$m$^{-3}$')
     axn.yaxis.get_major_ticks()[-1].label1.set_visible(False)
     if title is not None:
         for ax in (axd, axm, axn):
@@ -109,12 +111,15 @@ for f in (fd, fm, fn, fdd, fmd, fnd):
 tld = '.png'
 savekws = {'dpi': 400}
 
-fd.savefig(path.join(resultsdir, 'd0_cases' + tld), **savekws)
-fm.savefig(path.join(resultsdir, 'mu_cases' + tld), **savekws)
-fn.savefig(path.join(resultsdir, 'nw_cases' + tld), **savekws)
-fdd.savefig(path.join(resultsdir, 'd0_rho' + tld), **savekws)
-fmd.savefig(path.join(resultsdir, 'mu_rho' + tld), **savekws)
-fnd.savefig(path.join(resultsdir, 'nw_rho' + tld), **savekws)
+fd.savefig(path.join(savedir, 'd0_cases' + tld), **savekws)
+fm.savefig(path.join(savedir, 'mu_cases' + tld), **savekws)
+fn.savefig(path.join(savedir, 'nw_cases' + tld), **savekws)
+fdd.savefig(path.join(savedir, 'd0_rho' + tld), **savekws)
+fmd.savefig(path.join(savedir, 'mu_rho' + tld), **savekws)
+fnd.savefig(path.join(savedir, 'nw_rho' + tld), **savekws)
+fdd.savefig(path.join(paperdir, 'hist_d0' + tld), **savekws)
+fmd.savefig(path.join(paperdir, 'hist_mu' + tld), **savekws)
+fnd.savefig(path.join(paperdir, 'hist_nw' + tld), **savekws)
 
 for axarr in (axarrd, axarrm, axarrn, axarrdd, axarrmd, axarrnd):
     for ax in axarr[1:]:

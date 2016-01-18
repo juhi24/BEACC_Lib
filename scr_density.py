@@ -12,7 +12,7 @@ from scr_snowfall import pip2015events
 #plt.close('all')
 plt.ion()
 
-basepath = read.ensure_dir('../results/pip2015/paper/density')
+basepath = read.ensure_dir('../results/pip2015/density')
 dtfmt = '%Y%m%d'
 
 e = pip2015events()

@@ -19,7 +19,7 @@ else:
 plt.close('all')
 plt.ioff()
 
-basepath = '../results/pip2015/paper/vfit'
+basepath = '../results/pip2015/vfit'
 if debug:
     basepath += '/test'
 fname = '%Y%m%d_%H%M'

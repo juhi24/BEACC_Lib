@@ -31,7 +31,7 @@ def plot_d0_rho(data):
                'scale': 0.1,
                'colorbar': False,
                'xlim': [0.6,6],
-               'ylim': [0,500]}
+               'ylim': [0,450]}
     ax = plot_pairs(data.loc['first'], c='blue', label='BAECC', **plotkws)
     plot_pairs(data.loc['second'], c='green', ax=ax, label='winter 2014-2015',
                **plotkws)
@@ -69,7 +69,7 @@ data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
 data = data.query('density<600 & count>1000 & b>0')
 data_fltr = data[data.D_0 > 0.63]
 
-figkws = {'dpi': 150, 'figsize': (5,6)}
+figkws = {'dpi': 150, 'figsize': (5,5)}
 fig = plt.figure(**figkws)
 ax = plot_d0_rho(data)
 fig_fltr = plt.figure(**figkws)
@@ -77,6 +77,8 @@ ax_fltr = plot_d0_rho(data_fltr)
 
 if debug:
     savepath += '/test'
-read.ensure_dir(savepath)
+paperpath = path.join(savepath, 'paper')
+read.ensure_dir(paperpath)
 fig.savefig(path.join(savepath, 'rho_d0_combined.eps'))
 fig_fltr.savefig(path.join(savepath, 'rho_d0_combined_d0fltr.eps'))
+fig_fltr.savefig(path.join(paperpath, 'd0_rho.eps'))

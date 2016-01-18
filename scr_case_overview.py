@@ -14,7 +14,9 @@ from scr_snowfall import pip2015events, test_events
 plt.close('all')
 plt.ioff()
 debug = False
-savedir = '../results/pip2015/case_overview'
+resultsdir = '../results/pip2015'
+paperdir = read.ensure_dir(path.join(resultsdir, 'paper'))
+savedir = path.join(resultsdir, 'case_overview')
 
 if debug:
     e = test_events()
@@ -147,8 +149,11 @@ for icase, case in e.events.paper.iteritems():
     axdict['intensity'].set_ylabel('$LWE$, mm$\,$h$^{-1}$')
     axdict['density'].set_ylabel('$\\rho$, kg$\,$m$^{-3}$')
     axdict['D_0'].set_ylabel('mm')
-    axdict['N_w'].set_ylabel('$N_w$')
+    axdict['N_w'].set_ylabel('$N_w$, mm$^{-1}\,$m$^{-3}$')
     tfmt = DateFormatter('%H:%M')
     series_ax[-1].xaxis.set_major_formatter(tfmt)
-    fig.savefig(path.join(savedir, case.dtstr('%Y%m%d') + '.eps'), dpi=150,
-                bbox_inches='tight')
+    savekws = {'dpi': 150, 'bbox_inches': 'tight'}
+    savename = case.dtstr('%Y%m%d') + '.eps'
+    fig.savefig(path.join(savedir, savename), **savekws)
+    if not debug and icase[1] == 14:
+        fig.savefig(path.join(paperdir, savename))

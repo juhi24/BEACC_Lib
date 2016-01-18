@@ -4,7 +4,6 @@
 """
 from snowfall import *
 import read
-import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 import fit
@@ -47,7 +46,8 @@ bnds = (0.25,2.8,0.5,1.8)
 axarr[0].axis(bnds)
 axarr_fltr[0].axis(bnds)
 
-savepath = '../results/pip2015/vfits_density_ranges'
+resultsdir = '../results/pip2015'
+savepath = path.join(resultsdir, 'vfits_density_ranges')
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)
@@ -56,3 +56,4 @@ if unfiltered:
     fname += '_unfiltered'
 fig.savefig(path.join(savepath, fname + tld))
 fig_fltr.savefig(path.join(savepath, fname + '_d0fltr' + tld))
+fig_fltr.savefig(path.join(paperpath, 'vfits_rho_ranges' + tld))
