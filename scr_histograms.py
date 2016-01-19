@@ -12,6 +12,8 @@ import seaborn as sns
 from scr_snowfall import pip2015events, test_events
 
 debug = False
+rholims = (0, 100, 200, 800)
+#rholims = (0, 150, 300, 800)
 
 #sns.set_context('talk')
 major_size = 8
@@ -84,7 +86,7 @@ for i, c in enumerate(e.events.paper.values):
 
 c = e.events.paper.sum()
 del(e)
-limslist = limitslist((0, 150, 300, 800))
+limslist = limitslist(rholims)
 n_ranges = len(limslist)
 
 fdd, axarrdd = subplots(n_ranges)

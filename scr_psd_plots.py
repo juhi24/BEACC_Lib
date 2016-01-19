@@ -19,7 +19,8 @@ e = pip2015events()
 comb = e.events.paper.sum()
 del(e)
 
-rholims = (0, 150, 300, 800)
+rholims = (0, 100, 200, 800)
+#rholims = (0, 150, 300, 800)
 limslist = limitslist(rholims)
 n_ranges = len(limslist)
 separate = False
@@ -37,11 +38,11 @@ def d0_nw_data(c):
     df = d0fltr(df, drop=True)
     return split_index(df)
 
-def d0_nw_datarho(c, rholimits=[0,150,300,800]):
+def d0_nw_datarho(c, rholimits):
     data = d0_nw_data(c)
     return c.group_by_density(data, rholimits)
 
-def d0_nw_paper(c, rholimits=[0,150,300,800]):
+def d0_nw_paper(c, rholimits):
     rhopairs = limitslist(rholimits)
     data = d0_nw_datarho(c=c, rholimits=rholimits)
     fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(11,4),
@@ -78,8 +79,8 @@ def d0_nw_plots(c, rholimits):
                   joint_kws={'kde_kws':{'bw':0.001}})
     sns.jointplot(x='D_0', y=nwcol, data=data, kind='hex', stat_func=None)
     sns.jointplot(x='D_0', y=nwcol, data=data, kind='scatter', stat_func=None)
-    sns.lmplot(x='D_0', y=nwcol, data=datarho, col='rhomin', col_order=[0,150,300])
-    sns.lmplot(x='D_0', y=nwcol, data=datarho, hue='rhomin', hue_order=[0,150,300])
+    sns.lmplot(x='D_0', y=nwcol, data=datarho, col='rhomin', col_order=rholims[:-1])
+    sns.lmplot(x='D_0', y=nwcol, data=datarho, hue='rhomin', hue_order=rholims[:-1])
     return datarho
 
 def psds_in_rho_range(c):
