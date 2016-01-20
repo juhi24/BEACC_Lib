@@ -24,7 +24,9 @@ limslist = limitslist(rholims)
 n_ranges = len(limslist)
 separate = False
 
-savepath = '../results/pip2015/psd'
+resultspath = '../results/pip2015'
+paperpath = read.ensure_dir(path.join(resultspath, 'paper'))
+savepath = path.join(resultspath, 'psd')
 
 rhorangestr = '$%s < \\rho \leq %s$'
 
@@ -121,3 +123,4 @@ if debug:
     savepath += '/test'
 read.ensure_dir(savepath)
 fig.savefig(path.join(savepath, 'nw_d0.eps'))
+fig.savefig(path.join(paperpath, 'nw_d0.eps'))
