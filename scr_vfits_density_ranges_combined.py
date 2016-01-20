@@ -13,7 +13,9 @@ from scr_snowfall import pip2015events, test_events
 debug = False
 unfiltered = False
 tld = '.eps'
-rholimits = (0, 150, 300, 800)
+rholimits = (0, 100, 200, 800)
+#rholimits = (0, 150, 300, 800)
+
 
 if debug:
     e = test_events()
