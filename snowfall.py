@@ -12,6 +12,7 @@ import copy
 import locale
 import os
 import warnings
+import bisect
 
 from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
@@ -114,10 +115,6 @@ def limitslist(limits):
     return [(mini, limits[i+1]) for i, mini in enumerate(limits[:-1])]
 
 
-def subplot_ts(data, cols):
-    pass
-
-
 def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
                    kind='scatter', groupby=None,
                    ax=None, colorbar=False, markers='os^vD*p><',
@@ -147,6 +144,12 @@ def d0fltr(df, limit=0.63, drop=False, colname='d0_fltr'):
     if drop:
         return df[-df[colname]].copy()
     return df
+
+
+def find_interval(x, limits):
+    """Find rightmost value less than x and leftmost value more than x."""
+    i = bisect.bisect_right(limits, x)
+    return limits[i-1:i+1]
 
 
 class EventsCollection:
@@ -651,6 +654,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return self.msger(name, func)
 
     def group_by_density(self, data, rholimits):
+        """Add columns rhomin and rhomax."""
         limslist = limitslist(rholimits)
         datalist = []
         for lims in limslist:
@@ -660,6 +664,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return out.sort()
 
     def group(self, data, merger, drop_grouper=True):
+        """Data should have same or higher frequency than merger."""
         grouped = read.merge_series(data, self.instr['pluvio'].grouper())
         result = pd.merge(grouped, pd.DataFrame(merger),
                            left_on='group', right_index=True)
@@ -669,6 +674,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
 
     def data_in_density_range(self, data, rhomin, rhomax, drop_grouper=True,
                               append_limits=False, **rhokws):
+        """Return only data from timesteps where rhomin<rho<rhomax."""
+        # TODO: write tests
         rho = self.density(**rhokws)
         outdata = self.group(data, rho, drop_grouper=drop_grouper)
         result = outdata.query('%s < %s < %s' % (rhomin, rho.name, rhomax))
