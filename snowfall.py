@@ -204,6 +204,15 @@ class EventsCollection:
         self.events.index = index
 
 
+class CaseSummary:
+    """Store and analyse processed snow case data."""
+    def __init__(self, data=None):
+        self.data = data
+
+    def d0fltr(self, **kwargs):
+        return d0fltr(self.data, **kwargs)
+
+
 class Case(read.PrecipMeasurer, read.Cacher):
     """Calculate snowfall rate from particle size and velocity data."""
     def __init__(self, dsd, pipv, pluvio, xsacr=None, kasacr=None,
