@@ -84,24 +84,25 @@ for i, c in enumerate(e.events.paper.values):
     plots(data, axarrd[i], axarrm[i], axarrn[i], title=c.dtstr(), y=0.85,
           fontdict={'verticalalignment': 'top', 'fontsize': 10})
 
-c = e.events.paper.sum()
-del(e)
+#c = e.events.paper.sum()
+#del(e)
 limslist = limitslist(rholims)
 n_ranges = len(limslist)
 
 fdd, axarrdd = subplots(n_ranges)
 fmd, axarrmd = subplots(n_ranges)
 fnd, axarrnd = subplots(n_ranges)
-data = hist_data(c)
+data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
+data = d0fltr(data, drop=True)
 titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
-for i, lims in enumerate(limslist):
-    dat = c.data_in_density_range(data, *lims)
-    limitstr = '$%s < \\rho \leq %s$' % (lims[0], lims[1])
+for i, (rhomin, rhomax) in enumerate(limslist):
+    dat = data.query('%s<density<%s' % (rhomin, rhomax))
+    limitstr = '$%s < \\rho \leq %s$' % (rhomin, rhomax)
     plots(dat, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, **titlekws)
 
 for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
-    ax.set_title('$\\rho > %s$' % lims[0], **titlekws)
+    ax.set_title('$\\rho > %s$' % rhomin, **titlekws)
 
 for ax in (axarrdd[1], axarrmd[1]):
     ax.set_ylabel('PDF')

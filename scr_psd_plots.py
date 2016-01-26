@@ -12,12 +12,12 @@ import fit
 from scr_snowfall import pip2015events
 
 plt.close('all')
-plt.ion()
+plt.ioff()
 debug = False
 
 e = pip2015events()
 comb = e.events.paper.sum()
-del(e)
+#del(e)
 
 rholims = (0, 100, 200, 800)
 #rholims = (0, 150, 300, 800)
