@@ -12,11 +12,11 @@ import fit
 from scr_snowfall import pip2015events
 
 plt.close('all')
-plt.ioff()
+plt.ion()
 debug = False
 
 e = pip2015events()
-comb = e.events.paper.sum()
+#comb = e.events.paper.sum()
 #del(e)
 
 rholims = (0, 100, 200, 800)
@@ -37,16 +37,22 @@ def d0_nw_data(c):
     nw_log = np.log10(nw)
     nw_log.name = 'log_nw'
     df = read.merge_multiseries(d0, nw, nw_log).dropna()
-    df = d0fltr(df, drop=True)
+    df = d0fltr(df, apply=True)
     return split_index(df)
+
+def prepare_d0_nw(df, **kws):
+    data = df.copy()
+    data['log_nw'] = np.log10(data['N_w'])
+    data = d0fltr(data, apply=True)
+    data = apply_rho_intervals(data, **kws)
+    return data
 
 def d0_nw_datarho(c, rholimits):
     data = d0_nw_data(c)
     return c.group_by_density(data, rholimits)
 
-def d0_nw_paper(c, rholimits):
+def d0_nw_paper(data, rholimits):
     rhopairs = limitslist(rholimits)
-    data = d0_nw_datarho(c=c, rholimits=rholimits)
     fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(11,4),
                               sharex=True, sharey=True, tight_layout=True)
     for i, (rhomin, rhomax) in enumerate(rhopairs):
@@ -119,7 +125,9 @@ def psds_in_rho_range(c):
 #psds_in_rho_range(comb)
 #datarho = d0_nw_plots(comb, rholims)
 #data = d0_nw_datarho(comb, rholimits=rholims)
-fig, axarr = d0_nw_paper(comb, rholimits=rholims)
+data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
+data_d0_nw = prepare_d0_nw(data, limits=rholims)
+fig, axarr = d0_nw_paper(data_d0_nw, rholimits=rholims)
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)

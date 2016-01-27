@@ -67,7 +67,7 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
 
 def hist_data(case):
     data = read.merge_multiseries(case.d_0(), case.mu(), case.n_w())
-    return d0fltr(data, drop=True)
+    return d0fltr(data, apply=True)
 
 if debug:
     e = test_events()
@@ -93,7 +93,7 @@ fdd, axarrdd = subplots(n_ranges)
 fmd, axarrmd = subplots(n_ranges)
 fnd, axarrnd = subplots(n_ranges)
 data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
-data = d0fltr(data, drop=True)
+data = d0fltr(data, apply=True)
 titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
 for i, (rhomin, rhomax) in enumerate(limslist):
