@@ -165,6 +165,45 @@ def apply_rho_intervals(df, limits, rho_col='density'):
     return data
 
 
+def plot_vfits_rho_intervals(fits, limslist, separate=False,
+                             hide_high_limit=True,
+                             fitargs={}, dpi=180, **kwargs):
+    dlabel = '$D$, mm'
+    vlabel = '$v$, m$\,$s$^{-1}$'
+    n_ranges = len(fits)
+    if separate:
+        fig, axarr = plt.subplots(1, n_ranges, sharex=True,
+                                  sharey=True, dpi=dpi, tight_layout=True,
+                                  figsize=(n_ranges*3, 3))
+    else:
+        fig, ax = plt.subplots(tight_layout=True)
+    for i, fit in enumerate(fits):
+        if separate:
+            ax = axarr[i]
+        lims = limslist[i]
+        rhomin = lims[0]
+        rhomax = lims[1]
+        limitstr = '$%s < \\rho \leq %s$' % (rhomin, rhomax)
+        fitstr = '$' + str(fit) + '$'
+        fit.plot(ax=ax, label=fitstr, **kwargs)
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels, loc='upper right')
+        #ax.set_xlabel(dlabel)
+        ax.set_title(limitstr)
+    middle_ax = axarr[len(axarr)/2]
+    middle_ax.set_xlabel(dlabel)
+    if hide_high_limit:
+        limitstr = '$\\rho > ' + str(rhomin) + '$'
+        ax.set_title(limitstr)
+    if separate:
+        axarr[0].set_ylabel(vlabel)
+    else:
+        ax.set_ylabel(vlabel)
+    if separate:
+        return fig, axarr
+    return fig, ax
+
+
 class EventsCollection:
     """Manage multiple snow/rain events."""
     def __init__(self, csv, dtformat='%d %B %H UTC'):
@@ -718,47 +757,11 @@ class Case(read.PrecipMeasurer, read.Cacher):
             return fits
         return self.pickler(name, func)
 
-    def plot_vfits_in_density_ranges(self, rholimits=(0, 150, 300, 800),
-                                     separate=False, hide_high_limit=True,
-                                     fitargs={}, dpi=180,
-                                     **kwargs):
+    def plot_vfits_in_density_ranges(self, rholimits=(0, 100, 200, 800),
+                                     fitargs={}, **kwargs):
         limslist = limitslist(rholimits)
-        dlabel = '$D$, mm'
-        vlabel = '$v$, m$\,$s$^{-1}$'
         fits = self.vfits_density_range(limslist, **fitargs)
-        n_ranges = len(fits)
-        if separate:
-            fig, axarr = plt.subplots(1, n_ranges, sharex=True,
-                                      sharey=True, dpi=dpi, tight_layout=True,
-                                      figsize=(n_ranges*3, 3))
-        else:
-            fig, ax = plt.subplots(tight_layout=True)
-        for i, fit in enumerate(fits):
-            if separate:
-                ax = axarr[i]
-            lims = limslist[i]
-            rhomin = lims[0]
-            rhomax = lims[1]
-            limitstr = '$%s < \\rho \leq %s$' % (rhomin, rhomax)
-            fitstr = '$' + str(fit) + '$'
-            fit.plot(ax=ax, label=fitstr, **kwargs)
-            handles, labels = ax.get_legend_handles_labels()
-            ax.legend(handles, labels, loc='upper right')
-            #ax.set_xlabel(dlabel)
-            ax.set_title(limitstr)
-        middle_ax = axarr[len(axarr)/2]
-        middle_ax.set_xlabel(dlabel)
-        if hide_high_limit:
-            limitstr = '$\\rho > ' + str(rhomin) + '$'
-            ax.set_title(limitstr)
-        if separate:
-            axarr[0].set_ylabel(vlabel)
-        else:
-            ax.set_ylabel(vlabel)
-            ax.set_title(self.dtstr())
-        if separate:
-            return fig, axarr
-        return fig, ax
+        return plot_vfits_rho_intervals(fits, limslist, **kwargs)
 
     def z(self, radarname='XSACR'):
         """Radar reflectivity wrapper"""
