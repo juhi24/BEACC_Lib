@@ -15,6 +15,7 @@ unfiltered = False
 tld = '.eps'
 rholimits = (0, 100, 200, 800)
 #rholimits = (0, 150, 300, 800)
+bnds = (0.25,2.8,0.5,1.8)
 
 
 if debug:
@@ -28,9 +29,11 @@ plt.ion()
 comb = e.events.paper.sum()
 del(e)
 
+hextent = np.array(bnds)+(-0.1,0.1,-0.1,0.1)
 kws = {'separate': True,
        'rholimits': rholimits,
-       'source_style': 'kde',
+       'source_style': 'hex',
+       'source_kws': {'gridsize': 26, 'extent': hextent},
        'unfiltered': True}
 fitargs = {'force_flip': False,
            'try_flip': False,
@@ -44,12 +47,12 @@ data_grouped = comb.group(data, merger)
 data_fltr = data_grouped[data_grouped['D_0'] > 0.63]
 fitargs['data'] = data_fltr
 fig_fltr, axarr_fltr = comb.plot_vfits_in_density_ranges(fitargs=fitargs, **kws)
-bnds = (0.25,2.8,0.5,1.8)
 axarr[0].axis(bnds)
 axarr_fltr[0].axis(bnds)
 
 resultsdir = '../results/pip2015'
 savepath = path.join(resultsdir, 'vfits_density_ranges')
+paperpath = read.ensure_dir(path.join(resultsdir, 'paper'))
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)
