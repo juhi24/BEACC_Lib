@@ -139,17 +139,30 @@ def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
                          edgecolors=edgecolors, **kwargs)
 
 
-def d0fltr(df, limit=0.63, drop=False, colname='d0_fltr'):
-    df[colname] = df.D_0 < limit
-    if drop:
-        return df[-df[colname]].copy()
-    return df
+def d0fltr(df, limit=0.63, apply=False, colname='d0_fltr'):
+    data = df.copy()
+    data[colname] = data.D_0 < limit
+    if apply:
+        return data[-data[colname]]
+    return data
 
 
-def find_interval(x, limits):
+def find_interval(x, limits=(0,100,200,800)):
     """Find rightmost value less than x and leftmost value more than x."""
     i = bisect.bisect_right(limits, x)
     return limits[i-1:i+1]
+
+
+def find_interval_df(s, limits):
+    """Find intervals for Series s, output as a two-column DataFrame."""
+    return s.apply(find_interval, limits=limits).apply(pd.Series)
+
+
+def apply_rho_intervals(df, limits, rho_col='density'):
+    """Add columns for density intervals."""
+    data = df.copy()
+    data[['rhomin', 'rhomax']] = find_interval_df(data[rho_col], limits)
+    return data
 
 
 class EventsCollection:
