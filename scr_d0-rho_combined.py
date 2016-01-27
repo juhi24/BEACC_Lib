@@ -20,7 +20,7 @@ else:
 savepath = '../results/pip2015'
 
 #plt.close('all')
-plt.ion()
+plt.ioff()
 
 def plot_d0_rho(data):
     plotkws = {'x': 'D_0_gamma',

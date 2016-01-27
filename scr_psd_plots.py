@@ -12,7 +12,7 @@ import fit
 from scr_snowfall import pip2015events
 
 plt.close('all')
-plt.ion()
+plt.ioff()
 debug = False
 
 e = pip2015events()

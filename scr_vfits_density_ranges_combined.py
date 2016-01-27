@@ -24,7 +24,7 @@ else:
     e = pip2015events()
 
 #plt.close('all')
-plt.ion()
+plt.ioff()
 
 comb = e.events.paper.sum()
 del(e)

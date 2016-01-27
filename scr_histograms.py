@@ -21,7 +21,7 @@ set_plot_style(**{'xtick.major.size': major_size,
                   'ytick.major.size': major_size})
 
 plt.close('all')
-plt.ion()
+plt.ioff()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
 resultsdir = '../results/pip2015'
 paperdir = read.ensure_dir(path.join(resultsdir, 'paper'))
