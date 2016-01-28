@@ -918,6 +918,7 @@ class PipV(InstrumentData):
         self._hwfm = pd.DataFrame(columns=self.dbins)
         self.default_fit = fit.PolFit
         self.flip = False
+        self.loglog = True # use loglog method with power law fitting
         if self.data.empty:
             for filename in filenames:
                 print('.', end='')
@@ -1011,7 +1012,7 @@ class PipV(InstrumentData):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def fingerprint(self):
-        identifiers = (self.flip, self.dbins)
+        identifiers = (self.flip, self.dbins, self.loglog)
         idstr = ''.join(tuple(map(str, identifiers)))
         return fingerprint(super().fingerprint() + idstr)
 
@@ -1145,7 +1146,10 @@ class PipV(InstrumentData):
         vfit.x_unfiltered = origdata.Wad_Dia.values
         vfit.y_unfiltered = origdata.vel_v.values
         if use_curve_fit:
-            params, pcov = vfit.find_fit(**kwargs)
+            unflipped_kws = kwargs
+            if self.default_fit.name == fit.PolFit.name:
+                unflipped_kws['loglog'] = self.loglog
+            params, pcov = vfit.find_fit(**unflipped_kws)
             perr = vfit.perr()   # standard errors of d, v
             if try_flip and not use_kde_peak:
                 fiti = fitclass(flipped=True)
@@ -1255,7 +1259,7 @@ class PipV(InstrumentData):
         letter = 'abcdef'
         params = self.fits[fit_type].apply(lambda vfit: vfit.params)
         paramlist = []
-        for i in range(params.values[0].size):
+        for i in range(len(params.values[0])):
             param = params.apply(lambda p: p[i])
             param.name = letter[i]
             paramlist.append(param)
