@@ -5,7 +5,7 @@ curve fitting tools
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
+from scipy import optimize
 from scipy.stats import linregress
 import seaborn as sns
 
@@ -136,7 +136,7 @@ class Fit:
         else:
             x = self.x
             y = self.y
-        params, cov = curve_fit(self.func, x, y, **kwargs)
+        params, cov = optimize.curve_fit(self.func, x, y, **kwargs)
         if self.flipped:
             params = self.flip_params(params)
             cov = antidiagonal_transpose(cov)
@@ -228,7 +228,7 @@ class PolFit(Fit):
     """power law fit of form a*D**b"""
     def __init__(self, params=None, **kwargs):
         super().__init__(params=params, name='polfit', **kwargs)
-        self.quess = (1., 1.)
+        self.quess = (1, 0.2)
         self.str_fmt = '%s' + self.xname + '^{%s}'
 
     def func(self, x, a=None, b=None):
@@ -249,6 +249,29 @@ class PolFit(Fit):
         if (a < 0) or (b < 0) or (b > 1):
             return False
         return True
+
+    def find_fit(self, store_params=True, loglog=False, **kwargs):
+        if not loglog:
+            return super().find_fit(store_params=store_params, **kwargs)
+        params, cov = self.find_fit_loglog()
+        if store_params:
+            self.params = params
+            self.cov = cov
+        return params, cov
+
+    def find_fit_loglog(self):
+        logx = np.log10(self.x)
+        logy = np.log10(self.y)
+        fitfunc = lambda p, x: p[0]+p[1]*x
+        errfunc = lambda p, x, y: fitfunc(p, x)-y
+        out = optimize.leastsq(errfunc, self.quess, args=(logx, logy),
+                               full_output=True)
+        pfinal = out[0]
+        cov = out[1]
+        a = 10**pfinal[0]
+        b = pfinal[1]
+        return (a, b), cov
+        
 
 gunn_kinzer = ExpFit(params=GUNN_KINZER)
 set_plot_style()
