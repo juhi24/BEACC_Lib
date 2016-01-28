@@ -40,22 +40,22 @@ def plot_d0_rho(data):
     rho_d0_data = data.loc[:, rho_d0_cols].dropna()
     rho_d0_data_baecc = rho_d0_data.loc['first']
     rho_d0_data_1415 = rho_d0_data.loc['second']
-    #rho_d0 = fit.PolFit(x=rho_d0_data.D_0_gamma, y=rho_d0_data.density,
-    #                    sigma=1/rho_d0_data['count'], xname='D_0')
+    rho_d0 = fit.PolFit(x=rho_d0_data.D_0_gamma, y=rho_d0_data.density,
+                        sigma=1/rho_d0_data['count'], xname='D_0')
     rho_d0_baecc = fit.PolFit(x=rho_d0_data_baecc.D_0_gamma,
                               y=rho_d0_data_baecc.density,
                               sigma=1/rho_d0_data_baecc['count'], xname='D_0')
     rho_d0_1415 = fit.PolFit(x=rho_d0_data_1415.D_0_gamma,
                              y=rho_d0_data_1415.density,
                              sigma=1/rho_d0_data_1415['count'], xname='D_0')
-    #rho_d0.find_fit()
-    #rho_d0.plot(ax=ax4)
-    rho_d0_baecc.find_fit()
-    rho_d0_1415.find_fit()
+    rho_d0.find_fit(loglog=True)
+    rho_d0_baecc.find_fit(loglog=True)
+    rho_d0_1415.find_fit(loglog=True)
     rho_d0_baecc.plot(ax=ax)
     rho_d0_1415.plot(ax=ax)
+    rho_d0.plot(ax=ax)
     brandes = fit.PolFit(params=[178, -0.922])
-    brandes.plot(ax=ax, label='Brandes et al.')
+    brandes.plot(ax=ax, label='Brandes et al.', color='black')
     ax.set_ylabel('$\\rho$, kg$\,$m$^{-3}$')
     ax.set_xlabel('$D_{0,\gamma}$, mm')
     plt.legend()
