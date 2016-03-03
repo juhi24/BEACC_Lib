@@ -10,7 +10,7 @@ import fit
 
 from scr_snowfall import pip2015events, test_events
 
-debug = False
+debug = True
 
 if debug:
     e = test_events()
@@ -21,6 +21,34 @@ savepath = '../results/pip2015'
 
 #plt.close('all')
 plt.ioff()
+
+# dry and wet snows, from original
+magono65 = fit.PolFit(params=[20, -2], label='Magono and Nakamura (1965)')
+# "Fit of data from Magano and Nakamura (1965) for dry snowflakes", fit by Holroyd
+magono65dry = fit.PolFit(params=[22, -1.5], label='Magono and Nakamura (1965), dry snow')
+holroyd71 = fit.PolFit(params=[170, -1], label='Holroyd (1971)') # from Brandes
+# "Used by Schaller et al. (1982) for brightband modeling" from Fabry
+schaller82 = fit.PolFit(params=[64, -0.65], label='Schaller et al. (1982)')
+ # from original
+muramoto95 = fit.PolFit(params=[48, -0.406], label='Muramoto et al. (1995)')
+# "Measurements from Switzerland by Barthazy (1997, personal communication)" from Fabry
+barthazy97 = fit.PolFit(params=[18, -0.8], label='Barthazy (1997)')
+# from Brandes
+fabry99 = fit.PolFit(params=[150, -1], label='Fabry and Szyrmer (1999)')
+# from Brandes
+heymsfield04 = fit.PolFit(params=[104, -0.95], label='Heymsfield et al. (2004)')
+brandes07 = fit.PolFit(params=[178, -0.922], label='Brandes et al. (2007)')
+
+color1 = 'gray'
+color2 = 'red'
+fits_to_plot = {magono65: {'color':color1, 'linestyle':'--'},
+                holroyd71: {'color':color1, 'linestyle':':'},
+                schaller82: {'color':color1, 'linestyle':'-.'},
+                muramoto95: {'color':color1, 'linestyle':'-'},
+                #barthazy97: {'color':color, linestyle:'--'},
+                fabry99: {'color':color2, 'linestyle':'-'},
+                heymsfield04: {'color':color2, 'linestyle':'--'},
+                brandes07: {'color':'black', 'linestyle':'--'}}
 
 def plot_d0_rho(data):
     plotkws = {'x': 'D_0_gamma',
@@ -53,9 +81,10 @@ def plot_d0_rho(data):
     rho_d0_1415.find_fit(loglog=True)
     rho_d0_baecc.plot(ax=ax)
     rho_d0_1415.plot(ax=ax)
-    rho_d0.plot(ax=ax, label='all cases: $%s$' % str(rho_d0))
-    brandes = fit.PolFit(params=[178, -0.922])
-    brandes.plot(ax=ax, label='Brandes et al.', color='black', linestyle='--')
+    rho_d0.plot(ax=ax, color='black', label='all cases: $%s$' % str(rho_d0))
+    for key, kws in fits_to_plot.items():
+        key.plot(ax=ax, **kws)
+    #brandes07.plot(ax=ax, color='black', linestyle='--')
     ax.set_ylabel('$\\rho$, kg$\,$m$^{-3}$')
     ax.set_xlabel('$D_{0,\gamma}$, mm')
     plt.legend()
