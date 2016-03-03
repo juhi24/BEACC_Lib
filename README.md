@@ -1,7 +1,7 @@
 BAECC
 =====
 
-A Python 3 module to work with baecc campaign in situ data
+A Python 3 module for processing data from various (mostly in situ) precipitation instruments including Particle Imaging Package (PIP) and Pluvio^2 -pluviometers.
 
 Installation
 ------------
@@ -45,7 +45,7 @@ Minimum requirement for the configuration file is a header line with columns `st
     start,end
     2014 21 February 21 UTC,2014 21 February 23 UTC
 
-You can use different date formatting and specify a corresponding format string when initializing EventsCollection object.
+You can use different date formatting and specify a corresponding format string when initializing `EventsCollection` object.
 
 Authors
 -------
