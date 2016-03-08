@@ -41,13 +41,13 @@ brandes07 = fit.PolFit(params=[178, -0.922], label='Brandes et al. (2007)')
 
 color1 = 'gray'
 color2 = 'red'
-fits_to_plot = {magono65: {'color':color1, 'linestyle':'--'},
-                holroyd71: {'color':color1, 'linestyle':':'},
-                schaller82: {'color':color1, 'linestyle':'-.'},
-                muramoto95: {'color':color1, 'linestyle':'-'},
+fits_to_plot = {#magono65: {'color':color1, 'linestyle':'--'},
+                #holroyd71: {'color':color1, 'linestyle':':'},
+                #schaller82: {'color':color1, 'linestyle':'-.'},
+                #muramoto95: {'color':color1, 'linestyle':'-'},
                 #barthazy97: {'color':color, linestyle:'--'},
-                fabry99: {'color':color2, 'linestyle':'-'},
-                heymsfield04: {'color':color2, 'linestyle':'--'},
+                #fabry99: {'color':color2, 'linestyle':'-'},
+                #heymsfield04: {'color':color2, 'linestyle':'--'},
                 brandes07: {'color':'black', 'linestyle':'--'}}
 
 def plot_d0_rho(data):

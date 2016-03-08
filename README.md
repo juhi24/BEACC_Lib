@@ -36,8 +36,9 @@ Getting started
 
 Files starting with `scr_` are example scripts.
 
-You need PIP and pluviometer data either in raw ASCII or HDF5 format. 
-Parts of the code can also utilize radar data using pytmatrix.
+You need PIP and pluviometer data either in raw ASCII or HDF5 (recommended) format. 
+Parts of the code can also utilize radar data using pytmatrix. 
+You can convert your data to a HDF5 database using `read.batch_create_hdf´.
 
 Data is selected using csv case configuration files. 
 Minimum requirement for the configuration file is a header line with columns `start` and `end`, and at least one row (case) with corresponding datetime strings as shown here:

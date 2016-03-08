@@ -196,7 +196,7 @@ def batch_import(dtstrlist, datadir=DATA_DIR, radar=False):
 
 def batch_create_hdf(instrdict=None, datadir=DATA_DIR, outname=H5_FILE,
                      dtstrlist=('20140[2-3]??')):
-    """Read ASCII data and export to hdf."""
+    """Read ASCII data and export to hdf5."""
     if instrdict is None:
         instrdict = {PIPV_SUBPATH: PipV,
                      DSD_SUBPATH: PipDSD,
