@@ -7,6 +7,7 @@ import time
 import os
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from matplotlib import ticker
 import datetime
 import pandas as pd
 import numpy as np
@@ -23,6 +24,7 @@ import hashlib
 
 # general configuration
 DEBUG = False
+CGS_UNITS = True # display units in cgs instead of SI
 
 # CONFIG default paths
 DATA_DIR = '../DATA'
@@ -39,6 +41,23 @@ MSGTLD = '.msg'
 PICKLETLD = '.pkl'
 
 ns1min = 1.0*60.0*1000000000.0
+
+# constants
+if CGS_UNITS:
+    RHO_SCALE = 1e-3
+    RHO_UNITS = 'g$\,$cm$^{-3}$'
+else:
+    RHO_SCALE = 1
+    RHO_UNITS = 'kg$\,$m$^{-3}$'
+
+
+def rho_scale(axis):
+    axis_scale(axis, RHO_SCALE)
+
+
+def axis_scale(axis, scale):
+    formatter = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x*scale))
+    axis.set_major_formatter(formatter)
 
 
 def hash_dict(d):

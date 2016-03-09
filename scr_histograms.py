@@ -98,11 +98,11 @@ titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
 for i, (rhomin, rhomax) in enumerate(limslist):
     dat = data.query('%s<density<%s' % (rhomin, rhomax))
-    limitstr = '$%s < \\rho \leq %s$' % (rhomin, rhomax)
+    limitstr = '$%s < \\rho \leq %s$' % (rhomin*read.RHO_SCALE, rhomax*read.RHO_SCALE)
     plots(dat, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, **titlekws)
 
 for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
-    ax.set_title('$\\rho > %s$' % rhomin, **titlekws)
+    ax.set_title('$\\rho > %s$' % rhomin*read.RHO_SCALE, **titlekws)
 
 for ax in (axarrdd[1], axarrmd[1]):
     ax.set_ylabel('PDF')

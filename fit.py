@@ -37,11 +37,10 @@ class ClassProperty(property):
 class Fit:
     """parent for different fit types"""
     def __init__(self, x=None, y=None, x_unfiltered=None, y_unfiltered=None,
-                 sigma=None, params=None, name='fit', xname='D', label=None,
+                 sigma=None, params=None, name='fit', xname='D',
                  flipped=False):
         self.params = params
         self._name = name
-        self.label = label
         self.x = x
         self.y = y
         self.x_unfiltered = x_unfiltered
@@ -94,10 +93,7 @@ class Fit:
         x = np.linspace(xmin, xmax, samples)
         y = [self.func(xi, *self.params) for xi in x]
         if label is None:
-            if self.label is None:
-                label = r'$' + str(self) + r'$'
-            else:
-                label = self.label
+            label = r'$' + str(self) + r'$'
         ax.plot(x, y, label=label, linewidth=linewidth, **kwargs)
         if unfiltered:
             x = self.x_unfiltered

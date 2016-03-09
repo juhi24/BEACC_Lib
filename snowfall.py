@@ -183,7 +183,7 @@ def plot_vfits_rho_intervals(fits, limslist, separate=False,
         lims = limslist[i]
         rhomin = lims[0]
         rhomax = lims[1]
-        limitstr = '$%s < \\rho \leq %s$' % (rhomin, rhomax)
+        limitstr = '$%s < \\rho \leq %s$' % (rhomin*read.RHO_SCALE, rhomax*read.RHO_SCALE)
         fitstr = '$' + str(fit) + '$'
         fit.plot(ax=ax, label=fitstr, **kwargs)
         handles, labels = ax.get_legend_handles_labels()
@@ -193,7 +193,7 @@ def plot_vfits_rho_intervals(fits, limslist, separate=False,
     middle_ax = axarr[len(axarr)/2]
     middle_ax.set_xlabel(dlabel)
     if hide_high_limit:
-        limitstr = '$\\rho > ' + str(rhomin) + '$'
+        limitstr = '$\\rho > %s$' % rhomin*read.RHO_SCALE
         ax.set_title(limitstr)
     if separate:
         axarr[0].set_ylabel(vlabel)

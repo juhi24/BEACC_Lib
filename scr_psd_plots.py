@@ -56,7 +56,7 @@ def d0_nw_paper(data, rholimits):
     fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(11,4),
                               sharex=True, sharey=True, tight_layout=True)
     for i, (rhomin, rhomax) in enumerate(rhopairs):
-        limitstr = rhorangestr % (rhomin, rhomax)
+        limitstr = rhorangestr % (rhomin*read.RHO_SCALE, rhomax*read.RHO_SCALE)
         ax = axarr[i]
         datarho = data[data.rhomin==rhomin]#.loc['second']
         #datarho.plot(kind='scatter', x='D_0', y='N_w', ax=axarr[i], logy=True)
@@ -72,7 +72,7 @@ def d0_nw_paper(data, rholimits):
         ax.set_xlabel('')
     axarr[0].set_ylabel('$log(N_w)$')
     axarr[1].set_xlabel('$D_0$, mm')
-    axarr[-1].set_title('$\\rho > %s$' % rhomin)
+    axarr[-1].set_title('$\\rho > %s$' % rhomin*read.RHO_SCALE)
     plt.axis([0, 5, 1, 6])
     #remove_subplot_gaps(fig, axis='row')
     return fig, axarr
