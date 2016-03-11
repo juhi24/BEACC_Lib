@@ -21,6 +21,7 @@ import warnings
 from glob import glob
 import netCDF4 as nc
 import hashlib
+import gc
 
 # general configuration
 DEBUG = False
@@ -225,6 +226,8 @@ def batch_create_hdf(instrdict=None, datadir=DATA_DIR, outname=H5_FILE,
     for key in instrdict:
         instr = instrdict[key].from_raw(dtstrlist, subpath=key, datadir=datadir)
         instr.to_hdf(filename=hdf_file)
+        del(instr)
+        gc.collect()
 
 
 class Cacher:
@@ -538,7 +541,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                                     'supply voltage',
                                     'ice rim temperature']
             col_abbr = ['datestr',
-                        'group',#'i_rt', #don't know why, but needs this column to be exsisting before
+                        'group', #don't know why, but needs this column to be exsisting before
+                        #'i_rt', 
                         'acc_rt',
                         'acc_nrt',
                         'acc_tot_nrt',
@@ -571,8 +575,8 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.buffer = pd.datetools.timedelta(0)
         self.finish_init(dt_start, dt_end)
         self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
-        self.data['heating'] = self.data.astype(float)  # sometimes this are interpreted as int
-        self.data['status'] = self.data.astype(float)   # sometimes this are interpreted as int
+        self.data['heating'] = self.data.heating.astype(float)  # sometimes this are interpreted as int
+        self.data['status'] = self.data.status.astype(float)   # sometimes this are interpreted as int
 
     @property
     def varinterval(self):
@@ -814,7 +818,7 @@ class PipDSD(InstrumentData):
                     continue
                 self.current_file = filename
                 # File format changed
-                if int(os.path.split(filename)[1][3:11]) > 20140831: # TODO fixme
+                if int(os.path.split(filename)[1][3:11]) > 20141124:
                     self.data = self.data.append(pd.read_csv(filename,
                                                              engine='python',
                                                              sep='\t',
@@ -942,7 +946,7 @@ class PipV(InstrumentData):
             for filename in filenames:
                 print('.', end='')
                 self.current_file = filename
-                if int(filename[-23:-15]) > 20140831: # TODO fixme
+                if int(filename[-23:-15]) > 20141124:
                     newdata = pd.read_csv(filename,
                                           engine='python', sep='\t',
                                           skipinitialspace=True, skiprows=8,

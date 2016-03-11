@@ -4,4 +4,4 @@
 """
 import read
 
-read.batch_create_hdf(outname='nov-jan1415.h5', dtstrlist=['20141???', '201501??'])
+read.batch_create_hdf(outname='2014nov1-23.h5', dtstrlist=['201411[0-1][1-9]', '2014112[0-3]'])
