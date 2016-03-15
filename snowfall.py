@@ -35,6 +35,33 @@ TAU = 2*np.pi
 RHO_W = 1000
 
 
+def ordinal(n):
+    if 10 <= n % 100 < 20:
+        return str(n) + 'th'
+    else:
+        return str(n) + {1 : 'st', 2 : 'nd', 3 : 'rd'}.get(n % 10, "th")
+
+
+def daterange2str(start, end, dtformat='{day}{month}{year}', delimiter='-',
+          hour_fmt='%H', day_fmt='%d.', month_fmt='%m.', year_fmt='%Y'):
+    """date range in simple human readable format"""
+    locale.setlocale(locale.LC_ALL, 'C')
+    same_date = start.date() == end.date()
+    start_fmt = dtformat
+    end_fmt = dtformat
+    for attr in ('minute', 'hour', 'day', 'month', 'year'):
+        if getattr(start, attr) == getattr(end, attr) and not same_date:
+            start_fmt = start_fmt.replace(('{%s}' % attr),'')
+    start_fmt = start_fmt.strip()
+    formats = {'hour':hour_fmt, 'day':day_fmt, 'month':month_fmt,
+               'year':year_fmt}
+    start_str = start.strftime(start_fmt.format(**formats))
+    end_str = end.strftime(end_fmt.format(**formats))
+    if same_date:
+        return start_str
+    return start_str + delimiter + end_str
+
+
 def d_corr_pip(d):
     """disdrometer-observed particle size to the true maximum dimension
     See Characterization of video disdrometer uncertainties and impacts on
@@ -397,14 +424,9 @@ class Case(read.PrecipMeasurer, read.Cacher):
             idstr += instr.fingerprint()
         return read.fingerprint(idstr)
 
-    def dtstr(self, dtformat='%b %d'):
-        """date string in simple format"""
-        locale.setlocale(locale.LC_ALL, 'C')
-        start, end = self.dt_start_end()
-        dtstr = start.strftime(dtformat)
-        if start.date() != end.date():
-            dtstr += '-' + end.strftime(dtformat)
-        return dtstr
+    def dtstr(self, dtformat='{day}{month}{year}', **kws):
+        """date string in simple human readable format"""
+        return daterange2str(*self.dt_start_end(), dtformat=dtformat, **kws)
 
     def between_datetime(self, dt_start, dt_end, inplace=False,
                          autoshift=False, autobias=False):

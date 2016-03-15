@@ -52,7 +52,8 @@ def events(casesfile_baecc='cases/pip2015.csv',
 
 def pip2015events():
     e = events()
-    #e.events.paper[12] = e.events.pluvio400[12] # TODO
+    pref400 = e.events.pluvio_pref==400
+    e.events.paper[pref400] = e.events.pluvio400[pref400] # TODO
     #e.events.pluvio200[12] = None # TODO
     return e
 

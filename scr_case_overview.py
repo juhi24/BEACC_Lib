@@ -3,16 +3,19 @@
 @author: Jussi Tiira
 """
 from snowfall import *
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.dates import DateFormatter
 from os import path
 import read
+import warnings
 
 from scr_snowfall import pip2015events, test_events
 
 plt.close('all')
-plt.ioff()
+plt.ion()
 debug = False
 resultsdir = '../results/pip2015'
 paperdir = read.ensure_dir(path.join(resultsdir, 'paper'))
@@ -80,32 +83,15 @@ xtick_pos = (1, 2, 3, 4)
 
 #all_cases_simple_overview(e)
 
-for icase, case in e.events.paper.iteritems():
+for ievent, event in e.events.iterrows():
+    case = event.paper
     data = case.summary()
     fig = plt.figure(figsize=(6, 9))
-    if debug:
-        dtlistlist = (('2014-03-20 17:27:00', '2014-03-20 18:31:00', '2014-03-20 19:11:00'),
-                      ('2014-12-18 15:55:00', '2014-12-18 16:14:00', '2014-12-18 16:43:00'),
-                      ('2015-01-14 02:53:00', '2015-01-14 03:30:00', '2015-01-14 03:40:00'))
+    if event.a is np.nan:
+        last_ts = case.instr['pipv'].fits.polfit.index[-1]
+        dtlist = (last_ts, last_ts, last_ts)
     else:
-        dtlistlist = (('2014-02-01 00:21:00', '2014-02-01 01:55:00', '2014-02-01 02:19:00'),
-                      ('2014-02-12 06:21:00', '2014-02-12 07:28:00', '2014-02-12 07:42:00'),
-                      ('2014-02-15 22:50:00', '2014-02-15 23:33:00', '2014-02-15 23:48:00'),
-                      ('2014-02-21 19:04:00', '2014-02-21 23:35:00', '2014-02-22 00:31:00'),
-                      ('2014-03-18 09:37:00', '2014-03-18 10:19:00', '2014-03-18 16:39:00'),
-                      ('2014-03-20 17:27:00', '2014-03-20 18:31:00', '2014-03-20 19:11:00'),
-                      ('2014-12-18 15:55:00', '2014-12-18 16:14:00', '2014-12-18 16:43:00'),
-                      ('2014-12-30 04:41:00', '2014-12-30 07:24:00', '2014-12-30 08:26:00'),
-                      ('2015-01-03 14:21:00', '2015-01-03 15:46:00', '2015-01-03 19:46:00'),
-                      ('2015-01-08 11:56:00', '2015-01-08 12:18:00', '2015-01-08 13:16:00'),
-                      ('2015-01-09 20:24:00', '2015-01-09 21:02:00', '2015-01-09 23:48:00'),
-                      ('2015-01-11 05:23:00', '2015-01-11 05:23:00', '2015-01-11 05:23:00'),
-                      ('2015-01-14 03:07:00', '2015-01-14 03:34:00', '2015-01-14 04:03:00'),
-                      ('2015-01-18 17:08:00', '2015-01-18 18:11:00', '2015-01-18 19:17:00'),
-                      ('2015-01-22 22:30:00', '2015-01-23 01:16:00', '2015-01-23 02:14:00'),
-                      ('2015-01-23 16:07:00', '2015-01-23 18:49:00', '2015-01-23 20:16:00'),
-                      ('2015-01-25 10:12:00', '2015-01-25 12:33:00', '2015-01-25 13:36:00'))
-    dtlist = dtlistlist[icase[1]]
+        dtlist = (event.a, event.b, event.c)
     series_ax = []
     fit_ax = []
     gs = gridspec.GridSpec(2, 1, height_ratios=[3,1])
@@ -155,6 +141,9 @@ for icase, case in e.events.paper.iteritems():
     series_ax[-1].xaxis.set_major_formatter(tfmt)
     savekws = {'dpi': 150, 'bbox_inches': 'tight'}
     savename = case.dtstr('%Y%m%d') + '.eps'
-    fig.savefig(path.join(savedir, savename), **savekws)
-    if not debug and icase[1] == 14:
+    try:
+        fig.savefig(path.join(savedir, savename), **savekws)
+    except ValueError as err:
+        warnings.warn("ValueError: {0} Skipping plot for the {1} case.".format(err, case.dtstr()))
+    if not debug and event.case_study==True:
         fig.savefig(path.join(paperdir, savename))

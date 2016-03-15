@@ -80,6 +80,7 @@ fm, axarrm = subplots(n_cases)
 fn, axarrn = subplots(n_cases)
 
 for i, c in enumerate(e.events.paper.values):
+    print(c)
     data = hist_data(c)
     plots(data, axarrd[i], axarrm[i], axarrn[i], title=c.dtstr(), y=0.85,
           fontdict={'verticalalignment': 'top', 'fontsize': 10})
@@ -102,7 +103,8 @@ for i, (rhomin, rhomax) in enumerate(limslist):
     plots(dat, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, **titlekws)
 
 for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
-    ax.set_title('$\\rho > %s$' % rhomin*read.RHO_SCALE, **titlekws)
+    ax.set_title('$\\rho > %s$' % (rhomin*read.RHO_SCALE), **titlekws)
+    #ax.set_title('$\\rho > %s$' % rhomin, **titlekws)
 
 for ax in (axarrdd[1], axarrmd[1]):
     ax.set_ylabel('PDF')
