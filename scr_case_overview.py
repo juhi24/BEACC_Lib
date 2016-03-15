@@ -15,7 +15,7 @@ import warnings
 from scr_snowfall import pip2015events, test_events
 
 plt.close('all')
-plt.ion()
+plt.ioff()
 debug = False
 resultsdir = '../results/pip2015'
 paperdir = read.ensure_dir(path.join(resultsdir, 'paper'))

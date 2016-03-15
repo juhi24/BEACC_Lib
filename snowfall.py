@@ -220,7 +220,7 @@ def plot_vfits_rho_intervals(fits, limslist, separate=False,
     middle_ax = axarr[len(axarr)/2]
     middle_ax.set_xlabel(dlabel)
     if hide_high_limit:
-        limitstr = '$\\rho > %s$' % rhomin*read.RHO_SCALE
+        limitstr = '$\\rho > %s$' % (rhomin*read.RHO_SCALE)
         ax.set_title(limitstr)
     if separate:
         axarr[0].set_ylabel(vlabel)

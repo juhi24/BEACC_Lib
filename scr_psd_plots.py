@@ -72,7 +72,7 @@ def d0_nw_paper(data, rholimits):
         ax.set_xlabel('')
     axarr[0].set_ylabel('$log(N_w)$')
     axarr[1].set_xlabel('$D_0$, mm')
-    axarr[-1].set_title('$\\rho > %s$' % rhomin*read.RHO_SCALE)
+    axarr[-1].set_title('$\\rho > %s$' % (rhomin*read.RHO_SCALE))
     plt.axis([0, 5, 1, 6])
     #remove_subplot_gaps(fig, axis='row')
     return fig, axarr
