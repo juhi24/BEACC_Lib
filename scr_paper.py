@@ -11,3 +11,6 @@ scriptnames = ['scr_case_overview.py',
 for scriptname in scriptnames:
     runfile(scriptname)
     gc.collect()
+
+# V-D
+# D_0 gamma in figures

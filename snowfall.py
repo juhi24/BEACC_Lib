@@ -1031,6 +1031,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
                   pluvio.intensity(),
                   pluvio.start_time(),
                   pluvio.half_time(),
+                  pluvio.tdelta(),
                   self.eta(),
                   self.mu(),
                   self.lam(),

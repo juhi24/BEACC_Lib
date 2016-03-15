@@ -51,6 +51,12 @@ fits_to_plot = {#magono65: {'color':color1, 'linestyle':'--', 'label':'Magono an
                 #heymsfield04: {'color':color2, 'linestyle':'--', 'label':'Heymsfield et al. (2004)'},
                 brandes07: {'color':'black', 'linestyle':'--', 'label':'Brandes et al. (2007)'}}
 
+def plot_density_histogram(data, bins=60, **kws):
+    ax = data.density.hist(bins=bins, **kws)
+    read.rho_scale(ax.xaxis)
+    ax.set_xlabel('bulk density')
+    ax.set_ylabel('frequency')
+
 def plot_d0_rho(data):
     plotkws = {'x': 'D_0_gamma',
                'y': 'density',
