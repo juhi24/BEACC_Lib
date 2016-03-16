@@ -6,6 +6,7 @@ from snowfall import *
 import numpy as np
 import matplotlib.pyplot as plt
 from os import path
+import gc
 
 pluvio_comb_intervals = 2
 
@@ -57,6 +58,18 @@ def pip2015events():
     #e.events.pluvio200[12] = None # TODO
     return e
 
+
+def param_table(e=None, query_str='density<600 & count>1000 & b>0 & D_0>0.63',
+                debug=False):
+    if e is None:
+        if debug:
+            e = test_events()
+        else:
+            e = pip2015events()
+    data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
+    del(e)
+    gc.collect()
+    return data.query(query_str)
 #e = pip2015events()
 
 #plt.close('all')

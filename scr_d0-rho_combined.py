@@ -8,14 +8,9 @@ import matplotlib.pyplot as plt
 from os import path
 import fit
 
-from scr_snowfall import pip2015events, test_events
+from scr_snowfall import pip2015events, test_events, param_table
 
 debug = False
-
-if debug:
-    e = test_events()
-else:
-    e = pip2015events()
 
 savepath = '../results/pip2015'
 
@@ -101,13 +96,11 @@ def plot_d0_rho(data):
 #w14 = e.events[during_baecc]
 #w1415 = e.events[-during_baecc]
 
-data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
-data = data.query('density<600 & count>1000 & b>0')
-data_fltr = data[data.D_0 > 0.63]
+data_fltr = param_table(debug=debug)
 
 figkws = {'dpi': 150, 'figsize': (5,5)}
-fig = plt.figure(**figkws)
-ax = plot_d0_rho(data)
+#fig = plt.figure(**figkws)
+#ax = plot_d0_rho(data)
 fig_fltr = plt.figure(**figkws)
 ax_fltr = plot_d0_rho(data_fltr)
 
@@ -115,6 +108,6 @@ if debug:
     savepath += '/test'
 paperpath = path.join(savepath, 'paper')
 read.ensure_dir(paperpath)
-fig.savefig(path.join(savepath, 'rho_d0_combined.eps'))
+#fig.savefig(path.join(savepath, 'rho_d0_combined.eps'))
 fig_fltr.savefig(path.join(savepath, 'rho_d0_combined_d0fltr.eps'))
 fig_fltr.savefig(path.join(paperpath, 'd0_rho.eps'))
