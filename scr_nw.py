@@ -6,8 +6,6 @@ from snowfall import *
 import numpy as np
 import matplotlib.pyplot as plt
 import fit
-
-plt.close('all')
 from scr_snowfall import param_table
 
 def nw_dmitri(rho, d0):
@@ -15,6 +13,15 @@ def nw_dmitri(rho, d0):
 
 def nw(rho, d0):
     return 10**(5.6-(0.403*rho**(1/3)-1.2)*d0)
+
+def alpha_fit():
+    alpha = np.array([.465, .851, 1.301])
+    rho = np.array([72.7, 134, 243.8])
+    afit = fit.LinFit(x=rho**(1/3), y=alpha)
+    afit.find_fit()
+    return afit
+
+plt.close('all')
 
 #data = param_table()
 data['D_0_rho'] = data.D_0_gamma*data.density**(1/3)
@@ -30,14 +37,6 @@ ax.set_xlabel('$N_w$')
 ax.set_ylabel('$N_w(\\rho)$')
 ax.plot([0,1e8],[0, 1e8])
 ax.axis([1e1,1e6,1e1,1e6])
-
-def alpha_fit():
-    alpha = np.array([.465, .851, 1.301])
-    rho = np.array([72.7, 134, 243.8])
-    
-    afit = fit.LinFit(x=rho**(1/3), y=alpha)
-    afit.find_fit()
-    return afit
 
 #plt.figure()
 #afit = alpha_fit()

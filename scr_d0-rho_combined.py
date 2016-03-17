@@ -3,16 +3,16 @@
 @author: Jussi Tiira
 """
 from snowfall import *
-import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 import fit
 
-from scr_snowfall import pip2015events, test_events, param_table
+from scr_snowfall import param_table
 
 debug = False
 
 savepath = '../results/pip2015'
+d0_col = 'D_0_gamma'
 
 #plt.close('all')
 plt.ioff()
@@ -53,7 +53,7 @@ def plot_density_histogram(data, bins=60, **kws):
     ax.set_ylabel('frequency')
 
 def plot_d0_rho(data):
-    plotkws = {'x': 'D_0_gamma',
+    plotkws = {'x': d0_col,
                'y': 'density',
                'sizecol': 'count',
                #'groupby': 'case',
@@ -66,16 +66,16 @@ def plot_d0_rho(data):
     plot_pairs(data.loc['second'], c='green', ax=ax, label='winter 2014-2015',
                **plotkws)
     plt.tight_layout()
-    rho_d0_cols = ['density','D_0_gamma', 'count']
+    rho_d0_cols = ['density',d0_col, 'count']
     rho_d0_data = data.loc[:, rho_d0_cols].dropna()
     rho_d0_data_baecc = rho_d0_data.loc['first']
     rho_d0_data_1415 = rho_d0_data.loc['second']
-    rho_d0 = fit.PolFit(x=rho_d0_data.D_0_gamma, y=rho_d0_data.density,
+    rho_d0 = fit.PolFit(x=rho_d0_data[d0_col], y=rho_d0_data.density,
                         sigma=1/rho_d0_data['count'], xname='D_0')
-    rho_d0_baecc = fit.PolFit(x=rho_d0_data_baecc.D_0_gamma,
+    rho_d0_baecc = fit.PolFit(x=rho_d0_data_baecc[d0_col],
                               y=rho_d0_data_baecc.density,
                               sigma=1/rho_d0_data_baecc['count'], xname='D_0')
-    rho_d0_1415 = fit.PolFit(x=rho_d0_data_1415.D_0_gamma,
+    rho_d0_1415 = fit.PolFit(x=rho_d0_data_1415[d0_col],
                              y=rho_d0_data_1415.density,
                              sigma=1/rho_d0_data_1415['count'], xname='D_0')
     rho_d0.find_fit(loglog=True)
@@ -88,7 +88,7 @@ def plot_d0_rho(data):
         key.plot(ax=ax, **kws)
     read.rho_scale(ax.yaxis)
     ax.set_ylabel('$\\rho$, ' + read.RHO_UNITS)
-    ax.set_xlabel('$D_{0,\gamma}$, mm')
+    ax.set_xlabel('$D_0$, mm')
     plt.legend()
     return ax
 

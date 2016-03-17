@@ -24,6 +24,7 @@ rholims = (0, 100, 200, 800)
 limslist = limitslist(rholims)
 n_ranges = len(limslist)
 separate = False
+d0_col = 'D_0_gamma'
 
 resultspath = '../results/pip2015'
 paperpath = read.ensure_dir(path.join(resultspath, 'paper'))
@@ -60,8 +61,8 @@ def d0_nw_paper(data, rholimits):
         ax = axarr[i]
         datarho = data[data.rhomin==rhomin]#.loc['second']
         #datarho.plot(kind='scatter', x='D_0', y='N_w', ax=axarr[i], logy=True)
-        datarho.plot(kind='scatter', x='D_0', y='log_nw', c='', ax=axarr[i])
-        lfit = fit.LinFit(x=datarho.D_0, y=datarho.log_nw, xname='D_0')
+        datarho.plot(kind='scatter', x=d0_col, y='log_nw', c='', ax=axarr[i])
+        lfit = fit.LinFit(x=datarho[d0_col], y=datarho.log_nw, xname='D_0')
         lfit.find_fit()
         lfit.plot(source_style=None, ax=ax)
         #efit = fit.ExponentialFit(x=datarho.D_0, y=datarho.N_w)
@@ -82,13 +83,13 @@ def d0_nw_plots(c, rholimits):
     datarho = c.group_by_density(data, rholimits)
     f, ax = plt.subplots(dpi=120, tight_layout=True)
     nwcol = 'log_nw'
-    df.plot(kind='hexbin', x='D_0', y=nwcol, logy=False, ax=ax)
-    sns.jointplot(x='D_0', y=nwcol, data=data, kind='kde', stat_func=None,
+    df.plot(kind='hexbin', x=d0_col, y=nwcol, logy=False, ax=ax)
+    sns.jointplot(x=d0_col, y=nwcol, data=data, kind='kde', stat_func=None,
                   joint_kws={'kde_kws':{'bw':0.001}})
-    sns.jointplot(x='D_0', y=nwcol, data=data, kind='hex', stat_func=None)
-    sns.jointplot(x='D_0', y=nwcol, data=data, kind='scatter', stat_func=None)
-    sns.lmplot(x='D_0', y=nwcol, data=datarho, col='rhomin', col_order=rholims[:-1])
-    sns.lmplot(x='D_0', y=nwcol, data=datarho, hue='rhomin', hue_order=rholims[:-1])
+    sns.jointplot(x=d0_col, y=nwcol, data=data, kind='hex', stat_func=None)
+    sns.jointplot(x=d0_col, y=nwcol, data=data, kind='scatter', stat_func=None)
+    sns.lmplot(x=d0_col, y=nwcol, data=datarho, col='rhomin', col_order=rholims[:-1])
+    sns.lmplot(x=d0_col, y=nwcol, data=datarho, hue='rhomin', hue_order=rholims[:-1])
     return datarho
 
 def psds_in_rho_range(c):

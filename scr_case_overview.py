@@ -20,6 +20,7 @@ debug = False
 resultsdir = '../results/pip2015'
 paperdir = read.ensure_dir(path.join(resultsdir, 'paper'))
 savedir = path.join(resultsdir, 'case_overview')
+d0_col = 'D_0_gamma'
 
 if debug:
     e = test_events()
@@ -57,14 +58,17 @@ def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
     else:
         for i, param in enumerate(params):
             ax = axlist[i]
-            data[param].plot(ax=ax, drawstyle='steps', label='$'+param+'$')
+            label = '$'+param+'$'
+            if param==d0_col:
+                label = '$D_0$'
+            data[param].plot(ax=ax, drawstyle='steps', label=label)
     axdict = dict(zip(params, axlist))
     fig = axlist[0].get_figure()
     #axdict['density'].axis((None, None, 0, 600))
     for param in ['N_w']:
         axdict[param].set_yscale('log')
     data = d0fltr(data)
-    gray_out(data, axdict)
+    gray_out(data, axdict, labels=[d0_col, 'density'])
     return fig, axdict
 
 
@@ -77,7 +81,7 @@ def all_cases_simple_overview(e):
         sdir = read.ensure_dir(path.join(savedir, 'simple'))
         fig.savefig(path.join(sdir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
 
-params=['intensity', 'density', 'D_0', 'N_w']
+params=['intensity', 'density', d0_col, 'N_w']
 extent = (0.375, 4, 0.5, 1.5)
 xtick_pos = (1, 2, 3, 4)
 
@@ -109,10 +113,10 @@ for ievent, event in e.events.iterrows():
         ax.axis(extent)
         fit_ax.append(ax)
     fig, axdict = plot_overview(data, axlist=series_ax, params=params)
-    data['D_max'].plot(ax=axdict['D_0'], drawstyle='steps', label='$D_{max}$')
+    data['D_max'].plot(ax=axdict[d0_col], drawstyle='steps', label='$D_{max}$')
     # Reverse label order to match line order
-    handles, labels = axdict['D_0'].get_legend_handles_labels()
-    axdict['D_0'].legend(handles[::-1], labels[::-1], loc='upper left', frameon=False)
+    handles, labels = axdict[d0_col].get_legend_handles_labels()
+    axdict[d0_col].legend(handles[::-1], labels[::-1], loc='upper left', frameon=False)
     for ax in fit_ax:
         ax.set_xticks(xtick_pos)
         ax.tick_params(axis='both', direction='out', length=4)
@@ -135,7 +139,7 @@ for ievent, event in e.events.iterrows():
     axdict['intensity'].set_ylabel('$LWE$, mm$\,$h$^{-1}$')
     axdict['density'].set_ylabel('$\\rho$, ' + read.RHO_UNITS)
     read.rho_scale(axdict['density'].yaxis)
-    axdict['D_0'].set_ylabel('mm')
+    axdict[d0_col].set_ylabel('mm')
     axdict['N_w'].set_ylabel('$N_w$, mm$^{-1}\,$m$^{-3}$')
     tfmt = DateFormatter('%H:%M')
     series_ax[-1].xaxis.set_major_formatter(tfmt)
@@ -145,5 +149,5 @@ for ievent, event in e.events.iterrows():
         fig.savefig(path.join(savedir, savename), **savekws)
     except ValueError as err:
         warnings.warn("ValueError: {0} Skipping plot for the {1} case.".format(err, case.dtstr()))
-    if not debug and event.case_study==True:
-        fig.savefig(path.join(paperdir, savename))
+    if not debug and event.case_study==True: # yes, necessary to check for True
+        fig.savefig(path.join(paperdir, savename), **savekws)

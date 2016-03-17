@@ -8,12 +8,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 import seaborn as sns
+import gc
 
-from scr_snowfall import pip2015events, test_events
+from scr_snowfall import pip2015events, test_events, param_table
 
 debug = False
 rholims = (0, 100, 200, 800)
 #rholims = (0, 150, 300, 800)
+d0_col = 'D_0_gamma'
 
 #sns.set_context('talk')
 major_size = 8
@@ -41,7 +43,7 @@ def subplots(n_plots=1):
 
 def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
     rng = (0,6)
-    sns.distplot(data.D_0.dropna(), ax=axd, label=label, bins=12, 
+    sns.distplot(data[d0_col].dropna(), ax=axd, label=label, bins=12, 
                  hist_kws={'range':rng}, **kwargs)
     axd.set_xlim(rng)
     axd.yaxis.set_ticks(np.arange(0, 1.5, 0.5))
@@ -69,32 +71,35 @@ def hist_data(case):
     data = read.merge_multiseries(case.d_0(), case.mu(), case.n_w())
     return d0fltr(data, apply=True)
 
-if debug:
-    e = test_events()
-else:
-    e = pip2015events()
+def casewise_hist():
+    if debug:
+        e = test_events()
+    else:
+        e = pip2015events()
+    n_cases = e.events.paper.count()
+    fd, axarrd = subplots(n_cases)
+    fm, axarrm = subplots(n_cases)
+    fn, axarrn = subplots(n_cases)
+    for i, c in enumerate(e.events.paper.values):
+        print(c)
+        data = hist_data(c)
+        plots(data, axarrd[i], axarrm[i], axarrn[i], title=c.dtstr(), y=0.85,
+              fontdict={'verticalalignment': 'top', 'fontsize': 10})
+    del(e)
+    gc.collect()
+    for f in (fd, fm, fn):
+        remove_subplot_gaps(f, axis='col')
+    fd.savefig(path.join(savedir, 'd0_cases' + tld), **savekws)
+    fm.savefig(path.join(savedir, 'mu_cases' + tld), **savekws)
+    fn.savefig(path.join(savedir, 'nw_cases' + tld), **savekws)
 
-n_cases = e.events.paper.count()
-fd, axarrd = subplots(n_cases)
-fm, axarrm = subplots(n_cases)
-fn, axarrn = subplots(n_cases)
-
-for i, c in enumerate(e.events.paper.values):
-    print(c)
-    data = hist_data(c)
-    plots(data, axarrd[i], axarrm[i], axarrn[i], title=c.dtstr(), y=0.85,
-          fontdict={'verticalalignment': 'top', 'fontsize': 10})
-
-#c = e.events.paper.sum()
-#del(e)
 limslist = limitslist(rholims)
 n_ranges = len(limslist)
 
 fdd, axarrdd = subplots(n_ranges)
 fmd, axarrmd = subplots(n_ranges)
 fnd, axarrnd = subplots(n_ranges)
-data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
-data = d0fltr(data, apply=True)
+data = param_table(debug=debug)
 titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
 for i, (rhomin, rhomax) in enumerate(limslist):
@@ -110,15 +115,12 @@ for ax in (axarrdd[1], axarrmd[1]):
     ax.set_ylabel('PDF')
 axarrnd[1].set_ylabel('Frequency')
 
-for f in (fd, fm, fn, fdd, fmd, fnd):
+for f in (fdd, fmd, fnd):
     remove_subplot_gaps(f, axis='col')
 
 tld = '.png'
 savekws = {'dpi': 400}
 
-fd.savefig(path.join(savedir, 'd0_cases' + tld), **savekws)
-fm.savefig(path.join(savedir, 'mu_cases' + tld), **savekws)
-fn.savefig(path.join(savedir, 'nw_cases' + tld), **savekws)
 fdd.savefig(path.join(savedir, 'd0_rho' + tld), **savekws)
 fmd.savefig(path.join(savedir, 'mu_rho' + tld), **savekws)
 fnd.savefig(path.join(savedir, 'nw_rho' + tld), **savekws)
@@ -126,6 +128,7 @@ fdd.savefig(path.join(paperdir, 'hist_d0' + tld), **savekws)
 fmd.savefig(path.join(paperdir, 'hist_mu' + tld), **savekws)
 fnd.savefig(path.join(paperdir, 'hist_nw' + tld), **savekws)
 
-for axarr in (axarrd, axarrm, axarrn, axarrdd, axarrmd, axarrnd):
+# Wat?
+for axarr in (axarrdd, axarrmd, axarrnd):
     for ax in axarr[1:]:
         sns.despine(ax=ax, top=True, left=False, right=False, bottom=False)
