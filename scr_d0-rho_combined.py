@@ -93,10 +93,6 @@ def plot_d0_rho(data):
     plt.legend()
     return ax
 
-#during_baecc = e.events.start<pd.datetime(2014,7,1)
-#w14 = e.events[during_baecc]
-#w1415 = e.events[-during_baecc]
-
 data_fltr = param_table(debug=debug)
 
 figkws = {'dpi': 150, 'figsize': (5,5)}
