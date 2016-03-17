@@ -2,8 +2,8 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
-from read import *
+import snowfall as sf
+import read
 import numpy as np
 import matplotlib.pyplot as plt
 from os import path
@@ -11,7 +11,7 @@ from os import path
 dtformat_default = '%d.%m. %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 
-e = EventsCollection('cases/pip2015.csv', dtformat_snex)
+e = sf.EventsCollection('cases/pip2015.csv', dtformat_snex)
 e.autoimport_data(autoshift=False, autobias=False, rule='6min', varinterval=True)
 
 #plt.close('all')

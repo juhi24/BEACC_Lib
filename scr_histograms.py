@@ -2,7 +2,8 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
+import snowfall as sf
+import read
 from fit import set_plot_style
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,7 +34,7 @@ if debug:
 read.ensure_dir(savedir)
 
 def split_hist(data, **kwargs):
-    data = split_index(data, names=('first', 'second'))
+    data = sf.split_index(data, names=('first', 'second'))
     return plt.hist([data.loc['first'], data.loc['second']], stacked=True,
                     rwidth=1, **kwargs)
 
@@ -69,7 +70,7 @@ def plots(data, axd, axm, axn, label=None, title=None, **kwtitle):
 
 def hist_data(case):
     data = read.merge_multiseries(case.d_0(), case.mu(), case.n_w())
-    return d0fltr(data, apply=True)
+    return sf.d0fltr(data, apply=True)
 
 def casewise_hist():
     if debug:
@@ -88,12 +89,12 @@ def casewise_hist():
     del(e)
     gc.collect()
     for f in (fd, fm, fn):
-        remove_subplot_gaps(f, axis='col')
+        sf.remove_subplot_gaps(f, axis='col')
     fd.savefig(path.join(savedir, 'd0_cases' + tld), **savekws)
     fm.savefig(path.join(savedir, 'mu_cases' + tld), **savekws)
     fn.savefig(path.join(savedir, 'nw_cases' + tld), **savekws)
 
-limslist = limitslist(rholims)
+limslist = sf.limitslist(rholims)
 n_ranges = len(limslist)
 
 fdd, axarrdd = subplots(n_ranges)
@@ -116,7 +117,7 @@ for ax in (axarrdd[1], axarrmd[1]):
 axarrnd[1].set_ylabel('Frequency')
 
 for f in (fdd, fmd, fnd):
-    remove_subplot_gaps(f, axis='col')
+    sf.remove_subplot_gaps(f, axis='col')
 
 tld = '.png'
 savekws = {'dpi': 400}

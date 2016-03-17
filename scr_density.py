@@ -2,9 +2,8 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
-import numpy as np
-from datetime import datetime
+import read
+import matplotlib.pyplot as plt
 from os import path
 
 from scr_snowfall import pip2015events

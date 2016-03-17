@@ -2,7 +2,7 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
+import numpy as np
 import read
 import matplotlib.pyplot as plt
 from os import path

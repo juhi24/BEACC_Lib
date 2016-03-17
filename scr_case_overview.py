@@ -2,11 +2,11 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
+import snowfall as sf
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
+from matplotlib import gridspec
 from matplotlib.dates import DateFormatter
 from os import path
 import read
@@ -67,7 +67,7 @@ def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
     #axdict['density'].axis((None, None, 0, 600))
     for param in ['N_w']:
         axdict[param].set_yscale('log')
-    data = d0fltr(data)
+    data = sf.d0fltr(data)
     gray_out(data, axdict, labels=[d0_col, 'density'])
     return fig, axdict
 

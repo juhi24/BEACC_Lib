@@ -2,7 +2,8 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
+import snowfall as sf
+import read
 import matplotlib.pyplot as plt
 from os import path
 import fit
@@ -62,8 +63,8 @@ def plot_d0_rho(data):
                'colorbar': False,
                'xlim': [0.6,6],
                'ylim': [0,450]}
-    ax = plot_pairs(data.loc['first'], c='blue', label='BAECC', **plotkws)
-    plot_pairs(data.loc['second'], c='green', ax=ax, label='winter 2014-2015',
+    ax = sf.plot_pairs(data.loc['first'], c='blue', label='BAECC', **plotkws)
+    sf.plot_pairs(data.loc['second'], c='green', ax=ax, label='winter 2014-2015',
                **plotkws)
     plt.tight_layout()
     rho_d0_cols = ['density',d0_col, 'count']

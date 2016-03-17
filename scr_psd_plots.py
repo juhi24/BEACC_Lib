@@ -2,7 +2,8 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
+import snowfall as sf
+import read
 import numpy as np
 import matplotlib.pyplot as plt
 from os import path
@@ -16,7 +17,7 @@ debug = False
 
 rholims = (0, 100, 200, 800)
 #rholims = (0, 150, 300, 800)
-limslist = limitslist(rholims)
+limslist = sf.limitslist(rholims)
 n_ranges = len(limslist)
 separate = False
 d0_col = 'D_0_gamma'
@@ -29,7 +30,7 @@ rhorangestr = '$%s < \\rho \leq %s$'
 
 
 def d0_nw_paper(data, rholimits):
-    rhopairs = limitslist(rholimits)
+    rhopairs = sf.limitslist(rholimits)
     fig, axarr = plt.subplots(nrows=1, ncols=3, dpi=150, figsize=(11,4),
                               sharex=True, sharey=True, tight_layout=True)
     for i, (rhomin, rhomax) in enumerate(rhopairs):
@@ -57,7 +58,7 @@ def d0_nw_paper(data, rholimits):
 
 data = param_table(debug=debug)
 data['log_nw'] = np.log10(data['N_w'])
-data = apply_rho_intervals(data, limits=rholims)
+data = sf.apply_rho_intervals(data, limits=rholims)
 fig, axarr = d0_nw_paper(data, rholimits=rholims)
 if debug:
     savepath += '/test'
