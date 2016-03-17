@@ -10,12 +10,12 @@ import fit
 from scr_snowfall import param_table
 
 debug = False
-
 savepath = '../results/pip2015'
 d0_col = 'D_0_gamma'
-
 #plt.close('all')
 plt.ioff()
+
+fit_scale = [read.RHO_SCALE,1]
 
 # dry and wet snows, from original
 magono65 = fit.PolFit(params=[20, -2])
@@ -71,11 +71,12 @@ def plot_d0_rho(data):
     rho_d0_data_baecc = rho_d0_data.loc['first']
     rho_d0_data_1415 = rho_d0_data.loc['second']
     rho_d0 = fit.PolFit(x=rho_d0_data[d0_col], y=rho_d0_data.density,
-                        sigma=1/rho_d0_data['count'], xname='D_0')
-    rho_d0_baecc = fit.PolFit(x=rho_d0_data_baecc[d0_col],
+                        sigma=1/rho_d0_data['count'], xname='D_0',
+                        disp_scale=fit_scale)
+    rho_d0_baecc = fit.PolFit(x=rho_d0_data_baecc[d0_col], disp_scale=fit_scale,
                               y=rho_d0_data_baecc.density,
                               sigma=1/rho_d0_data_baecc['count'], xname='D_0')
-    rho_d0_1415 = fit.PolFit(x=rho_d0_data_1415[d0_col],
+    rho_d0_1415 = fit.PolFit(x=rho_d0_data_1415[d0_col], disp_scale=fit_scale,
                              y=rho_d0_data_1415.density,
                              sigma=1/rho_d0_data_1415['count'], xname='D_0')
     rho_d0.find_fit(loglog=True)

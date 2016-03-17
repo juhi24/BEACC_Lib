@@ -38,7 +38,7 @@ class Fit:
     """parent for different fit types"""
     def __init__(self, x=None, y=None, x_unfiltered=None, y_unfiltered=None,
                  sigma=None, params=None, name='fit', xname='D',
-                 flipped=False):
+                 flipped=False, disp_scale=[]):
         self.params = params
         self._name = name
         self.x = x
@@ -53,12 +53,16 @@ class Fit:
         self.xname = xname
         self.flipped = flipped
         self.str_fmt = ''
+        self.disp_scale = np.array(disp_scale)
 
     def __repr__(self):
         if self.params is None:
             paramstr = 'abcdefghijklmnopqrstuvwxyz'[:self.str_fmt.count('%')]
         else:
-            paramstr = ['{0:.3f}'.format(p) for p in self.params]
+            params = np.array(self.params)
+            if self.disp_scale.size == params.size:
+                params = params*self.disp_scale
+            paramstr = ['{0:.3f}'.format(p) for p in params]
         s = self.str_fmt % tuple(paramstr)
         return s.replace('--', '+')
 
@@ -178,7 +182,7 @@ class LinFit(Fit):
             return
         x = self.x
         y = self.y
-        a, b, r_value, p_value, std_err = linregress(x, y)
+        a, b, self.rvalue, self.pvalue, self.stderr = linregress(x, y)
         self.params = (a, b)
         return self.params
 
