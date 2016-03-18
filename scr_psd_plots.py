@@ -37,8 +37,7 @@ def d0_nw_paper(data, rholimits):
         limitstr = rhorangestr % (rhomin*read.RHO_SCALE, rhomax*read.RHO_SCALE)
         ax = axarr[i]
         datarho = data[data.rhomin==rhomin]#.loc['second']
-        #datarho.plot(kind='scatter', x='D_0', y='N_w', ax=axarr[i], logy=True)
-        datarho.plot(kind='scatter', x=d0_col, y='log_nw', c='', ax=axarr[i])
+        datarho.plot.scatter(x=d0_col, y='log_nw', c='', ax=axarr[i])
         lfit = fit.LinFit(x=datarho[d0_col], y=datarho.log_nw, xname='D_0')
         lfit.find_fit()
         lfit.plot(source_style=None, ax=ax)

@@ -2,7 +2,8 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
+import snowfall as sf
+import read
 import numpy as np
 from os import path
 import netCDF4 as cdf
@@ -25,12 +26,12 @@ def handle_empty(data, column):
         return np.array([])
     return data[column].values
 
-for day in daterange(date_start, date_end):
+for day in sf.daterange(date_start, date_end):
     dtstr = day.strftime('%Y%m%d')
     print(dtstr)
     out_filepath = path.join(resultspath, instr_prefix + dtstr + ext)
-    pipv_files = datafilelist(pipv_subpath % dtstr)
-    dsd_files = datafilelist(dsd_subpath % dtstr)
+    pipv_files = read.datafilelist(read.PIPV_SUBPATH % dtstr)
+    dsd_files = read.datafilelist(read.DSD_SUBPATH % dtstr)
     pipv_is_empty = len(pipv_files) < 1
     dsd_is_empty = len(dsd_files) < 1
     if not dsd_is_empty:
