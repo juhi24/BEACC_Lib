@@ -7,6 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import fit
 from scr_snowfall import param_table
+from os import path
+
+resultspath = '../results/pip2015'
+paperpath = read.ensure_dir(path.join(resultspath, 'paper'))
+savepath = path.join(resultspath, 'psd')
 
 def nw_dmitri(rho, d0):
     return 10**(5.5-(3.57*(rho/1000)**(1/3)-1)*d0)
@@ -40,20 +45,24 @@ data['nw_rho'] = nw(data.density, data.D_0_gamma)
 #ax.plot([0,1e8],[0, 1e8])
 #ax.axis([1e1,1e6,1e1,1e6])
 
+skws = {'c':'', 'label':'data points'}
 fig, (axd0, axd0rho) = plt.subplots(ncols=2, sharey=True, dpi=150,
                                     figsize=(7,4), tight_layout=True)
 d0_nw = fit.LinFit(x=data.D_0_gamma, y=np.log10(data.N_w), xname='D_0')
 d0_nw.find_fit()
-d0_nw.plot(ax=axd0, source_style='raw', source_kws={'c':''})
+d0_nw.plot(ax=axd0, label='Linear fit', source_style='raw', source_kws=skws)
+axd0.legend()
 
 d0rho_nw = fit.LinFit(x=0.01*data.D_0_rho1, y=np.log10(data.N_w), xname='D_0*rho^(1/3)')
 d0rho_nw.find_fit()
-axd0rho = d0rho_nw.plot(ax=axd0rho, source_style='raw', source_kws={'c':''})
+axd0rho = d0rho_nw.plot(ax=axd0rho, source_style='raw', source_kws=skws)
 
 axd0rho.axis([None, None, 2, None])
 axd0.set_ylabel('$log(N_w)$')
 axd0.set_xlabel('$D_0$, mm')
-axd0rho.set_xlabel('$D_0 \\rho^{1/3}$, g$^{1/3}$')
+axd0rho.set_xlabel('$D_0 \\rho^{^1\!/_3}$, g$^{^1\!/_3}$')
+fig.savefig(path.join(savepath, 'nw_d0.eps'))
+fig.savefig(path.join(paperpath, 'nw_d0.eps'))
 #plt.figure()
 #afit = alpha_fit()
 #afit.plot(source_style='raw')

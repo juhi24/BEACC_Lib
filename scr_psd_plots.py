@@ -62,5 +62,5 @@ fig, axarr = d0_nw_paper(data, rholimits=rholims)
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)
-fig.savefig(path.join(savepath, 'nw_d0.eps'))
-fig.savefig(path.join(paperpath, 'nw_d0.eps'))
+fig.savefig(path.join(savepath, 'nw_d0_rhoranges.eps'))
+#fig.savefig(path.join(paperpath, 'nw_d0_rhoranges.eps'))

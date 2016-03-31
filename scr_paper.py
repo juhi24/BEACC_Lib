@@ -5,7 +5,7 @@
 import gc
 scriptnames = ['scr_case_overview.py',
                'scr_histograms.py',
-               'scr_psd_plots.py',
+               'scr_nw.py',
                'scr_vfits_density_ranges_combined.py',
                'scr_d0-rho_combined.py']
 for scriptname in scriptnames:
