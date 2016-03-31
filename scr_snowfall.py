@@ -71,6 +71,3 @@ def param_table(e=None, query_str='density<600 & count>1000 & b>0 & D_0>0.63',
     del(e)
     gc.collect()
     return data.query(query_str)
-
-
-e = pip2015events()
