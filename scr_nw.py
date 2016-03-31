@@ -2,7 +2,7 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
+import read
 import numpy as np
 import matplotlib.pyplot as plt
 import fit

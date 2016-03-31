@@ -2,9 +2,10 @@
 """
 @author: Jussi Tiira
 """
-from snowfall import *
+import snowfall as sf
+import read
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 from os import path
 import gc
 
@@ -28,7 +29,7 @@ def pluvio_config(e, tshift_minutes, n_comb_intervals):
         c.instr['pluvio'].n_combined_intervals = n_comb_intervals
 
 def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
-    ee = EventsCollection(extra_cases_file, dtformat_paper)
+    ee = sf.EventsCollection(extra_cases_file, dtformat_paper)
     ee.autoimport_data(datafile=extra_h5_file, autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(ee, *pluvio_conf_args)
@@ -38,7 +39,7 @@ def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
 def events(casesfile_baecc='cases/pip2015.csv',
            casesfile_nov14='cases/pip2015_nov14.csv',
            casesfile_1415='cases/pip2015_14-15.csv'):
-    e = EventsCollection(casesfile_baecc, dtformat_paper)
+    e = sf.EventsCollection(casesfile_baecc, dtformat_paper)
     e.autoimport_data(datafile=read.H5_PATH, autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(e, -6, pluvio_comb_intervals)
@@ -46,7 +47,7 @@ def events(casesfile_baecc='cases/pip2015.csv',
     extra_events(e, casesfile_1415, h5w1415path, -5, pluvio_comb_intervals)
     e.events['paper'] = e.events.pluvio200
     e.split_index()
-    e.events = before_after_col(e.events, date=pd.datetime(2014,7,1),
+    e.events = sf.before_after_col(e.events, date=pd.datetime(2014,7,1),
                                 datecol='start')
     return e
 
