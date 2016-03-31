@@ -230,6 +230,19 @@ def batch_create_hdf(instrdict=None, datadir=DATA_DIR, outname=H5_FILE,
         gc.collect()
 
 
+def plot_psd(data, ax=None):
+    """Plot particle size distribution over time."""
+    if ax is None:
+        ax = plt.gca()
+    qmesh = ax.pcolormesh(data.index.values, data.columns.values, data.transpose(),
+                  norm=LogNorm())
+    plt.colorbar(qmesh, ax=ax)
+    ax.set_title('PIP PSD')
+    ax.set_xlabel('time (UTC)')
+    ax.set_ylabel('D (mm)')
+    return ax
+
+
 class Cacher:
     """common methods to use msg cache"""
     def __init__(self, use_cache=True, storefilename='store.h5',
@@ -877,17 +890,9 @@ class PipDSD(InstrumentData):
         n = grp.mean()
         return n
 
-    def plot(self, img=True, **kwargs):
-        """Plot particle size distribution over time."""
-        if img:
-            plt.matshow(self.good_data(**kwargs).transpose(), norm=LogNorm(),
-                        origin='lower')
-        else:
-            plt.pcolor(self.good_data(**kwargs).transpose(), norm=LogNorm())
-        plt.colorbar()
-        plt.title('PIP DSD')
-        plt.xlabel('time (UTC) BROKEN')
-        plt.ylabel('D (mm) BROKEN')
+    def plot(self, data_kws={}, **kws):
+        """wrapper for plot_psd"""
+        return plot_psd(self.good_data(**data_kws), **kws)
 
     def filter_cats_and_dogs(self, data=None, window=5):
         """a rolling window filter for isolated data points"""
@@ -1490,18 +1495,9 @@ class PSD(InstrumentData):
         self.bin_v = pd.Series(bin_v, index=data.columns.values)
         self.drop_empty = True
 
-    def plot(self, img=True, **kwargs):
-        """Plot particle size distribution over time."""
-        if img:
-            plt.matshow(self.good_data(**kwargs).transpose(), norm=LogNorm(),
-                        origin='lower', vmin=0.00001)
-        else:
-            plt.pcolor(self.good_data(**kwargs).transpose(), norm=LogNorm(),
-                       vmin=0.00001)
-        plt.colorbar()
-        plt.title('DSD')
-        plt.xlabel('time (UTC) BROKEN')
-        plt.ylabel('D (mm) BROKEN')
+    def plot(self, **kwargs):
+        """wrapper for plot_psd"""
+        return plot_psd(self.good_data(), **kwargs)
 
     def binwidth_df(self):
         return pd.DataFrame(data=self.binwidth, index=self.bin_cen()).T
