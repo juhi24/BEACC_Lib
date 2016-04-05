@@ -934,6 +934,7 @@ class PipV(InstrumentData):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
         self.dmin = 0.375   # shortest diameter where data is good
+        self.vmin = 0.5
         self._fits = pd.DataFrame()
         # num=511 --> binwidth 0.05
         if DEBUG:
@@ -1079,7 +1080,7 @@ class PipV(InstrumentData):
     def good_data(self):
         if self.stored_good_data is not None:
             return self.stored_good_data
-        return self.data[self.data.Wad_Dia > self.dmin]
+        return self.data.query('Wad_Dia > {0} && vel_v > {1}'.format(self.dmin, self.vmin))
 
     def filter_outlier(self, data, frac=0.5, flip=False):
         """Filter outliers using KDE"""
