@@ -1080,7 +1080,7 @@ class PipV(InstrumentData):
     def good_data(self):
         if self.stored_good_data is not None:
             return self.stored_good_data
-        return self.data.query('Wad_Dia > {0} && vel_v > {1}'.format(self.dmin, self.vmin))
+        return self.data.query('Wad_Dia > {0} & vel_v > {1}'.format(self.dmin, self.vmin))
 
     def filter_outlier(self, data, frac=0.5, flip=False):
         """Filter outliers using KDE"""

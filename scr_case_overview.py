@@ -90,6 +90,10 @@ xtick_pos = (1, 2, 3, 4)
 for ievent, event in e.events.iterrows():
     case = event.paper
     data = case.summary()
+    selection = data.tdelta>pd.datetools.Minute(30).delta
+    data.loc[selection,['density','D_max','D_0_gamma', 'N_w']]=np.nan
+    if data.density.dropna().empty:
+        continue
     fig = plt.figure(figsize=(6, 9))
     if event.a is np.nan:
         last_ts = case.instr['pipv'].fits.polfit.index[-1]
@@ -138,6 +142,7 @@ for ievent, event in e.events.iterrows():
     plt.setp(labels, visible=False)
     axdict['intensity'].set_ylabel('$LWE$, mm$\,$h$^{-1}$')
     axdict['density'].set_ylabel('$\\rho$, ' + read.RHO_UNITS)
+    axdict['density'].axis([None, None, 0, 0.25])
     read.rho_scale(axdict['density'].yaxis)
     axdict[d0_col].set_ylabel('mm')
     axdict['N_w'].set_ylabel('$N_w$, mm$^{-1}\,$m$^{-3}$')
