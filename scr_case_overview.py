@@ -142,12 +142,13 @@ for ievent, event in e.events.iterrows():
     plt.setp(labels, visible=False)
     axdict['intensity'].set_ylabel('$LWE$, mm$\,$h$^{-1}$')
     axdict['density'].set_ylabel('$\\rho$, ' + read.RHO_UNITS)
-    axdict['density'].axis([None, None, 0, 0.25])
+    axdict['density'].set_ylim(0, 250)
     read.rho_scale(axdict['density'].yaxis)
     axdict[d0_col].set_ylabel('mm')
     axdict['N_w'].set_ylabel('$N_w$, mm$^{-1}\,$m$^{-3}$')
     tfmt = DateFormatter('%H:%M')
     series_ax[-1].xaxis.set_major_formatter(tfmt)
+    # saving
     savekws = {'dpi': 150, 'bbox_inches': 'tight'}
     savename = case.dtstr('%Y%m%d') + '.eps'
     try:

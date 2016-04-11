@@ -4,9 +4,11 @@
 """
 import snowfall as sf
 import read
+import numpy as np
 import matplotlib.pyplot as plt
 from os import path
 import fit
+from scipy.special import gamma
 
 from scr_snowfall import param_table
 
@@ -92,7 +94,14 @@ def plot_d0_rho(data):
     ax.set_ylabel('$\\rho$, ' + read.RHO_UNITS)
     ax.set_xlabel('$D_0$, mm')
     plt.legend()
-    return ax
+    return ax, rho_d0
+
+def mass_dim(rho_d0, b_v=0.2):
+    a_d0, b_d0 = rho_d0.params
+    a_d0 = a_d0/1000*10**b_d0
+    beta = b_d0 + 3
+    alpha = np.pi/6*3.67**b_d0*a_d0*gamma(b_v+4)/gamma(b_v+b_d0+4)
+    return fit.PolFit(params=(alpha, beta), xname='D')
 
 data_fltr = param_table(debug=debug)
 
@@ -100,7 +109,9 @@ figkws = {'dpi': 150, 'figsize': (5,5)}
 #fig = plt.figure(**figkws)
 #ax = plot_d0_rho(data)
 fig_fltr = plt.figure(**figkws)
-ax_fltr = plot_d0_rho(data_fltr)
+ax_fltr, rho_d0 = plot_d0_rho(data_fltr)
+
+m_d = mass_dim(rho_d0)
 
 if debug:
     savepath += '/test'
