@@ -66,7 +66,7 @@ def d_corr_pip(d):
     """disdrometer-observed particle size to the true maximum dimension
     See Characterization of video disdrometer uncertainties and impacts on
     estimates of snowfall rate and radar reflectivity (Wood et al. 2013)"""
-    return d/read.PHI
+    return d#/read.PHI
 
 
 def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):

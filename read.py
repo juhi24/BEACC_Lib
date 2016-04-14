@@ -902,6 +902,11 @@ class PipDSD(InstrumentData):
         """wrapper for plot_psd"""
         return plot_psd(self.good_data(**data_kws), **kws)
 
+    def fingerprint(self):
+        identifiers = (super().fingerprint(), self.use_voleq_d)
+        idstr = combine_identifiers(identifiers)
+        return fingerprint(idstr)
+
     def filter_cats_and_dogs(self, data=None, window=5):
         """a rolling window filter for isolated data points"""
         if data is None:
@@ -934,6 +939,7 @@ class PipDSD(InstrumentData):
         data_fltr = gain_correction*data.drop(too_small, 1).drop(too_large, 1)
         if self.use_voleq_d:
             data_fltr.columns = data_fltr.columns/PHI
+            data_fltr = data_fltr*PHI
         return data_fltr
 
 
@@ -1093,7 +1099,7 @@ class PipV(InstrumentData):
     def good_data(self):
         if self.stored_good_data is not None:
             return self.stored_good_data
-        query_str = 'Wad_Dia > {1} & vel_v > {2}'.format(self.dmin, self.vmin)
+        query_str = 'Wad_Dia > {0} & vel_v > {1}'.format(self.dmin, self.vmin)
         data = self.data.query(query_str)
         data['d_voleq'] = data.Wad_Dia/PHI
         return data
