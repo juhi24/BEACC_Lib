@@ -64,6 +64,10 @@ def axis_scale(axis, scale):
     axis.set_major_formatter(formatter)
 
 
+def combine_identifiers(*identifiers):
+    return ''.join(tuple(map(str, identifiers)))
+
+
 def hash_dict(d):
     return fingerprint(str(sorted(d.items())))
 
@@ -628,12 +632,12 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def fingerprint(self):
-        identifiers = [self.name, self.shift_periods, self.shift_freq,
-                       self.varinterval]
+        identifiers = [super().fingerprint(), self.name, self.shift_periods,
+                       self.shift_freq, self.varinterval]
         if self.varinterval:
             identifiers.extend([self.n_combined_intervals])
-        idstr = ''.join(tuple(map(str, identifiers)))
-        return fingerprint(super().fingerprint() + idstr)
+        idstr = combine_identifiers(identifiers)
+        return fingerprint(idstr)
 
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
@@ -817,6 +821,7 @@ class PipDSD(InstrumentData):
         print('Reading PIP PSD data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_dsd'
+        self.use_voleq_d = True
         common_csv_kws = {'skiprows': 8,
                           'header': 3,
                           'parse_dates': {'datetime':['hr_d', 'min_d']},
@@ -873,11 +878,11 @@ class PipDSD(InstrumentData):
         return datetime.datetime.combine(d, t)#.replace(tzinfo=datetime.timezone.utc)
 
     def bin_cen(self):
-        """Return array of bin centers."""
+        """Return array of bin centers as area equivalent diameter."""
         return self.good_data().columns.values
 
     def bin_width(self):
-        """as a Series"""
+        """as a Series of area equivalent diameter"""
         # TODO: should be calculated using actual bin edges
         return pd.Series(self.bin_cen(), index=self.bin_cen()).diff().bfill()
 
@@ -926,7 +931,10 @@ class PipDSD(InstrumentData):
         bin_cen = self.data.columns.values
         too_small = bin_cen[bin_cen < 0.3]
         too_large = bin_cen[bin_cen > 25]
-        return gain_correction*data.drop(too_small, 1).drop(too_large, 1)
+        data_fltr = gain_correction*data.drop(too_small, 1).drop(too_large, 1)
+        if self.use_voleq_d:
+            data_fltr.columns = data_fltr.columns/PHI
+        return data_fltr
 
 
 class PipV(InstrumentData):
@@ -1046,9 +1054,9 @@ class PipV(InstrumentData):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def fingerprint(self):
-        identifiers = (self.flip, self.dbins, self.loglog)
-        idstr = ''.join(tuple(map(str, identifiers)))
-        return fingerprint(super().fingerprint() + idstr)
+        identifiers = (super().fingerprint(), self.flip, self.dbins, self.loglog)
+        idstr = combine_identifiers(identifiers)
+        return fingerprint(idstr)
 
     def v(self, d, fitclass=None, varinterval=True, rule=None):
         """velocities according to fits for given diameter"""
