@@ -41,6 +41,9 @@ CACHE_DIR = 'cache'
 MSGTLD = '.msg'
 PICKLETLD = '.pkl'
 
+# PIP-observed particle size to the volume equivalent diameter
+PHI = 0.9 # Davide
+
 ns1min = 1.0*60.0*1000000000.0
 
 # constants
@@ -933,8 +936,10 @@ class PipV(InstrumentData):
         print('Reading PIP particle velocity data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
-        self.dmin = 0.375   # shortest diameter where data is good
+        self.dmin = 0.375   # shortest Wad_Dia where data is good
         self.vmin = 0.5
+        self.d_col = 'd_voleq' # equivalent volume
+        #self.d_col = 'Wad_Dia' # equivalent area
         self._fits = pd.DataFrame()
         # num=511 --> binwidth 0.05
         if DEBUG:
@@ -1065,7 +1070,7 @@ class PipV(InstrumentData):
 
     def lwc(self, rule='1min'):
         """liquid water content"""
-        d3 = self.good_data().Wad_Dia**3
+        d3 = self.good_data()[self.d_col]**3
         return d3.resample(rule, how=np.sum, closed='right', label='right')
 
     def parse_datetime(self, mm):
@@ -1080,7 +1085,10 @@ class PipV(InstrumentData):
     def good_data(self):
         if self.stored_good_data is not None:
             return self.stored_good_data
-        return self.data.query('Wad_Dia > {0} & vel_v > {1}'.format(self.dmin, self.vmin))
+        query_str = 'Wad_Dia > {1} & vel_v > {2}'.format(self.dmin, self.vmin)
+        data = self.data.query(query_str)
+        data['d_voleq'] = data.Wad_Dia/PHI
+        return data
 
     def filter_outlier(self, data, frac=0.5, flip=False):
         """Filter outliers using KDE"""
@@ -1089,14 +1097,15 @@ class PipV(InstrumentData):
         if flip:
             X, Y, Z = self.kde_grid(data)
             return filter_outlier(Y.T, X.T, Z.T, data, xname='vel_v',
-                                  frac=frac, yname='Wad_Dia')
+                                  frac=frac, yname=self.d_col)
         return filter_outlier(*self.kde_grid(data), data=data,
-                              xname='Wad_Dia', yname='vel_v', frac=frac)
+                              xname=self.d_col, yname='vel_v', frac=frac)
 
     def frac_larger(self, d):
         """Return fraction of particles that are larger than d."""
         vdata = self.good_data()
-        return vdata[vdata.Wad_Dia > d].vel_v.count()/vdata[vdata.Wad_Dia < d].vel_v.count()
+        d_data = vdata[self.d_col]
+        return vdata[d_data > d].vel_v.count()/vdata[d_data < d].vel_v.count()
 
     def d_cut(self, frac=0.05, d_guess=2):
         """Return d for which given fraction of particles are larger."""
@@ -1154,7 +1163,7 @@ class PipV(InstrumentData):
         if use_kde_peak:
             d, v = self.kde_peak(data=data)
         else:
-            d = data.Wad_Dia.values
+            d = data[self.d_col].values
             v = data.vel_v.values
         if cut_d:
             dcut = self.d_cut(**cut_kws)
@@ -1162,17 +1171,17 @@ class PipV(InstrumentData):
             v = v[d < dcut]
         if use_kde_peak:
             num = np.array([bindata(diam, self.binwidth, data=data,
-                                    xname='Wad_Diam',
+                                    xname=self.d_col,
                                     yname='vel_v').vel_v.count() for diam in d])
             d = d[num > bin_num_min]
             v = v[num > bin_num_min]
-            sig = [self.dbin(diam, self.binwidth, data=data, xname='Wad_Diam',
+            sig = [self.dbin(diam, self.binwidth, data=data, xname=self.d_col,
                              yname='vel_v').vel_v.sem() for diam in d]
         else:
             sig = np.ones(d.size)
         vfit.x = d
         vfit.y = v
-        vfit.x_unfiltered = origdata.Wad_Dia.values
+        vfit.x_unfiltered = origdata[self.d_col].values
         vfit.y_unfiltered = origdata.vel_v.values
         if use_curve_fit:
             unflipped_kws = kwargs
@@ -1189,14 +1198,15 @@ class PipV(InstrumentData):
                 fiti.fltr_lower_y = xlimsi
                 fiti.fltr_upper_x = ymaxi + [ymaxi[-1]]
                 fiti.fltr_lower_x = ymini + [ymini[-1]]
-                fiti.x = datai.Wad_Dia.values
+                fiti.x = datai[self.d_col].values
                 fiti.y = datai.vel_v.values
-                fiti.x_unfiltered = origdata.Wad_Dia.values
+                fiti.x_unfiltered = origdata[self.d_col].values
                 fiti.y_unfiltered = origdata.vel_v.values
                 paramsi, pcovi = fiti.find_fit(**kwargs)
                 perri = fiti.perr()
                 if plot_flip:
-                    f, axarr = plt.subplots(1, 3, sharey=True, sharex=True, figsize=(12, 6))
+                    f, axarr = plt.subplots(1, 3, sharey=True, sharex=True,
+                                            figsize=(12, 6))
                     for ax in axarr:
                         fiti.plot(ax=ax, label='flipped %.4f' % perri[1])
         else:
@@ -1301,14 +1311,14 @@ class PipV(InstrumentData):
         """kernel-density estimate of d,v data using gaussian kernels"""
         if data is None:
             data = self.good_data()
-        d = data.Wad_Dia.values
+        d = data[self.d_col].values
         v = data.vel_v.values
         return kde(d, v)
 
     def grids(self, data=None):
         if data is None:
             data = self.good_data()
-        d = data.Wad_Dia.values
+        d = data[self.d_col].values
         v = data.vel_v.values
         dmax = d.max()+20*self.binwidth
         dbins = self.dbins[self.dbins < dmax]
@@ -1376,11 +1386,11 @@ class PipV(InstrumentData):
         if partcount < 1:
             return ax
         if hexbin:
-            data.plot(x='Wad_Dia', y='vel_v', kind='hexbin', label='hexbinned',
-                      ax=ax, gridsize=int(hexsize*data.Wad_Dia.max()**0.5),
+            data.plot(x=self.d_col, y='vel_v', kind='hexbin', label='hexbinned',
+                      ax=ax, gridsize=int(hexsize*data[self.d_col].max()**0.5),
                       colormap=colormap, **kwargs)
         else:
-            data.plot(x='Wad_Dia', y='vel_v', style=',', ax=ax,
+            data.plot(x=self.d_col, y='vel_v', style=',', ax=ax,
                       alpha=0.2, color='black', label='pip raw', **kwargs)
         #fit.gunn_kinzer.plot(dmax=20, label='Gunn&Kinzer', ax=ax, zorder=5, ls='--')
         if ymax is None:

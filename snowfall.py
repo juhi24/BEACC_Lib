@@ -66,8 +66,7 @@ def d_corr_pip(d):
     """disdrometer-observed particle size to the true maximum dimension
     See Characterization of video disdrometer uncertainties and impacts on
     estimates of snowfall rate and radar reflectivity (Wood et al. 2013)"""
-    phi = 0.9 # Davide
-    return d/phi
+    return d/read.PHI
 
 
 def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
@@ -761,11 +760,12 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return result
 
     def vfit_density_range(self, rhomin, rhomax, data=None, **fitargs):
+        pipv = self.instr['pipv']
         if data is None:
-            data = self.instr['pipv'].good_data()
+            data = pipv.good_data()
         data_in_range = self.data_in_density_range(data, rhomin, rhomax)
-        fit = self.instr['pipv'].find_fit(data=data_in_range, **fitargs)[0]
-        fit.x_unfiltered = data_in_range.Wad_Dia.values
+        fit = pipv.find_fit(data=data_in_range, **fitargs)[0]
+        fit.x_unfiltered = data_in_range[pipv.d_col].values
         fit.y_unfiltered = data_in_range.vel_v.values
         return fit
 
