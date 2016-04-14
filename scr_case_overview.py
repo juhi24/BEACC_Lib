@@ -64,7 +64,6 @@ def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
             data[param].plot(ax=ax, drawstyle='steps', label=label)
     axdict = dict(zip(params, axlist))
     fig = axlist[0].get_figure()
-    #axdict['density'].axis((None, None, 0, 600))
     for param in ['N_w']:
         axdict[param].set_yscale('log')
     data = sf.d0fltr(data)
@@ -143,6 +142,9 @@ for ievent, event in e.events.iterrows():
     axdict['intensity'].set_ylabel('$LWE$, mm$\,$h$^{-1}$')
     axdict['density'].set_ylabel('$\\rho$, ' + read.RHO_UNITS)
     axdict['density'].set_ylim(0, 250)
+    axdict['intensity'].set_ylim(0, 3.5)
+    axdict[d0_col].set_ylim(0, 16)
+    axdict['N_w'].set_ylim(1e2, 1e6)
     read.rho_scale(axdict['density'].yaxis)
     axdict[d0_col].set_ylabel('mm')
     axdict['N_w'].set_ylabel('$N_w$, mm$^{-1}\,$m$^{-3}$')
