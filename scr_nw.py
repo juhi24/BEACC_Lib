@@ -28,7 +28,8 @@ def alpha_fit():
 
 plt.close('all')
 
-#data = param_table()
+data = param_table()
+
 #data['D_0_rho'] = data.D_0_gamma*data.density
 #ax2 = data.plot.scatter(x='D_0_rho', y='N_w', c='density', logy=True)
 data['D_0_rho1'] = data.D_0_gamma*data.density**(1/3)
@@ -57,7 +58,7 @@ d0rho_nw = fit.LinFit(x=0.01*data.D_0_rho1, y=np.log10(data.N_w), xname='D_0*rho
 d0rho_nw.find_fit()
 axd0rho = d0rho_nw.plot(ax=axd0rho, source_style='raw', source_kws=skws)
 
-axd0rho.axis([None, None, 2, None])
+axd0rho.axis([None, None, 1, 6])
 axd0.set_ylabel('$log(N_w)$')
 axd0.set_xlabel('$D_0$, mm')
 axd0rho.set_xlabel('$D_0 \\rho^{^1\!/_3}$, g$^{^1\!/_3}$')

@@ -66,6 +66,7 @@ def d_corr_pip(d):
     """disdrometer-observed particle size to the true maximum dimension
     See Characterization of video disdrometer uncertainties and impacts on
     estimates of snowfall rate and radar reflectivity (Wood et al. 2013)"""
+    # DEPRECATED: unit transformation done in read (PipDSD and PipV)
     return d#/read.PHI
 
 

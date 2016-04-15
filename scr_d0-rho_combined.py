@@ -55,6 +55,21 @@ def plot_density_histogram(data, bins=60, **kws):
     ax.set_xlabel('bulk density')
     ax.set_ylabel('frequency')
 
+def prep_d0_rho(data):
+    rho_d0 = fit.PolFit(x=data[d0_col], y=data.density,
+                        sigma=1/data['count'], xname='D_0',
+                        disp_scale=fit_scale)
+    rho_d0.find_fit(loglog=True)
+    return rho_d0
+
+def prepare_d0_rho(data):
+    rho_d0_cols = ['density',d0_col, 'count']
+    rho_d0_data = data.loc[:, rho_d0_cols].dropna()
+    rho_d0 = prep_d0_rho(rho_d0_data)
+    rho_d0_baecc = prep_d0_rho(rho_d0_data.loc['first'])
+    rho_d0_1415 = prep_d0_rho(rho_d0_data.loc['second'])
+    return rho_d0, rho_d0_baecc, rho_d0_1415
+
 def plot_d0_rho(data):
     plotkws = {'x': d0_col,
                'y': 'density',
@@ -69,22 +84,6 @@ def plot_d0_rho(data):
     sf.plot_pairs(data.loc['second'], c='green', ax=ax, label='winter 2014-2015',
                **plotkws)
     plt.tight_layout()
-    rho_d0_cols = ['density',d0_col, 'count']
-    rho_d0_data = data.loc[:, rho_d0_cols].dropna()
-    rho_d0_data_baecc = rho_d0_data.loc['first']
-    rho_d0_data_1415 = rho_d0_data.loc['second']
-    rho_d0 = fit.PolFit(x=rho_d0_data[d0_col], y=rho_d0_data.density,
-                        sigma=1/rho_d0_data['count'], xname='D_0',
-                        disp_scale=fit_scale)
-    rho_d0_baecc = fit.PolFit(x=rho_d0_data_baecc[d0_col], disp_scale=fit_scale,
-                              y=rho_d0_data_baecc.density,
-                              sigma=1/rho_d0_data_baecc['count'], xname='D_0')
-    rho_d0_1415 = fit.PolFit(x=rho_d0_data_1415[d0_col], disp_scale=fit_scale,
-                             y=rho_d0_data_1415.density,
-                             sigma=1/rho_d0_data_1415['count'], xname='D_0')
-    rho_d0.find_fit(loglog=True)
-    rho_d0_baecc.find_fit(loglog=True)
-    rho_d0_1415.find_fit(loglog=True)
     rho_d0_baecc.plot(ax=ax)
     rho_d0_1415.plot(ax=ax)
     rho_d0.plot(ax=ax, color='black', label='all cases: $%s$' % str(rho_d0))
@@ -94,7 +93,7 @@ def plot_d0_rho(data):
     ax.set_ylabel('$\\rho$, ' + read.RHO_UNITS)
     ax.set_xlabel('$D_0$, mm')
     plt.legend()
-    return ax, rho_d0
+    return ax, rho_d0, rho_d0_baecc, rho_d0_1415
 
 def mass_dim(rho_d0, b_v=0.2):
     a_d0, b_d0 = rho_d0.params
