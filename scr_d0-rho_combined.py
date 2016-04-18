@@ -79,11 +79,13 @@ def plot_d0_rho(data):
                'scale': 0.1,
                'colorbar': False,
                'xlim': [0.6,6],
-               'ylim': [0,450]}
-    ax = sf.plot_pairs(data.loc['first'], c='blue', label='BAECC', **plotkws)
-    sf.plot_pairs(data.loc['second'], c='green', ax=ax, label='winter 2014-2015',
+               'ylim': [0,450],
+               'alpha': 0.5}
+    ax = sf.plot_pairs(data.loc['first'], c=(.6, .6 , 1, .8), label='BAECC', **plotkws)
+    sf.plot_pairs(data.loc['second'], c=(.2, .92, .2, .8), ax=ax, label='winter 2014-2015',
                **plotkws)
     plt.tight_layout()
+    rho_d0, rho_d0_baecc, rho_d0_1415 = prepare_d0_rho(data)
     rho_d0_baecc.plot(ax=ax)
     rho_d0_1415.plot(ax=ax)
     rho_d0.plot(ax=ax, color='black', label='all cases: $%s$' % str(rho_d0))
@@ -108,9 +110,11 @@ figkws = {'dpi': 150, 'figsize': (5,5)}
 #fig = plt.figure(**figkws)
 #ax = plot_d0_rho(data)
 fig_fltr = plt.figure(**figkws)
-ax_fltr, rho_d0 = plot_d0_rho(data_fltr)
+ax_fltr, rho_d0, rho_d0_baecc, rho_d0_1415 = plot_d0_rho(data_fltr)
 
 m_d = mass_dim(rho_d0)
+m_d_baecc = mass_dim(rho_d0_baecc)
+m_d_1415 = mass_dim(rho_d0_1415)
 
 if debug:
     savepath += '/test'
@@ -119,3 +123,4 @@ read.ensure_dir(paperpath)
 #fig.savefig(path.join(savepath, 'rho_d0_combined.eps'))
 fig_fltr.savefig(path.join(savepath, 'rho_d0_combined_d0fltr.eps'))
 fig_fltr.savefig(path.join(paperpath, 'd0_rho.eps'))
+fig_fltr.savefig(path.join(paperpath, 'd0_rho.png'))
