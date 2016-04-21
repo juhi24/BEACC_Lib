@@ -31,6 +31,10 @@ else:
 read.ensure_dir(savedir)
 
 
+def isnan(var):
+    return var != var
+
+
 def select_rows(data, dtlist):
     return data.loc[tuple(map(pd.to_datetime, dtlist)),:]
 
@@ -43,10 +47,19 @@ def gray_out(data, axdict, fltr_label='d0_fltr', labels=['D_0', 'density']):
                        alpha=0.8)
 
 
-def markers(data, ax, ycol='density', labelcol='label'):
+def markers(data, ax, ycol='density', labelcol='label', mark_below=True, **kws):
     for t_end, row in data.iterrows():
-        ax.text(row.middle, row[ycol], row[labelcol], ha='center', va='bottom',
-                weight='heavy')
+        label = row[labelcol]
+        va = row['va']
+        if isnan(va):
+            va = 'bottom'
+        if mark_below:
+            y = 0
+            va = 'top'
+        else:
+            y = row[ycol]
+        ax.text(row.middle, y, label, ha='center', va=va,
+                weight='heavy', **kws)
 
 
 def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
@@ -83,7 +96,6 @@ def all_cases_simple_overview(e):
 params=['intensity', 'density', d0_col, 'N_w']
 extent = (0.375, 4, 0.5, 1.5)
 xtick_pos = (1, 2, 3, 4)
-
 #all_cases_simple_overview(e)
 
 for ievent, event in e.events.iterrows():
@@ -97,8 +109,10 @@ for ievent, event in e.events.iterrows():
     if event.a is np.nan:
         last_ts = case.instr['pipv'].fits.polfit.index[-1]
         dtlist = (last_ts, last_ts, last_ts)
+        valist = (np.nan, np.nan, np.nan)
     else:
         dtlist = (event.a, event.b, event.c)
+        valist = (event.va_a, event.va_b, event.va_c)
     series_ax = []
     fit_ax = []
     gs = gridspec.GridSpec(2, 1, height_ratios=[3,1])
@@ -128,6 +142,7 @@ for ievent, event in e.events.iterrows():
         ax.set_xlabel('')
     sample=data.loc[tuple(map(pd.to_datetime, dtlist)),:]
     sample['label'] = ['a', 'b', 'c']
+    sample['va'] = valist
     sample['ax'] = fit_ax
     for i, row in sample.iterrows():
         row.ax.text(extent[1]-0.2, extent[2], row.label, ha='right', va='bottom',

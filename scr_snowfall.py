@@ -60,8 +60,7 @@ def pip2015events():
     return e
 
 
-def param_table(e=None, query_str='density<600 & count>1000 & b>0 & D_0>0.63',
-                debug=False):
+def param_table(e=None, query_str='density<600 & count>800 & b>0', debug=False):
     if e is None:
         if debug:
             e = test_events()
@@ -70,4 +69,6 @@ def param_table(e=None, query_str='density<600 & count>1000 & b>0 & D_0>0.63',
     data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
     del(e)
     gc.collect()
+    if len(query_str)<1:
+        return data
     return data.query(query_str)
