@@ -51,12 +51,14 @@ fig, (axd0, axd0rho) = plt.subplots(ncols=2, sharey=True, dpi=150,
                                     figsize=(7,4), tight_layout=True)
 d0_nw = fit.LinFit(x=data.D_0_gamma, y=np.log10(data.N_w), xname='D_0')
 d0_nw.find_fit()
-d0_nw.plot(ax=axd0, label='Linear fit', source_style='raw', source_kws=skws)
+fitlabel = ''
+d0_nw.plot(ax=axd0, source_style='raw', source_kws=skws)
 axd0.legend()
 
-d0rho_nw = fit.LinFit(x=0.01*data.D_0_rho1, y=np.log10(data.N_w), xname='D_0*rho^(1/3)')
+d0rho_nw = fit.LinFit(x=0.01*data.D_0_rho1, y=np.log10(data.N_w), xname='D_0\\rho^{^1\!/_3}')
 d0rho_nw.find_fit()
 axd0rho = d0rho_nw.plot(ax=axd0rho, source_style='raw', source_kws=skws)
+axd0rho.legend()
 
 axd0rho.axis([None, None, 1, 6])
 axd0.set_ylabel('$log(N_w)$')

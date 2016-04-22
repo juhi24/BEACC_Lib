@@ -15,7 +15,7 @@ unfiltered = False
 tld = '.eps'
 rholimits = (0, 100, 200, 800)
 #rholimits = (0, 150, 300, 800)
-bnds = (0.25,2.8,0.5,1.8)
+bnds = (0.35,3.0,0.5,1.8)
 
 
 if debug:
