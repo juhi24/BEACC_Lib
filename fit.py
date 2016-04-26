@@ -29,6 +29,11 @@ def antidiagonal_transpose(matrix):
     return J*matrix.T*J
 
 
+def logn(x, n=10):
+    """n base logarithm using base change rule"""
+    return np.log(n**x)/np.log(n)
+
+
 class ClassProperty(property):
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()
@@ -183,12 +188,13 @@ class LinFit(Fit):
         x = self.x
         y = self.y
         a, b, self.rvalue, self.pvalue, self.stderr = linregress(x, y)
-        self.params = (a, b)
+        if store_params:
+            self.params = (a, b)
         return self.params
 
 
 class ExpFit(Fit):
-    """exponential fit of form a*(1-b*exp(-c*D))"""
+    """exponential fit of form a*(1-b*exp(-c*x))"""
     def __init__(self, params=None, **kwargs):
         super().__init__(params=params, name='expfit', **kwargs)
         self.quess = (1., 1., 1.)
@@ -220,19 +226,47 @@ class ExponentialFit(Fit):
     def __init__(self, params=None, base=10, **kwargs):
         super().__init__(params=params, name='logfit', **kwargs)
         self.base = base
-        self.str_fmt = '%s' + str(base) + '^{%s' + self.xname + '}'
+        self.str_fmt = '%s ' + str(base) + '^{%s ' + self.xname + '}'
 
     def func(self, x, a=None, b=None):
         if a is None:
             return self.func(x, *self.params)
         return a*self.base**(b*x)
 
+    def find_fit(self, store_params=True, linreg=True, **kwargs):
+        if not linreg:
+            return super().find_fit(store_params=store_params, **kwargs)
+        b, loga, rvalue, pvalue, stderr = self.find_fit_linregress()
+        a = self.base**loga
+        if store_params:
+            self.params = (a, b)
+            self.rvalue = rvalue
+            self.pvalue = pvalue
+            self.stderr = stderr
+        return (a, b)
+
+    def find_fit_linregress(self):
+        basen = False
+        if self.base == np.e:
+            logfunc = np.log
+        elif self.base == 10:
+            logfunc = np.log10
+        elif self.base == 2:
+            logfunc = np.log2
+        else:
+            basen = True
+        if basen:
+            logy = logn(self.y, n=self.base)
+        else:
+            logy = logfunc(self.y)
+        return linregress(self.x, logy)
+
 
 class PolFit(Fit):
     """power law fit of form a*D**b"""
-    def __init__(self, params=None, **kwargs):
+    def __init__(self, params=None, quess=(1, 0.2), **kwargs):
         super().__init__(params=params, name='polfit', **kwargs)
-        self.quess = (1, 0.2)
+        self.quess = quess
         self.str_fmt = '%s' + self.xname + '^{%s}'
 
     def func(self, x, a=None, b=None):
@@ -254,7 +288,7 @@ class PolFit(Fit):
             return False
         return True
 
-    def find_fit(self, store_params=True, loglog=False, **kwargs):
+    def find_fit(self, store_params=True, loglog=True, **kwargs):
         if not loglog:
             return super().find_fit(store_params=store_params, **kwargs)
         params, cov = self.find_fit_loglog()
@@ -275,7 +309,7 @@ class PolFit(Fit):
         a = 10**pfinal[0]
         b = pfinal[1]
         return (a, b), cov
-        
+
 
 gunn_kinzer = ExpFit(params=GUNN_KINZER)
 set_plot_style()
