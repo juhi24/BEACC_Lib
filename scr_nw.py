@@ -47,23 +47,26 @@ data['nw_rho'] = nw(data.density, data.D_0_gamma)
 #ax.axis([1e1,1e6,1e1,1e6])
 
 skws = {'c':'', 'label':'data points'}
+legendkws = {'frameon':True}
 fig, (axd0, axd0rho) = plt.subplots(ncols=2, sharey=True, dpi=150,
                                     figsize=(7,4), tight_layout=True)
-d0_nw = fit.ExponentialFit(x=data.D_0_gamma, y=data.N_w, xname='D_0')
+d0_nw = fit.ExponentialFit(x=data.D_0_gamma, y=data.N_w, xname='D_0',
+                           use_latex_fmt=True)
 d0_nw.find_fit()
 fitlabel = ''
 d0_nw.plot(ax=axd0, source_style='raw', source_kws=skws)
 axd0.set_yscale('log')
-axd0.legend()
+axd0.legend(**legendkws)
 
 d0rho = 0.001**(1/3)*data.D_0_rho1
-d0rho_nw = fit.ExponentialFit(x=d0rho, y=data.N_w, xname='D_0\\rho^{^1\!/_3}')
+d0rho_nw = fit.ExponentialFit(x=d0rho, y=data.N_w, xname='D_0\\rho^{^1\!/_3}',
+                              use_latex_fmt=True)
 d0rho_nw.find_fit()
 axd0rho = d0rho_nw.plot(ax=axd0rho, source_style='raw', source_kws=skws)
 axd0rho.set_yscale('log')
-axd0rho.legend()
+axd0rho.legend(**legendkws)
 
-axd0rho.axis([None, None, 1e1, 1e6])
+axd0rho.axis([None, 2.5, 1e1, 1e6])
 axd0.set_ylabel('$N_w$')
 axd0.set_xlabel('$D_0$, mm')
 axd0rho.set_xlabel('$D_0 \\rho^{^1\!/_3}$, g$^{^1\!/_3}$')

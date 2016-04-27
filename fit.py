@@ -12,6 +12,32 @@ import seaborn as sns
 GUNN_KINZER = (9.65, 10.30/9.65, 0.6)
 
 
+def exp10(x):
+    return int(np.floor(np.log10(abs(x))))
+
+
+def num2tex(x, sig=3, sci_thres=2):
+    exp = exp10(x)
+    if abs(exp) > sci_thres:
+        return num2tex_e(x, sig=sig)
+    return '{0:.{sig}f}'.format(x, sig=sig)
+
+
+def num2tex_e(x, sig=3):
+    '''return number as latex string in scientific format'''
+    return '{0:.{sig}f} \mathrm{{e}}{{{1:-}}}'.format(*frexp10(x), sig=sig)
+
+
+def num2tex_sci(x, sig=3):
+    '''return number as latex string in scientific format'''
+    return '{0:.{sig}f} \\times 10^{{{1}}}'.format(*frexp10(x), sig=sig)
+
+
+def frexp10(x):
+    exp = exp10(x)
+    return x / 10**exp, exp
+
+
 def set_plot_style(tickdirection='in', **kws):
     styledict = {'xtick.direction': tickdirection,
                  'ytick.direction': tickdirection}
@@ -43,7 +69,7 @@ class Fit:
     """parent for different fit types"""
     def __init__(self, x=None, y=None, x_unfiltered=None, y_unfiltered=None,
                  sigma=None, params=None, name='fit', xname='D',
-                 flipped=False, disp_scale=[]):
+                 flipped=False, disp_scale=[], use_latex_fmt=False):
         self.params = params
         self._name = name
         self.x = x
@@ -59,6 +85,7 @@ class Fit:
         self.flipped = flipped
         self.str_fmt = ''
         self.disp_scale = np.array(disp_scale)
+        self.use_latex_fmt = use_latex_fmt
 
     def __repr__(self):
         if self.params is None:
@@ -67,7 +94,10 @@ class Fit:
             params = np.array(self.params)
             if self.disp_scale.size == params.size:
                 params = params*self.disp_scale
-            paramstr = ['{0:.3f}'.format(p) for p in params]
+            if self.use_latex_fmt:
+                paramstr = [num2tex(p) for p in params]
+            else:
+                paramstr = ['{0:.3f}'.format(p) for p in params]
         s = self.str_fmt % tuple(paramstr)
         return s.replace('--', '+')
 
@@ -226,7 +256,7 @@ class ExponentialFit(Fit):
     def __init__(self, params=None, base=10, **kwargs):
         super().__init__(params=params, name='logfit', **kwargs)
         self.base = base
-        self.str_fmt = '%s ' + str(base) + '^{%s ' + self.xname + '}'
+        self.str_fmt = '%s \\times' + str(base) + '^{%s ' + self.xname + '}'
 
     def func(self, x, a=None, b=None):
         if a is None:
