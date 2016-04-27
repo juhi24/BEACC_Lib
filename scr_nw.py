@@ -28,7 +28,7 @@ def alpha_fit():
 
 plt.close('all')
 
-data = param_table()
+#data = param_table()
 
 #data['D_0_rho'] = data.D_0_gamma*data.density
 #ax2 = data.plot.scatter(x='D_0_rho', y='N_w', c='density', logy=True)
@@ -49,19 +49,22 @@ data['nw_rho'] = nw(data.density, data.D_0_gamma)
 skws = {'c':'', 'label':'data points'}
 fig, (axd0, axd0rho) = plt.subplots(ncols=2, sharey=True, dpi=150,
                                     figsize=(7,4), tight_layout=True)
-d0_nw = fit.LinFit(x=data.D_0_gamma, y=np.log10(data.N_w), xname='D_0')
+d0_nw = fit.ExponentialFit(x=data.D_0_gamma, y=data.N_w, xname='D_0')
 d0_nw.find_fit()
 fitlabel = ''
 d0_nw.plot(ax=axd0, source_style='raw', source_kws=skws)
+axd0.set_yscale('log')
 axd0.legend()
 
-d0rho_nw = fit.LinFit(x=0.01*data.D_0_rho1, y=np.log10(data.N_w), xname='D_0\\rho^{^1\!/_3}')
+d0rho = 0.001**(1/3)*data.D_0_rho1
+d0rho_nw = fit.ExponentialFit(x=d0rho, y=data.N_w, xname='D_0\\rho^{^1\!/_3}')
 d0rho_nw.find_fit()
 axd0rho = d0rho_nw.plot(ax=axd0rho, source_style='raw', source_kws=skws)
+axd0rho.set_yscale('log')
 axd0rho.legend()
 
-axd0rho.axis([None, None, 1, 6])
-axd0.set_ylabel('$log(N_w)$')
+axd0rho.axis([None, None, 1e1, 1e6])
+axd0.set_ylabel('$N_w$')
 axd0.set_xlabel('$D_0$, mm')
 axd0rho.set_xlabel('$D_0 \\rho^{^1\!/_3}$, g$^{^1\!/_3}$')
 fig.savefig(path.join(savepath, 'nw_d0.eps'))
