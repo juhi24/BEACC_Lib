@@ -7,6 +7,7 @@ import read
 import matplotlib.pyplot as plt
 from os import path
 import fit
+import gc
 
 from scr_snowfall import pip2015events, test_events
 
@@ -28,6 +29,7 @@ plt.ioff()
 
 comb = e.events.paper.sum()
 del(e)
+gc.collect()
 
 hextent = np.array(bnds)+(-0.1,0.1,-0.1,0.1)
 kws = {'separate': True,
@@ -41,14 +43,14 @@ fitargs = {'force_flip': False,
 if unfiltered:
     fitargs['filter_outliers'] = False
 fig, axarr = comb.plot_vfits_in_density_ranges(fitargs=fitargs, **kws)
-merger = comb.d_0()
-data = comb.instr['pipv'].good_data()
-data_grouped = comb.group(data, merger)
-data_fltr = data_grouped[data_grouped['D_0'] > 0.63]
-fitargs['data'] = data_fltr
-fig_fltr, axarr_fltr = comb.plot_vfits_in_density_ranges(fitargs=fitargs, **kws)
+#merger = comb.d_0()
+#data = comb.instr['pipv'].good_data()
+#data_grouped = comb.group(data, merger)
+#data_fltr = data_grouped[data_grouped['D_0'] > 0.63]
+#fitargs['data'] = data_fltr
+#fig_fltr, axarr_fltr = comb.plot_vfits_in_density_ranges(fitargs=fitargs, **kws)
 axarr[0].axis(bnds)
-axarr_fltr[0].axis(bnds)
+#axarr_fltr[0].axis(bnds)
 
 resultsdir = '../results/pip2015'
 savepath = path.join(resultsdir, 'vfits_density_ranges')
@@ -60,5 +62,5 @@ fname = 'combined'
 if unfiltered:
     fname += '_unfiltered'
 fig.savefig(path.join(savepath, fname + tld))
-fig_fltr.savefig(path.join(savepath, fname + '_d0fltr' + tld))
-fig_fltr.savefig(path.join(paperpath, 'vfits_rho_ranges' + tld))
+#fig_fltr.savefig(path.join(savepath, fname + '_d0fltr' + tld))
+fig.savefig(path.join(paperpath, 'vfits_rho_ranges' + tld))
