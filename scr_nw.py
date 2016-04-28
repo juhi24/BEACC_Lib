@@ -46,6 +46,7 @@ data['nw_rho'] = nw(data.density, data.D_0_gamma)
 #ax.plot([0,1e8],[0, 1e8])
 #ax.axis([1e1,1e6,1e1,1e6])
 
+txtkws = {'x':0.15, 'y':0.1, 'ha':'right', 'va':'bottom'}
 skws = {'c':'', 'label':'data points'}
 legendkws = {'frameon':True}
 fig, (axd0, axd0rho) = plt.subplots(ncols=2, sharey=True, dpi=150,
@@ -57,6 +58,7 @@ fitlabel = ''
 d0_nw.plot(ax=axd0, source_style='raw', source_kws=skws)
 axd0.set_yscale('log')
 axd0.legend(**legendkws)
+axd0.text(s='(a)', transform=axd0.transAxes, **txtkws)
 
 d0rho = 0.001**(1/3)*data.D_0_rho1
 d0rho_nw = fit.ExponentialFit(x=d0rho, y=data.N_w, xname='D_0\\rho^{^1\!/_3}',
@@ -65,6 +67,7 @@ d0rho_nw.find_fit()
 axd0rho = d0rho_nw.plot(ax=axd0rho, source_style='raw', source_kws=skws)
 axd0rho.set_yscale('log')
 axd0rho.legend(**legendkws)
+axd0rho.text(s='(b)', transform=axd0rho.transAxes, **txtkws)
 
 axd0rho.axis([None, 2.5, 1e1, 1e6])
 axd0.set_ylabel('$N_w$')
