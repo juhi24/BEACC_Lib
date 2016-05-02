@@ -35,6 +35,17 @@ TAU = 2*np.pi
 RHO_W = 1000
 
 
+def df_ranges(data, column, ranges):
+    in_range = pd.DataFrame(index=data.index)
+    for rng in ranges:
+        in_range['low'] = data[column] > rng[0]
+        in_range['high'] = data[column] < rng[1]
+        selection = in_range.all(axis=1)
+        data.loc[selection, column + '_range_min'] = rng[0]
+        data.loc[selection, column + '_range_max'] = rng[1]
+    return data
+
+
 def ordinal(n):
     if 10 <= n % 100 < 20:
         return str(n) + 'th'

@@ -2,6 +2,7 @@
 """
 @author: Jussi Tiira
 """
+import snowfall as sf
 import numpy as np
 import read
 import matplotlib.pyplot as plt
@@ -18,6 +19,13 @@ rholimits = (0, 100, 200, 800)
 #rholimits = (0, 150, 300, 800)
 bnds = (0.35,3.0,0.5,1.8)
 
+def vfits_debug(comb):
+    fitargs = {'force_flip': False,
+               'try_flip': False,
+               'fitclass': fit.PolFit}
+    rholimits=(0, 100, 200, 800)
+    limslist = sf.limitslist(rholimits)
+    return comb.vfits_density_range(limslist, **fitargs)
 
 if debug:
     e = test_events()
