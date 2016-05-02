@@ -1429,13 +1429,6 @@ class PipV(InstrumentData):
         """Plot datapoints and fit for each timestep."""
         ngroups = self.grouped(rule=rule).ngroups
         #nrows = int(np.ceil(ngroups/ncols))
-        if save:
-            home = os.curdir
-            if 'HOME' in os.environ:
-                home = os.environ['HOME']
-            if savedir is None:
-                savedir = os.path.join(home, 'Pictures', 'vel_plots')
-            #suffix = '_' + self.rule
         if not separate:
             f, axarr = plt.subplots(1, ngroups, sharex='col', sharey='row',
                                     figsize=(ngroups*8, 7), tight_layout=True)
@@ -1458,15 +1451,8 @@ class PipV(InstrumentData):
             self.plot(data=group, ax=axarr[i],
                       ymax=ymax, **kwargs)
             f.tight_layout()
-            if save and separate:
-                t = group.index[-1]
-                fname = t.strftime(prefix + '%Y%m%d%H%M' + suffix)
-                f.savefig(os.path.join(savedir, fname))
             if peak:
                 axarr[i].scatter(*self.kde_peak(data=group), label='kde peak')
-        if save and not separate:
-            fname = t.strftime('%Y%m%d' + suffix)
-            f.savefig(os.path.join(savedir, fname))
         return axarr
 
 
