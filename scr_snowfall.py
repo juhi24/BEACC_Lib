@@ -14,6 +14,7 @@ pluvio_comb_intervals = 2
 dtformat_default = '%d.%m.%y %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 dtformat_paper = '%Y %b %d %H:%M'
+QSTR = 'density<600 & count>800 & b>0'
 
 h5baecc_path = path.join(read.DATA_DIR, 'baecc.h5')
 h5nov14_path = path.join(read.DATA_DIR, '2014nov1-23.h5')
@@ -60,7 +61,7 @@ def pip2015events():
     return e
 
 
-def param_table(e=None, query_str='density<600 & count>800 & b>0', debug=False):
+def param_table(e=None, query_str=QSTR, debug=False):
     if e is None:
         if debug:
             e = test_events()
