@@ -70,7 +70,7 @@ axd0rho.legend(**legendkws)
 axd0rho.text(s='(b)', transform=axd0rho.transAxes, **txtkws)
 
 axd0rho.axis([None, 2.5, 1e1, 1e6])
-axd0.set_ylabel('$N_w$')
+axd0.set_ylabel('$N_w$, mm$^{-1}$m$^{-3}$')
 axd0.set_xlabel('$D_0$, mm')
 axd0rho.set_xlabel('$D_0 \\rho^{^1\!/_3}$, g$^{^1\!/_3}$')
 fig.savefig(path.join(savepath, 'nw_d0.eps'))

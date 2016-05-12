@@ -94,9 +94,12 @@ class Fit:
             params = np.array(self.params)
             if self.disp_scale.size == params.size:
                 params = params*self.disp_scale
-            if self.use_latex_fmt:
-                paramstr = [num2tex(p) for p in params]
-            else:
+            try:
+                if self.use_latex_fmt:
+                    paramstr = [num2tex(p) for p in params]
+                else:
+                    paramstr = ['{0:.3f}'.format(p) for p in params]
+            except AttributeError:
                 paramstr = ['{0:.3f}'.format(p) for p in params]
         s = self.str_fmt % tuple(paramstr)
         return s.replace('--', '+')

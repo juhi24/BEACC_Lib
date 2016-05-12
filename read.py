@@ -814,6 +814,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         """Group data by integration time intervals."""
         return merge_series(data, self.grouper()).groupby('group')
 
+
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
     def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):

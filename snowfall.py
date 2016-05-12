@@ -243,7 +243,7 @@ def plot_vfits_rho_intervals(fits, limslist, separate=False,
 
 
 class EventsCollection:
-    """Manage multiple snow/rain events."""
+    """Manage a table of precipitation events."""
     def __init__(self, csv, dtformat='%d %B %H UTC'):
         """Read event metadata from a csv file."""
         self.dtformat = dtformat
@@ -256,6 +256,22 @@ class EventsCollection:
         #date = datetime.strptime(dtstr+'+0000', self.dtformat+'%z')
         date = datetime.strptime(dtstr, self.dtformat)
         return date
+
+    def total_duration(self, events_col='paper', winter=None):
+        t_tot = pd.timedelta_range(0,0)[0]
+        cases = self.events[events_col]
+        if winter is not None:
+            cases = cases.loc[winter]
+        for c in cases:
+            t_tot += c.duration()
+        return t_tot
+
+    def duration_weights(self, events_col='paper'):
+        weights = []
+        t_tot = self.total_duration()
+        for c in self.events[events_col]:
+            weights.append(c.duration()/t_tot)
+        return pd.Series(weights, index=self.events.index)
 
     def add_data(self, data, autoshift=True, autobias=True):
         """Add data from a Case object."""
@@ -907,6 +923,10 @@ class Case(read.PrecipMeasurer, read.Cacher):
             placeholder = self.instr['pluvio'].good_data().index[0]
             return (placeholder, placeholder)
         return (t[0], t[-1])
+
+    def duration(self):
+        tstart, tend = self.dt_start_end()
+        return tend-tstart
 
     def time_range(self):
         """data time ticks on minute interval"""
