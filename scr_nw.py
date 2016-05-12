@@ -45,6 +45,7 @@ data['nw_rho'] = nw(data.density, data.D_0_gamma)
 #ax.set_ylabel('$N_w(\\rho)$')
 #ax.plot([0,1e8],[0, 1e8])
 #ax.axis([1e1,1e6,1e1,1e6])
+legendkws = {'frameon':True}
 
 txtkws = {'x':0.15, 'y':0.1, 'ha':'right', 'va':'bottom'}
 skws = {'c':'', 'label':'data points'}

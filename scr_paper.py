@@ -3,7 +3,7 @@
 @author: Jussi Tiira
 """
 import gc
-scriptnames = [#'scr_case_overview.py',
+scriptnames = ['scr_case_overview.py',
                'scr_histograms.py',
                'scr_nw.py',
                'scr_vfits_density_ranges_combined.py',
