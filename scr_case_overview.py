@@ -31,6 +31,14 @@ else:
 read.ensure_dir(savedir)
 
 
+def d0fltr(df, limit=0.63, apply=False, colname='d0_fltr'):
+    data = df.copy()
+    data[colname] = data.D_0 < limit
+    if apply:
+        return data[-data[colname]]
+    return data
+
+
 def isnan(var):
     return var != var
 
@@ -79,26 +87,9 @@ def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
     fig = axlist[0].get_figure()
     for param in ['N_w']:
         axdict[param].set_yscale('log')
-    data = sf.d0fltr(data)
+    data = d0fltr(data)
     gray_out(data, axdict, labels=[d0_col, 'density'])
     return fig, axdict
-
-
-def plot_vfit(case, dt, ax=None, extent=(0.375, 4, 0.5, 1.5),
-              xtick_pos=(1, 2, 3, 4)):
-    if ax is None:
-        ax = plt.gca()
-    vfit = case.instr['pipv'].fits.polfit[dt]
-    vfit.plot(source_style='hex', unfiltered=True, ax=ax,
-              source_kws={'gridsize': 20, 'extent': extent})
-    ax.axis(extent)
-    dt_start = case.instr['pluvio'].start_time()[dt]
-    dt_end = pd.to_datetime(dt)
-    ax.set_title('{0}–{1}'.format(dt_start.strftime(tformat),
-                                  dt_end.strftime(tformat)))
-    ax.set_xticks(xtick_pos)
-    ax.tick_params(axis='both', direction='out', length=4)
-    ax.legend()
 
 
 def all_cases_simple_overview(e):
@@ -114,7 +105,6 @@ def all_cases_simple_overview(e):
 params=['intensity', 'density', d0_col, 'N_w']
 extent = (0.375, 4, 0.5, 1.5)
 xtick_pos = (1, 2, 3, 4)
-tformat = '%H:%M'
 #all_cases_simple_overview(e)
 
 for ievent, event in e.events.iterrows():
@@ -144,7 +134,7 @@ for ievent, event in e.events.iterrows():
         series_ax.append(plt.subplot(gs_series[i]))
     for i, dt in enumerate(dtlist):
         ax = plt.subplot(gs_fit[i])
-        plot_vfit(case, dt, extent=extent, xtick_pos=xtick_pos, ax=ax)
+        sf.plot_vfit(case, dt, extent=extent, xtick_pos=xtick_pos, ax=ax)
         fit_ax.append(ax)
     fig, axdict = plot_overview(data, axlist=series_ax, params=params)
     data['D_max'].plot(ax=axdict[d0_col], drawstyle='steps', label='$D_{max}$')

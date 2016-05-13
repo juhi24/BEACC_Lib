@@ -154,10 +154,9 @@ def limitslist(limits):
 
 
 def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
-                   kind='scatter', groupby=None,
-                   ax=None, colorbar=False, markers='os^vD*p><',
-                   edgecolors='none', dtformat='%Y %b %d',
-                   split_date=None, **kwargs):
+               kind='scatter', groupby=None, ax=None, colorbar=False,
+               markers='os^vD*p><', edgecolors='none', dtformat='%Y %b %d',
+               split_date=None, **kwargs):
         """Easily plot parameters against each other."""
         if ax is None:
             ax = plt.gca()
@@ -175,14 +174,6 @@ def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
             return ax
         return data.plot(ax=ax, x=x, y=y, kind=kind, colorbar=colorbar,
                          edgecolors=edgecolors, **kwargs)
-
-
-def d0fltr(df, limit=0.63, apply=False, colname='d0_fltr'):
-    data = df.copy()
-    data[colname] = data.D_0 < limit
-    if apply:
-        return data[-data[colname]]
-    return data
 
 
 def find_interval(x, limits=(0,100,200,800)):
@@ -240,6 +231,30 @@ def plot_vfits_rho_intervals(fits, limslist, separate=False,
     if separate:
         return fig, axarr
     return fig, ax
+
+
+def plot_vfit(case, dt, ax=None, extent=(0.375, 4, 0.5, 1.5),
+              xtick_pos=(1, 2, 3, 4), tformat='%H:%M'):
+    if ax is None:
+        ax = plt.gca()
+    vfit = case.instr['pipv'].fits.polfit[dt]
+    vfit.plot(source_style='hex', unfiltered=True, ax=ax,
+              source_kws={'gridsize': 20, 'extent': extent})
+    ax.axis(extent)
+    dt_start = case.instr['pluvio'].start_time()[dt]
+    dt_end = pd.to_datetime(dt)
+    ax.set_title('{0}–{1}'.format(dt_start.strftime(tformat),
+                                  dt_end.strftime(tformat)))
+    ax.set_xticks(xtick_pos)
+    ax.tick_params(axis='both', direction='out', length=4)
+    ax.legend()
+
+
+def series_cdf(series):
+    """CDF from a pandas Series"""
+    srtd = series.sort_values()
+    cum_dist = np.linspace(0, 1, series.size)
+    return pd.Series(cum_dist, index=srtd)
 
 
 class EventsCollection:

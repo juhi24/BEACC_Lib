@@ -13,6 +13,10 @@ resultspath = '../results/pip2015'
 paperpath = read.ensure_dir(path.join(resultspath, 'paper'))
 savepath = path.join(resultspath, 'psd')
 
+plt.close('all')
+plt.ioff()
+
+
 def nw_dmitri(rho, d0):
     return 10**(5.5-(3.57*(rho/1000)**(1/3)-1)*d0)
 
@@ -26,9 +30,7 @@ def alpha_fit():
     afit.find_fit()
     return afit
 
-plt.close('all')
-
-#data = param_table()
+data = param_table()
 
 #data['D_0_rho'] = data.D_0_gamma*data.density
 #ax2 = data.plot.scatter(x='D_0_rho', y='N_w', c='density', logy=True)
