@@ -15,7 +15,9 @@ dtformat_default = '%d.%m.%y %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 dtformat_paper = '%Y %b %d %H:%M'
 #QSTR = 'density<600 & count>800 & b>0'
-QSTR = 'D_0_gamma>0.6 & intensity>0.25 & count>800'
+QSTR = 'D_0_gamma>0.6 & intensity>0.2 & count>800 & density==density'
+rholimits = (0, 100, 200, 1000)
+#rholimits = (0, 150, 300, 800)
 
 h5baecc_path = path.join(read.DATA_DIR, 'baecc.h5')
 h5nov14_path = path.join(read.DATA_DIR, '2014nov1-23.h5')
@@ -62,7 +64,7 @@ def pip2015events():
     return e
 
 
-def param_table(e=None, query_str=QSTR, debug=False):
+def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None):
     if e is None:
         if debug:
             e = test_events()
@@ -71,6 +73,8 @@ def param_table(e=None, query_str=QSTR, debug=False):
     data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
     del(e)
     gc.collect()
+    if rho_limits is not None:
+        data = sf.apply_rho_intervals(data, rho_limits)
     if len(query_str)<1:
         return data
     return data.query(query_str)

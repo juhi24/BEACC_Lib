@@ -259,9 +259,10 @@ def series_cdf(series):
 
 class EventsCollection:
     """Manage a table of precipitation events."""
-    def __init__(self, csv, dtformat='%d %B %H UTC'):
+    def __init__(self, csv, dtformat='%d %B %H UTC', default_col='paper'):
         """Read event metadata from a csv file."""
         self.dtformat = dtformat
+        self.default_col = default_col
         self.events = pd.read_csv(csv, parse_dates=['start', 'end'],
                                   date_parser=self.parse_datetime)
         self.events.sort(columns=['start', 'end'], inplace=True)
@@ -272,7 +273,9 @@ class EventsCollection:
         date = datetime.strptime(dtstr, self.dtformat)
         return date
 
-    def total_duration(self, events_col='paper', winter=None):
+    def total_duration(self, events_col=None, winter=None):
+        if events_col is None:
+            events_col = self.default_col
         t_tot = pd.timedelta_range(0,0)[0]
         cases = self.events[events_col]
         if winter is not None:
@@ -281,12 +284,29 @@ class EventsCollection:
             t_tot += c.duration()
         return t_tot
 
-    def duration_weights(self, events_col='paper'):
+    def duration_weights(self, events_col=None):
+        if events_col is None:
+            events_col = self.default_col
         weights = []
         t_tot = self.total_duration()
         for c in self.events[events_col]:
             weights.append(c.duration()/t_tot)
         return pd.Series(weights, index=self.events.index)
+
+
+    def vel_data(self, events_col=None, winter=None):
+        if events_col is None:
+            events_col = self.default_col
+        cases = self.events[events_col]
+        if winter is not None:
+            cases = cases.loc[winter]
+        vdatalist = []
+        for c in cases:
+            data = c.instr['pipv'].good_data()
+            vdatalist.append(data)
+        vdata = pd.concat(vdatalist)
+        return vdata
+
 
     def add_data(self, data, autoshift=True, autobias=True):
         """Add data from a Case object."""
@@ -310,12 +330,25 @@ class EventsCollection:
             if data is not None:
                 self.add_data(data, autoshift=autoshift, autobias=autobias)
 
-    def summary(self, col='pluvio200', dtformat='%Y %b %d', concatkws={},
+    def summary(self, col=None, dtformat='%Y %b %d', concatkws={},
                 **kwargs):
+        if col is None:
+            col = self.default_col
         sumlist = []
         for c in self.events[col]:
             sumlist.append(c.summary(dtformat=dtformat, **kwargs))
         return pd.concat(sumlist, **concatkws)
+
+    def pluv_grouper(self, events_col=None, winter=None):
+        if events_col is None:
+            events_col = self.default_col
+        cases = self.events[events_col]
+        if winter is not None:
+            cases = cases.loc[winter]
+        grouperlist = []
+        for c in self.events[events_col]:
+            grouperlist.append(c.instr['pluvio'].grouper())
+        return pd.concat(grouperlist)
 
     def split_index(self, date=pd.datetime(2014,7,1),
                     names=('first', 'second')):
@@ -326,15 +359,6 @@ class EventsCollection:
         tuples = list(zip(*(idf.values, idf.index.values)))
         index = pd.MultiIndex.from_tuples(tuples, names=('winter', 'i'))
         self.events.index = index
-
-
-class CaseSummary:
-    """Store and analyse processed snow case data."""
-    def __init__(self, data=None):
-        self.data = data
-
-    def d0fltr(self, **kwargs):
-        return d0fltr(self.data, **kwargs)
 
 
 class Case(read.PrecipMeasurer, read.Cacher):
@@ -1058,17 +1082,19 @@ class Case(read.PrecipMeasurer, read.Cacher):
         return scatterplot(x=d0, y=b, c=rho, vmin=rhomin, vmax=rhomax,
                            **kwargs)
 
-    def summary(self, radar=False, split_date=None, **kwargs):
+    def summary(self, radar=False, include_vfits=False, split_date=None,
+                **kwargs):
         """Return a DataFrame of combined numerical results."""
         casename = self.series_nans().fillna(self.dtstr(**kwargs))
         casename.name = 'case'
         pluvio = self.instr['pluvio']
+        pipv = self.instr['pipv']
         params = [self.partcount(),
                   self.density(),
                   self.d_0(),
                   self.n_t(),
                   casename,
-                  self.instr['pipv'].fit_params(),
+                  pipv.fit_params(),
                   #self.d(),
                   self.d_m(),
                   self.d_max(),
@@ -1089,6 +1115,8 @@ class Case(read.PrecipMeasurer, read.Cacher):
                   self.n_moment(2)]
         if radar:
             params.extend([self.Z_rayleigh_Xband(), self.tmatrix(tm_aux.wl_X)])
+        if include_vfits:
+            params.extend(pipv.fits[pipv.default_fit.name])
         data = read.merge_multiseries(*params)
         data.index.name = 'datetime'
         if split_date is not None:

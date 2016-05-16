@@ -9,15 +9,21 @@ import matplotlib.pyplot as plt
 from os import path
 import fit
 import gc
+import pandas as pd
 
-from scr_snowfall import pip2015events, test_events
+from scr_snowfall import pip2015events, test_events, rholimits, param_table
 
 debug = False
 unfiltered = False
 tld = '.eps'
-rholimits = (0, 100, 200, 800)
-#rholimits = (0, 150, 300, 800)
 bnds = (0.35,3.0,0.5,1.8)
+
+def vel_fit(data, rhomin=None):
+    if rhomin is not None:
+        data = data.query('rhomin=={0}'.format(rhomin))
+    d = np.concatenate([vfit.x_unfiltered for vfit in data.polfit])
+    v = np.concatenate([vfit.y_unfiltered for vfit in data.polfit])
+    return d, v
 
 def vfits_debug(comb):
     fitargs = {'force_flip': False,
@@ -34,6 +40,10 @@ else:
 
 #plt.close('all')
 plt.ioff()
+
+data = param_table(e=e, include_vfits=True, debug=debug, rho_limits=rholimits)
+vdata = read.merge_series(e.pluv_grouper(), e.vel_data())
+table = pd.merge(vdata, pd.DataFrame(data.rhomin), left_on='group', right_index=True)
 
 comb = e.events.paper.sum()
 del(e)

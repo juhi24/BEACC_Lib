@@ -804,7 +804,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         if shift:
             ticks = ticks.tshift(periods=self.shift_periods,
                                  freq=self.shift_freq)
-        ticktime = self.amount().index
+        ticktime = self.amount(shift=shift).index
         dtgroups = pd.Series(ticktime, index=ticktime).reindex(ticks.index).bfill()[self.dt_start():self.dt_end()]
         dtgroups.name = 'group'
         last_index = self.tdelta().index[-1]

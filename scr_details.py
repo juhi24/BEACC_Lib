@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 
 plt.ion()
-QSTR_FILTERED = 'density>599 | count<801 | b<0 | density!=density'
+#QSTR_FILTERED = 'density>599 | count<801 | b<0 | density!=density'
+QSTR_FILTERED = 'D_0_gamma<0.6 | intensity<0.2 | count<801'
 
 def bins(xmin=0, xmax=6, binsize=0.5):
     bins = np.arange(xmin, xmax+binsize, binsize)

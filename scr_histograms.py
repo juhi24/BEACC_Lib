@@ -13,11 +13,9 @@ import gc
 from scipy.stats import gaussian_kde
 import pandas as pd
 
-from scr_snowfall import pip2015events, test_events, param_table
+from scr_snowfall import pip2015events, test_events, param_table, rholimits
 
 debug = False
-rholims = (0, 100, 200, 800)
-#rholims = (0, 150, 300, 800)
 d0_col = 'D_0_gamma'
 
 #sns.set_context('talk')
@@ -87,8 +85,7 @@ def plots(d0, mu, nw, axd, axm, axn, label=None, title=None, **kwtitle):
 
 
 def hist_data(case):
-    data = read.merge_multiseries(case.d_0(), case.mu(), case.n_w())
-    return sf.d0fltr(data, apply=True)
+    return read.merge_multiseries(case.d_0(), case.mu(), case.n_w())
 
 
 def casewise_hist():
@@ -114,7 +111,7 @@ def casewise_hist():
     fn.savefig(path.join(savedir, 'nw_cases' + tld), **savekws)
 
 
-limslist = sf.limitslist(rholims)
+limslist = sf.limitslist(rholimits)
 n_ranges = len(limslist)
 
 fdd, axarrdd = subplots(n_ranges)
@@ -122,7 +119,7 @@ fmd, axarrmd = subplots(n_ranges)
 fnd, axarrnd = subplots(n_ranges)
 titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
-stats = pd.DataFrame(index=rholims[:-1])
+stats = pd.DataFrame(index=rholimits[:-1])
 kde_peak_d0 = [None, None, None]
 kde_peak_mu = [None, None, None]
 data_by_rho = sf.df_ranges(data, 'density', limslist).groupby('density_range_min')
