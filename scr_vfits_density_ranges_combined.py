@@ -41,7 +41,8 @@ else:
 #plt.close('all')
 plt.ioff()
 
-data = param_table(e=e, include_vfits=True, debug=debug, rho_limits=rholimits)
+data = param_table(e=e, debug=debug, rho_limits=rholimits)
+data.index = data.index.droplevel()
 vdata = read.merge_series(e.pluv_grouper(), e.vel_data())
 table = pd.merge(vdata, pd.DataFrame(data.rhomin), left_on='group', right_index=True)
 

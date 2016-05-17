@@ -371,10 +371,11 @@ class PrecipMeasurer:
 class InstrumentData(Cacher):
     """Parent for instrument data classes."""
     # TODO: Separate read_csv and __init__
-    def __init__(self, filenames, hdf_table=None, use_cache=True):
+    def __init__(self, filenames=None, data=None, hdf_table=None, use_cache=True):
         """Read from either ASCII data file or hdf5."""
         self.filenames = filenames
-        self.data = pd.DataFrame()
+        if data is None:
+            self.data = pd.DataFrame()
         # if filtered data needed often, keep in memory
         self.stored_good_data = None    # set to None to disable
         if hdf_table is not None:
