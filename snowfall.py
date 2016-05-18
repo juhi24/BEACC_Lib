@@ -176,7 +176,7 @@ def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
                          edgecolors=edgecolors, **kwargs)
 
 
-def find_interval(x, limits=(0,100,200,800)):
+def find_interval(x, limits=(0, 100, 200, 1000)):
     """Find rightmost value less than x and leftmost value more than x."""
     i = bisect.bisect_right(limits, x)
     return limits[i-1:i+1]
@@ -195,8 +195,7 @@ def apply_rho_intervals(df, limits, rho_col='density'):
 
 
 def plot_vfits_rho_intervals(fits, limslist, separate=False,
-                             hide_high_limit=True,
-                             fitargs={}, dpi=180, **kwargs):
+                             hide_high_limit=True, dpi=180, **kwargs):
     dlabel = '$D$, mm'
     vlabel = '$v$, m$\,$s$^{-1}$'
     n_ranges = len(fits)
@@ -234,7 +233,7 @@ def plot_vfits_rho_intervals(fits, limslist, separate=False,
     return fig, ax
 
 
-def plot_vfit(case, dt, ax=None, extent=(0.375, 4, 0.5, 1.5),
+def plot_vfit(case, dt, ax=None, extent=(0.3, 4, 0.5, 1.5),
               xtick_pos=(1, 2, 3, 4), tformat='%H:%M'):
     if ax is None:
         ax = plt.gca()
@@ -847,7 +846,7 @@ class Case(read.PrecipMeasurer, read.Cacher):
             return fits
         return self.pickler(name, func)
 
-    def plot_vfits_in_density_ranges(self, rholimits=(0, 100, 200, 800),
+    def plot_vfits_in_density_ranges(self, rholimits=(0, 100, 200, 1000),
                                      fitargs={}, **kwargs):
         limslist = limitslist(rholimits)
         fits = self.vfits_density_range(limslist, **fitargs)

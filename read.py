@@ -376,6 +376,8 @@ class InstrumentData(Cacher):
         self.filenames = filenames
         if data is None:
             self.data = pd.DataFrame()
+        else:
+            self.data = data
         # if filtered data needed often, keep in memory
         self.stored_good_data = None    # set to None to disable
         if hdf_table is not None:
@@ -452,13 +454,13 @@ class InstrumentData(Cacher):
 
 class Radar(InstrumentData):
     """Radar reflectivity at lowest level"""
-    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
+    def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
         """Create vertical pointing Radar object using data from various radar
         modes"""
-        print('Reading Radar data...')
         self._time_lag = pd.to_timedelta(0.0, unit='s')
         InstrumentData.__init__(self, filenames, **kwargs)
         if self.data.empty and filenames:
+            print('Reading Radar data...')
             self.name = (os.path.basename(os.path.dirname(self.filenames[0])))
             for filename in filenames:
                 print(filename)
@@ -532,9 +534,8 @@ class Radar(InstrumentData):
 
 class Pluvio(InstrumentData, PrecipMeasurer):
     """Pluviometer data handling"""
-    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
+    def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
         """Create a Pluvio object using data from a list of files."""
-        print('Reading pluviometer data...')
         InstrumentData.__init__(self, filenames, **kwargs)
         self.bias = 0
         self._shift_periods = 0
@@ -547,6 +548,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
         self.amount_col = 'acc_' + col_suffix
         self.bucket_col = 'bucket_' + col_suffix
         if self.data.empty:
+            print('Reading pluviometer data...')
             self.name = os.path.basename(os.path.dirname(self.filenames[0])).lower()
             self.col_description = ['date string',
                                     'intensity RT [mm h]',
@@ -818,9 +820,9 @@ class Pluvio(InstrumentData, PrecipMeasurer):
 
 class PipDSD(InstrumentData):
     """PIP particle size distribution data handling"""
-    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
-        """Create a PipDSD object using data from a list of PIP DSD table files."""
-        print('Reading PIP PSD data...')
+    def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
+        """Create a PipDSD object using data from a list of PIP DSD table
+        files."""
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_dsd'
         self.use_voleq_d = True
@@ -831,6 +833,7 @@ class PipDSD(InstrumentData):
                           'index_col': 'datetime',
                           'verbose': DEBUG}
         if self.data.empty:
+            print('Reading PIP PSD data...')
             for filename in filenames:
                 if DEBUG:
                     print(filename)
@@ -947,12 +950,13 @@ class PipDSD(InstrumentData):
 
 class PipV(InstrumentData):
     """PIP particle velocity and diameter data handling"""
-    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
-        """Create a PipV object using data from a list of PIP velocity table files."""
-        print('Reading PIP particle velocity data...')
+    def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
+        """Create a PipV object using data from a list of PIP velocity table
+        files."""
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
-        self.dmin = 0.375   # shortest Wad_Dia where data is good
+        self.dmin = 0.3   # shortest Wad_Dia where data is good
+        self.dmax = 25.8
         self.vmin = 0.5
         self.d_col = 'd_voleq' # equivalent volume
         #self.d_col = 'Wad_Dia' # equivalent area
@@ -962,7 +966,7 @@ class PipV(InstrumentData):
             num = 103
         else:
             num = 409
-        self.dbins = np.linspace(self.dmin, 25.875, num=num)
+        self.dbins = np.linspace(self.dmin, self.dmax, num=num)
         self._std = pd.DataFrame(columns=self.dbins)
         # half width at fraction of maximum
         self._hwfm = pd.DataFrame(columns=self.dbins)
@@ -970,6 +974,7 @@ class PipV(InstrumentData):
         self.flip = False
         self.loglog = True # use loglog method with power law fitting
         if self.data.empty:
+            print('Reading PIP particle velocity data...')
             for filename in filenames:
                 print('.', end='')
                 self.current_file = filename
@@ -1130,7 +1135,7 @@ class PipV(InstrumentData):
 
     def find_fit(self, fitclass=None, data=None, use_kde_peak=False,
                  cut_d=False, frac=0.5, use_curve_fit=True, bin_num_min=5,
-                 filter_outliers=True, name=None, try_flip=True,
+                 filter_outliers=True, name=None, try_flip=None,
                  plot_flip=False, force_flip=False, cut_kws={}, **kwargs):
         """Find and store a fit for either raw data or kde."""
         # TODO: clean this mess
@@ -1139,6 +1144,8 @@ class PipV(InstrumentData):
             return False, False
         std = pd.DataFrame()
         hwfm = pd.DataFrame()
+        if try_flip is None:
+            try_flip = self.flip
         if force_flip:
             try_flip = True
         if data is None:
@@ -1460,13 +1467,13 @@ class PipV(InstrumentData):
 
 class PipPart(InstrumentData):
     """PIP particle tables"""
-    def __init__(self, filenames, dt_start=None, dt_end=None, **kwargs):
-        print('Reading PIP particle data...')
+    def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
         InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_part'
         dtype = {'Year': np.int32, 'Month': np.int32, 'Day': np.int32,
                  'Hr': np.int32, 'Min': np.int32, 'Sec': np.int32}
         if self.data.empty:
+            print('Reading PIP particle data...')
             for filename in filenames:
                 newdata = pd.read_csv(filename, delim_whitespace=True,
                                       skiprows=[0, 1, 2, 3, 4, 5, 6, 7, 9],
