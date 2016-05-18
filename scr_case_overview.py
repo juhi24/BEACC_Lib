@@ -31,7 +31,7 @@ else:
 read.ensure_dir(savedir)
 
 
-def d0fltr(df, limit=0.63, apply=False, colname='d0_fltr'):
+def d0fltr(df, limit=0.6, apply=False, colname='d0_fltr'):
     data = df.copy()
     data[colname] = data.D_0 < limit
     if apply:
@@ -103,7 +103,7 @@ def all_cases_simple_overview(e):
 
 
 params=['intensity', 'density', d0_col, 'N_w']
-extent = (0.375, 4, 0.5, 1.5)
+extent = (0.3, 4, 0.5, 1.5)
 xtick_pos = (1, 2, 3, 4)
 #all_cases_simple_overview(e)
 

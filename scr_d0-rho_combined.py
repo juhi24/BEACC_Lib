@@ -78,10 +78,10 @@ def plot_d0_rho(data):
                #'c': 'case',
                'scale': 0.1,
                'colorbar': False,
-               'xlim': [0.6,6],
+               'xlim': [0.5,6],
                'ylim': [0,450],
                'alpha': 0.5}
-    ax = sf.plot_pairs(data.loc['first'], c=(.6, .6 , 1, .8), label='BAECC', **plotkws)
+    ax = sf.plot_pairs(data.loc['first'], c=(.6, .6 , .92, .8), label='BAECC', **plotkws)
     sf.plot_pairs(data.loc['second'], c=(.2, .92, .2, .8), ax=ax, label='winter 2014-2015',
                **plotkws)
     plt.tight_layout()
@@ -94,6 +94,7 @@ def plot_d0_rho(data):
     read.rho_scale(ax.yaxis)
     ax.set_ylabel('$\\rho$, ' + read.RHO_UNITS)
     ax.set_xlabel('$D_0$, mm')
+    ax.set_xticks((0.5, 1, 2, 3, 4, 5, 6))
     plt.legend()
     return ax, rho_d0, rho_d0_baecc, rho_d0_1415
 
