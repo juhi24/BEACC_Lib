@@ -135,6 +135,7 @@ for ievent, event in e.events.iterrows():
     for i, dt in enumerate(dtlist):
         ax = plt.subplot(gs_fit[i])
         sf.plot_vfit(case, dt, extent=extent, xtick_pos=xtick_pos, ax=ax)
+        ax.tick_params(top=False)
         fit_ax.append(ax)
     fig, axdict = plot_overview(data, axlist=series_ax, params=params)
     data['D_max'].plot(ax=axdict[d0_col], drawstyle='steps', label='$D_{max}$')

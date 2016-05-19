@@ -8,17 +8,16 @@ import read
 import matplotlib.pyplot as plt
 from os import path
 import fit
-import gc
 import pandas as pd
 
-from scr_snowfall import pip2015events, test_events, rholimits, param_table
+from scr_snowfall import pip2015events, test_events, rholimits, param_table, paths
 
 debug = False
 unfiltered = False
 legacy = False
 tld = '.eps'
 bnds = (0.25,3.0,0.5,1.8)
-
+savepath = path.join(paths['results'], 'vfits_density_ranges')
 
 def dict2tuple(di):
     return tuple(di[key] for key in sorted(di))
@@ -55,9 +54,6 @@ axarr[0].axis(bnds)
 for ax in axarr:
     ax.tick_params(direction='out', top=False)
 
-resultsdir = '../results/pip2015'
-savepath = path.join(resultsdir, 'vfits_density_ranges')
-paperpath = read.ensure_dir(path.join(resultsdir, 'paper'))
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)
@@ -66,4 +62,4 @@ if unfiltered:
     fname += '_unfiltered'
 fig.savefig(path.join(savepath, fname + tld))
 #fig_fltr.savefig(path.join(savepath, fname + '_d0fltr' + tld))
-fig.savefig(path.join(paperpath, 'vfits_rho_ranges' + tld))
+fig.savefig(path.join(paths['paper'], 'vfits_rho_ranges' + tld))

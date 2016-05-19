@@ -13,7 +13,7 @@ import gc
 from scipy.stats import gaussian_kde
 import pandas as pd
 
-from scr_snowfall import pip2015events, test_events, param_table, rholimits
+from scr_snowfall import pip2015events, test_events, param_table, rholimits, paths
 
 debug = False
 d0_col = 'D_0_gamma'
@@ -26,9 +26,7 @@ set_plot_style(**{'xtick.major.size': major_size,
 plt.close('all')
 plt.ioff()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
-resultsdir = '../results/pip2015'
-paperdir = read.ensure_dir(path.join(resultsdir, 'paper'))
-savedir = path.join(resultsdir, 'hist')
+savedir = path.join(paths['results'], 'hist')
 if debug:
     savedir += '/test'
 read.ensure_dir(savedir)
@@ -161,9 +159,9 @@ savekws = {'dpi': 400}
 fdd.savefig(path.join(savedir, 'd0_rho' + tld), **savekws)
 fmd.savefig(path.join(savedir, 'mu_rho' + tld), **savekws)
 fnd.savefig(path.join(savedir, 'nw_rho' + tld), **savekws)
-fdd.savefig(path.join(paperdir, 'hist_d0' + tld), **savekws)
-fmd.savefig(path.join(paperdir, 'hist_mu' + tld), **savekws)
-fnd.savefig(path.join(paperdir, 'hist_nw' + tld), **savekws)
+fdd.savefig(path.join(paths['paper'], 'hist_d0' + tld), **savekws)
+fmd.savefig(path.join(paths['paper'], 'hist_mu' + tld), **savekws)
+fnd.savefig(path.join(paths['paper'], 'hist_nw' + tld), **savekws)
 
 # Wat?
 for axarr in (axarrdd, axarrmd, axarrnd):

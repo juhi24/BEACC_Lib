@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+Paper specific settings and helper functions.
 @author: Jussi Tiira
 """
 import snowfall as sf
@@ -18,19 +19,26 @@ dtformat_paper = '%Y %b %d %H:%M'
 QSTR = 'D_0_gamma>0.6 & intensity>0.2 & count>800 & density==density'
 rholimits = (0, 100, 200, 1000)
 #rholimits = (0, 150, 300, 800)
+resultspath = '../results/pip2015'
+paperpath = path.join(resultspath, 'paper')
+paths = {'results': resultspath,
+         'paper': paperpath,
+         'tables': path.join(paperpath, 'tables'),
+         'h5nov14': path.join(read.DATA_DIR, '2014nov1-23.h5'),
+         'h5w1415': path.join(read.DATA_DIR, 'dec-jan1415.h5'),
+         'h5baecc': read.H5_PATH}
 
-h5baecc_path = path.join(read.DATA_DIR, 'baecc.h5')
-h5nov14_path = path.join(read.DATA_DIR, '2014nov1-23.h5')
-h5w1415path = path.join(read.DATA_DIR, 'dec-jan1415.h5')
 
 def test_events():
     return events(casesfile_baecc='cases/pip2015test.csv',
                   casesfile_1415='cases/pip2015_14-15test.csv')
 
+
 def pluvio_config(e, tshift_minutes, n_comb_intervals):
     for c in np.append(e.events.pluvio200.values, e.events.pluvio400.values):
         c.instr['pluvio'].shift_periods = tshift_minutes
         c.instr['pluvio'].n_combined_intervals = n_comb_intervals
+
 
 def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
     ee = sf.EventsCollection(extra_cases_file, dtformat_paper)
@@ -40,15 +48,16 @@ def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
     e.events = e.events.append(ee.events, ignore_index=True)
     del(ee)
 
+
 def events(casesfile_baecc='cases/pip2015.csv',
            casesfile_nov14='cases/pip2015_nov14.csv',
            casesfile_1415='cases/pip2015_14-15.csv'):
     e = sf.EventsCollection(casesfile_baecc, dtformat_paper)
-    e.autoimport_data(datafile=read.H5_PATH, autoshift=False, autobias=False,
+    e.autoimport_data(datafile=paths['h5baecc'], autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(e, -6, pluvio_comb_intervals)
-    extra_events(e, casesfile_nov14, h5nov14_path, -5, pluvio_comb_intervals)
-    extra_events(e, casesfile_1415, h5w1415path, -5, pluvio_comb_intervals)
+    extra_events(e, casesfile_nov14, paths['h5nov14'], -5, pluvio_comb_intervals)
+    extra_events(e, casesfile_1415, paths['h5w1415'], -5, pluvio_comb_intervals)
     e.events['paper'] = e.events.pluvio200
     e.split_index()
     e.events = sf.before_after_col(e.events, date=pd.datetime(2014,7,1),

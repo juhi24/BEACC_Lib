@@ -2,16 +2,13 @@
 """
 @author: Jussi Tiira
 """
-import read
 import numpy as np
 import matplotlib.pyplot as plt
 import fit
-from scr_snowfall import param_table
+from scr_snowfall import param_table, paths
 from os import path
 
-resultspath = '../results/pip2015'
-paperpath = read.ensure_dir(path.join(resultspath, 'paper'))
-savepath = path.join(resultspath, 'psd')
+savepath = path.join(paths['results'], 'psd')
 
 plt.close('all')
 plt.ioff()
@@ -77,7 +74,7 @@ axd0.set_ylabel('$N_w$, mm$^{-1}$m$^{-3}$')
 axd0.set_xlabel('$D_0$, mm')
 axd0rho.set_xlabel('$D_0 \\rho^{^1\!/_3}$, g$^{^1\!/_3}$')
 fig.savefig(path.join(savepath, 'nw_d0.eps'))
-fig.savefig(path.join(paperpath, 'nw_d0.eps'))
+fig.savefig(path.join(paths['paper'], 'nw_d0.eps'))
 #plt.figure()
 #afit = alpha_fit()
 #afit.plot(source_style='raw')
