@@ -21,17 +21,22 @@ rholimits = (0, 100, 200, 1000)
 #rholimits = (0, 150, 300, 800)
 resultspath = '../results/pip2015'
 paperpath = path.join(resultspath, 'paper')
-paths = {'results': resultspath,
-         'paper': paperpath,
-         'tables': path.join(paperpath, 'tables'),
-         'h5nov14': path.join(read.DATA_DIR, '2014nov1-23.h5'),
+paths = {'results': read.ensure_dir(resultspath),
+         'paper': read.ensure_dir(paperpath),
+         'tables': read.ensure_dir(path.join(paperpath, 'tables'))}
+files = {'h5nov14': path.join(read.DATA_DIR, '2014nov1-23.h5'),
          'h5w1415': path.join(read.DATA_DIR, 'dec-jan1415.h5'),
-         'h5baecc': read.H5_PATH}
+         'h5baecc': read.H5_PATH,
+         'cbaecc': 'cases/pip2015.csv',
+         'c14nov': 'cases/pip2015_nov14.csv',
+         'c1415': 'cases/pip2015_14-15.csv',
+         'cbaecc_test': 'cases/pip2015test.csv',
+         'c1415_test': 'cases/pip2015_14-15test.csv'}
 
 
 def test_events():
-    return events(casesfile_baecc='cases/pip2015test.csv',
-                  casesfile_1415='cases/pip2015_14-15test.csv')
+    return events(casesfile_baecc=files['cbaecc_test'],
+                  casesfile_1415=files['c1415_test'])
 
 
 def pluvio_config(e, tshift_minutes, n_comb_intervals):
@@ -49,9 +54,9 @@ def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
     del(ee)
 
 
-def events(casesfile_baecc='cases/pip2015.csv',
-           casesfile_nov14='cases/pip2015_nov14.csv',
-           casesfile_1415='cases/pip2015_14-15.csv'):
+def events(casesfile_baecc=files['cbaecc'],
+           casesfile_nov14=files['c14nov'],
+           casesfile_1415=files['c1415']):
     e = sf.EventsCollection(casesfile_baecc, dtformat_paper)
     e.autoimport_data(datafile=paths['h5baecc'], autoshift=False, autobias=False,
                       rule='6min', varinterval=True)

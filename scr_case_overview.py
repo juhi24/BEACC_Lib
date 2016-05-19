@@ -12,14 +12,12 @@ from os import path
 import read
 import warnings
 
-from scr_snowfall import pip2015events, test_events
+from scr_snowfall import pip2015events, test_events, paths
 
 plt.close('all')
 plt.ioff()
 debug = False
-resultsdir = '../results/pip2015'
-paperdir = read.ensure_dir(path.join(resultsdir, 'paper'))
-savedir = path.join(resultsdir, 'case_overview')
+savedir = path.join(paths['results'], 'case_overview')
 d0_col = 'D_0_gamma'
 
 if debug:
@@ -172,10 +170,12 @@ for ievent, event in e.events.iterrows():
     series_ax[-1].xaxis.set_major_formatter(tfmt)
     # saving
     savekws = {'dpi': 150, 'bbox_inches': 'tight'}
-    savename = case.dtstr('%Y%m%d') + '.eps'
+    savename = case.dtstr('%Y%m%d')
+    figtld = '.eps'
     try:
-        fig.savefig(path.join(savedir, savename), **savekws)
+        fig.savefig(path.join(savedir, savename + figtld), **savekws)
     except ValueError as err:
         warnings.warn("ValueError: {0} Skipping plot for the {1} case.".format(err, case.dtstr()))
     if not debug and event.case_study==True: # yes, necessary to check for True
-        fig.savefig(path.join(paperdir, savename), **savekws)
+        fig.savefig(path.join(paths['paper'], savename + figtld), **savekws)
+        data.to_csv(path.join(paths['tables'], savename + '.csv'))
