@@ -140,7 +140,7 @@ stats['nw_median'] = data_by_rho.N_w.median()
 stats['d0_std'] = data_by_rho[d0_col].std()
 stats['mu_std'] = data_by_rho.mu.std()
 stats.to_csv(path.join(savedir, 'psd_stats.csv'))
-stats.to_csv(path.join(paths['tables'], 'hist_stats.csv'))
+stats.to_csv(path.join(paths['tables'], 'hist_stats.csv'), sep='\t')
 
 for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
     ax.set_title('$\\rho > %s$' % (rhomin*read.RHO_SCALE), **titlekws)

@@ -68,4 +68,4 @@ if unfiltered:
 fig.savefig(path.join(savepath, fname + tld))
 #fig_fltr.savefig(path.join(savepath, fname + '_d0fltr' + tld))
 fig.savefig(path.join(paths['paper'], 'vfits_rho_ranges' + tld))
-pc.to_csv(path.join(paths['tables'], 'pc.csv'))
+pc.to_csv(path.join(paths['tables'], 'pc.csv'), sep='\t')
