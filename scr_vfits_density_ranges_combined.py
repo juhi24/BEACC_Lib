@@ -40,7 +40,7 @@ fitargs = {'force_flip': False,
            'fitclass': fit.PolFit}
 
 limslist=sf.limitslist(rholimits)
-data = param_table(e=e, debug=debug, rho_limits=rholimits)
+data = param_table(e=e, debug=debug)
 data.index = data.index.droplevel()
 vdata = read.merge_series(e.pluv_grouper(), e.vel_data())
 vtable = pd.merge(vdata, pd.DataFrame(data.rhomin), left_on='group', right_index=True)
@@ -54,6 +54,11 @@ axarr[0].axis(bnds)
 for ax in axarr:
     ax.tick_params(direction='out', top=False)
 
+pc = pd.DataFrame(index=rholimits[:-1], columns=['all', 'hwfm'])
+for rhomin in vfits:
+    pc.loc[rhomin] = vfits[rhomin].x_unfiltered.size, vfits[rhomin].x.size
+pc.loc['total'] = pc.sum()
+
 if debug:
     savepath += '/test'
 read.ensure_dir(savepath)
@@ -63,3 +68,4 @@ if unfiltered:
 fig.savefig(path.join(savepath, fname + tld))
 #fig_fltr.savefig(path.join(savepath, fname + '_d0fltr' + tld))
 fig.savefig(path.join(paths['paper'], 'vfits_rho_ranges' + tld))
+pc.to_csv(path.join(paths['tables'], 'pc.csv'))

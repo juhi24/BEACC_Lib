@@ -58,11 +58,11 @@ def events(casesfile_baecc=files['cbaecc'],
            casesfile_nov14=files['c14nov'],
            casesfile_1415=files['c1415']):
     e = sf.EventsCollection(casesfile_baecc, dtformat_paper)
-    e.autoimport_data(datafile=paths['h5baecc'], autoshift=False, autobias=False,
+    e.autoimport_data(datafile=files['h5baecc'], autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(e, -6, pluvio_comb_intervals)
-    extra_events(e, casesfile_nov14, paths['h5nov14'], -5, pluvio_comb_intervals)
-    extra_events(e, casesfile_1415, paths['h5w1415'], -5, pluvio_comb_intervals)
+    extra_events(e, casesfile_nov14, files['h5nov14'], -5, pluvio_comb_intervals)
+    extra_events(e, casesfile_1415, files['h5w1415'], -5, pluvio_comb_intervals)
     e.events['paper'] = e.events.pluvio200
     e.split_index()
     e.events = sf.before_after_col(e.events, date=pd.datetime(2014,7,1),
@@ -84,11 +84,12 @@ def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None):
             e = test_events()
         else:
             e = pip2015events()
+    if rho_limits is None:
+        rho_limits = rholimits
     data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
     del(e)
     gc.collect()
-    if rho_limits is not None:
-        data = sf.apply_rho_intervals(data, rho_limits)
+    data = sf.apply_rho_intervals(data, rho_limits)
     if len(query_str)<1:
         return data
     return data.query(query_str)

@@ -120,7 +120,7 @@ titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 stats = pd.DataFrame(index=rholimits[:-1])
 kde_peak_d0 = [None, None, None]
 kde_peak_mu = [None, None, None]
-data_by_rho = sf.df_ranges(data, 'density', limslist).groupby('density_range_min')
+data_by_rho = data.groupby('rhomin')
 
 for i, (rhomin, rhomax) in enumerate(limslist):
     dat = data.query('%s<density<%s' % (rhomin, rhomax))
@@ -140,6 +140,7 @@ stats['nw_median'] = data_by_rho.N_w.median()
 stats['d0_std'] = data_by_rho[d0_col].std()
 stats['mu_std'] = data_by_rho.mu.std()
 stats.to_csv(path.join(savedir, 'psd_stats.csv'))
+stats.to_csv(path.join(paths['tables'], 'hist_stats.csv'))
 
 for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
     ax.set_title('$\\rho > %s$' % (rhomin*read.RHO_SCALE), **titlekws)

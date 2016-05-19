@@ -75,6 +75,11 @@ axd0.set_xlabel('$D_0$, mm')
 axd0rho.set_xlabel('$D_0 \\rho^{^1\!/_3}$, g$^{^1\!/_3}$')
 fig.savefig(path.join(savepath, 'nw_d0.eps'))
 fig.savefig(path.join(paths['paper'], 'nw_d0.eps'))
+with open(path.join(paths['tables'], 'd0rho_nw_corrcoef.txt'), 'w') as f:
+    print(d0rho_nw.rvalue, file=f)
+with open(path.join(paths['tables'], 'd0_nw_corrcoef.txt'), 'w') as f:
+    print(d0_nw.rvalue, file=f)
+data.to_csv(path.join(paths['tables'], 'params.csv'))
 #plt.figure()
 #afit = alpha_fit()
 #afit.plot(source_style='raw')
