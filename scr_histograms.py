@@ -24,7 +24,7 @@ set_plot_style(**{'xtick.major.size': major_size,
                   'ytick.major.size': major_size})
 
 plt.close('all')
-plt.ioff()
+plt.ion()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
 savedir = path.join(paths['results'], 'hist')
 if debug:
@@ -48,9 +48,10 @@ def split_hist(data, **kws):
                     rwidth=1, **kws)
 
 
-def subplots(n_plots=1):
-    return plt.subplots(n_plots, sharex=True, sharey=True,
-                        tight_layout=False, figsize=(4,5))
+def subplots(*args, sharex='col', sharey='col', tight_layout=False,
+             figsize=(4,5), **kws):
+    return plt.subplots(*args, sharex=sharex, sharey=sharey,
+                        tight_layout=tight_layout, figsize=figsize, **kws)
 
 
 def plots(d0, mu, nw, axd, axm, axn, label=None, title=None, **kwtitle):
@@ -87,6 +88,7 @@ def hist_data(case):
 
 
 def casewise_hist():
+    """DEPRECATED"""
     if debug:
         e = test_events()
     else:
@@ -115,6 +117,7 @@ n_ranges = len(limslist)
 fdd, axarrdd = subplots(n_ranges)
 fmd, axarrmd = subplots(n_ranges)
 fnd, axarrnd = subplots(n_ranges)
+fa, axarra = plt.subplots(n_ranges, 3, figsize=(12,5))
 titlekws = {'y': 0.85, 'fontdict': {'verticalalignment': 'top'}}
 
 stats = pd.DataFrame(index=rholimits[:-1])
@@ -123,7 +126,7 @@ kde_peak_mu = [None, None, None]
 data_by_rho = data.groupby('rhomin')
 
 for i, (rhomin, rhomax) in enumerate(limslist):
-    dat = data.query('%s<density<%s' % (rhomin, rhomax))
+    dat = data[data.rhomin==rhomin]
     d0 = dat[d0_col].dropna()
     mu = dat.mu.dropna()
     nw = dat.N_w.dropna()
@@ -131,6 +134,7 @@ for i, (rhomin, rhomax) in enumerate(limslist):
     kde_peak_mu[i] = kde_peak(mu, xlim=(-4, 4))[0]
     limitstr = '$%s < \\rho \leq %s$' % (rhomin*read.RHO_SCALE, rhomax*read.RHO_SCALE)
     plots(d0, mu, nw, axarrdd[i], axarrmd[i], axarrnd[i], title=limitstr, **titlekws)
+    plots(d0, mu, nw, axarra[i, 0], axarra[i, 1], axarra[i, 2], title=limitstr, **titlekws)
 
 stats['d0_peak'] = kde_peak_d0
 stats['mu_peak'] = kde_peak_mu
@@ -150,7 +154,7 @@ for ax in (axarrdd[1], axarrmd[1]):
     ax.set_ylabel('PDF')
 axarrnd[1].set_ylabel('Frequency')
 
-for f in (fdd, fmd, fnd):
+for f in (fdd, fmd, fnd, fa):
     sf.remove_subplot_gaps(f, axis='col')
 fnd.subplots_adjust(left=0.15) # prevent ylabel cutoff
 
