@@ -31,7 +31,7 @@ if debug:
     savedir += '/test'
 read.ensure_dir(savedir)
 
-data = param_table(debug=debug)
+#data = param_table(debug=debug)
 
 
 def kde_peak(data, xlim=(-1,1), n_samples=500):
@@ -61,21 +61,21 @@ def plots(d0, mu, nw, axd, axm, axn, label=None, title=None, **kwtitle):
     axd.set_xlim(rng)
     axd.yaxis.set_ticks(np.arange(0, 1.5, 0.5))
     axd.set_xlabel('$D_0$, mm')
-    rng = (-3, 7)
     axd.axis([None, None, None, 1.5])
+    rng = (-3, 7)
     sns.distplot(mu, ax=axm, label=label, bins=20,
                        hist_kws={'range':rng}, **kwargs)
     axm.set_xlim(rng)
-    axm.yaxis.set_ticks(np.arange(0, 0.7, 0.2))
+    axm.yaxis.set_ticks(np.arange(0, 0.5, 0.2))
     axm.set_xlabel('$\mu$')
-    axm.axis([None, None, None, 0.5])
+    axm.axis([None, None, None, 0.6])
     sns.distplot(nw, ax=axn, label=label,
                        bins=10**np.linspace(0,6,20), kde=False, rug=True)
     axn.set_xscale('log')
     axn.set_xlabel('$N_w$, mm$^{-1}$m$^{-3}$')
     #axn.yaxis.get_major_ticks()[-1].label1.set_visible(False)
     axn.yaxis.set_ticks(np.arange(0, 140, 50))
-    axn.axis([1e1, None, None, 140])
+    axn.axis([1e1, None, None, 150])
     if title is not None:
         for ax in (axd, axm, axn):
             ax.set_title(title, **kwtitle)
@@ -150,12 +150,17 @@ for ax in (axarrdd[-1], axarrmd[-1], axarrnd[-1]):
     ax.set_title('$\\rho > %s$' % (rhomin*read.RHO_SCALE), **titlekws)
     #ax.set_title('$\\rho > %s$' % rhomin, **titlekws)
 
-for ax in (axarrdd[1], axarrmd[1]):
-    ax.set_ylabel('PDF')
-axarrnd[1].set_ylabel('Frequency')
+ax_pdf_labeled = [axarrdd[1], axarrmd[1]]
+ax_pdf_labeled.extend(list(axarra[1,:-1]))
 
-for f in (fdd, fmd, fnd, fa):
+for ax in ax_pdf_labeled:
+    ax.set_ylabel('PDF')
+for ax in (axarrnd[1], axarra[1,2]):
+    ax.set_ylabel('Frequency')
+
+for f in (fdd, fmd, fnd):
     sf.remove_subplot_gaps(f, axis='col')
+sf.remove_subplot_gaps(fa, axis='col', axarr=axarra)
 fnd.subplots_adjust(left=0.15) # prevent ylabel cutoff
 
 tld = '.png'

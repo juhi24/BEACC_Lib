@@ -92,14 +92,24 @@ def before_after_col(df, date=pd.datetime(2014,7,1), colname='winter',
     return df
 
 
-def remove_subplot_gaps(f, axis='row'):
+def remove_subplot_gaps(f, axis='row', axarr=None):
+    if axarr is None:
+            axarr=np.array(f.axes)
     adjust_kws = {}
     if axis=='row':
+        if axarr.ndim==2:
+            ax_whipe_ticks = axarr[:, 1:].flatten()
+        else:
+            ax_whipe_ticks = axarr[1:]
         adjust_kws['wspace'] = 0
-        labels = [a.get_yticklabels() for a in f.axes[1:]]
+        labels = [ax.get_yticklabels() for ax in ax_whipe_ticks]
     elif axis=='col':
+        if axarr.ndim==2:
+            ax_whipe_ticks = axarr[:-1, :].flatten()
+        else:
+            ax_whipe_ticks = axarr[:-1]
         adjust_kws['hspace'] = 0
-        labels = [a.get_xticklabels() for a in f.axes[:-1]]
+        labels = [ax.get_xticklabels() for ax in ax_whipe_ticks]
     f.subplots_adjust(**adjust_kws)
     plt.setp(labels, visible=False)
 
