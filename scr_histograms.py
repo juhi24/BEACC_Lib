@@ -31,7 +31,7 @@ if debug:
     savedir += '/test'
 read.ensure_dir(savedir)
 
-#data = param_table(debug=debug)
+data = param_table(debug=debug)
 
 
 def kde_peak(data, xlim=(-1,1), n_samples=500):
