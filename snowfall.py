@@ -256,9 +256,10 @@ def series_cdf(series):
     return pd.Series(cum_dist, index=srtd)
 
 
-class EventsCollection:
+class EventsCollection(read.Cacher):
     """Manage a table of precipitation events."""
-    def __init__(self, csv, dtformat='%d %B %H UTC', default_col='paper'):
+    def __init__(self, csv, dtformat='%d %B %H UTC', default_col='paper',
+                 **cacher_kws):
         """Read event metadata from a csv file."""
         self.dtformat = dtformat
         self.default_col = default_col
@@ -266,11 +267,19 @@ class EventsCollection:
                                   date_parser=self.parse_datetime)
         self.events.sort(columns=['start', 'end'], inplace=True)
         self.events.start += pd.datetools.timedelta(seconds=1)
+        read.Cacher.__init__(self, **cacher_kws)
 
     def parse_datetime(self, dtstr):
         #date = datetime.strptime(dtstr+'+0000', self.dtformat+'%z')
         date = datetime.strptime(dtstr, self.dtformat)
         return date
+
+    def fingerprint(self):
+        identifiers = [self.events]
+        for c in self.events[self.default_col]:
+            identifiers.extend(c.fingerprint())
+        idstr = read.combine2str(*identifiers)
+        return read.fingerprint(idstr)
 
     def total_duration(self, events_col=None, winter=None):
         if events_col is None:

@@ -31,7 +31,8 @@ files = {'h5nov14': path.join(read.DATA_DIR, '2014nov1-23.h5'),
          'c14nov': 'cases/pip2015_nov14.csv',
          'c1415': 'cases/pip2015_14-15.csv',
          'cbaecc_test': 'cases/pip2015test.csv',
-         'c1415_test': 'cases/pip2015_14-15test.csv'}
+         'c1415_test': 'cases/pip2015_14-15test.csv',
+         'params_cache': path.join(read.CACHE_DIR, 'param_table'+ read.MSGTLD)}
 
 
 def test_events():
@@ -78,7 +79,11 @@ def pip2015events():
     return e
 
 
-def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None):
+def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None,
+                use_cache=True):
+    cached_table = files['params_cache']
+    if path.isfile(cached_table) and use_cache:
+        return pd.read_msgpack(cached_table)
     if e is None:
         if debug:
             e = test_events()
