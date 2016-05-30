@@ -64,7 +64,7 @@ def axis_scale(axis, scale):
     axis.set_major_formatter(formatter)
 
 
-def combine_identifiers(*identifiers):
+def combine2str(*identifiers):
     return ''.join(tuple(map(str, identifiers)))
 
 
@@ -302,7 +302,7 @@ class Cacher:
         """Read data from msgpack. If not available, calculate and store."""
         cd = self.cache_dir()
         msgpath = os.path.join(cd, name + MSGTLD)
-        if os.path.exists(msgpath):
+        if os.path.isfile(msgpath):
             data = pd.read_msgpack(msgpath)
         else:
             ensure_dir(cd)
@@ -313,7 +313,7 @@ class Cacher:
     def pkl_io(self, name, func, **kwargs):
         cd = self.cache_dir()
         pklpath = os.path.join(cd, name + PICKLETLD)
-        if os.path.exists(pklpath):
+        if os.path.isfile(pklpath):
             with open(pklpath, 'rb') as cachefile:
                 data = pickle.load(cachefile)
         else:
@@ -639,7 +639,7 @@ class Pluvio(InstrumentData, PrecipMeasurer):
                        self.shift_freq, self.varinterval]
         if self.varinterval:
             identifiers.extend([self.n_combined_intervals])
-        idstr = combine_identifiers(identifiers)
+        idstr = combine2str(*identifiers)
         return fingerprint(idstr)
 
     def parse_datetime(self, datestr, include_sec=False):
@@ -909,7 +909,7 @@ class PipDSD(InstrumentData):
 
     def fingerprint(self):
         identifiers = (super().fingerprint(), self.use_voleq_d)
-        idstr = combine_identifiers(identifiers)
+        idstr = combine2str(*identifiers)
         return fingerprint(idstr)
 
     def filter_cats_and_dogs(self, data=None, window=5):
@@ -1068,7 +1068,7 @@ class PipV(InstrumentData):
 
     def fingerprint(self):
         identifiers = (super().fingerprint(), self.flip, self.dbins, self.loglog)
-        idstr = combine_identifiers(identifiers)
+        idstr = combine2str(*identifiers)
         return fingerprint(idstr)
 
     def v(self, d, fitclass=None, varinterval=True, rule=None):
