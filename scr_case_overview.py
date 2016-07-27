@@ -23,6 +23,7 @@ d0_col = 'D_0_gamma'
 if debug:
     e = test_events()
     savedir += '/test'
+    plt.ion()
 else:
     e = pip2015events()
 
@@ -45,23 +46,29 @@ def select_rows(data, dtlist):
     return data.loc[tuple(map(pd.to_datetime, dtlist)),:]
 
 
-def gray_out(data, axdict, fltr_label='d0_fltr', labels=['D_0', 'density']):
-    for t_end, row in data[data[fltr_label]].iterrows():
+def gray_out(data, axdict, labels=None, facecolor='0.8',
+             alpha=0.8, **kws):
+    if labels is None:
+        labels = axdict.keys()
+    for t_end, row in data.iterrows():
         for label in labels:
             ax = axdict[label]
-            ax.axvspan(row.start, t_end, edgecolor='none', facecolor='0.8',
-                       alpha=0.8)
+            ax.axvspan(row.start, t_end, edgecolor='none', facecolor=facecolor,
+                       alpha=alpha, **kws)
 
 
-def markers(data, ax, ycol='density', labelcol='label', mark_below=True, **kws):
+def markers(data, ax, ycol='intensity', labelcol='label', yloc=None, **kws):
     for t_end, row in data.iterrows():
         label = row[labelcol]
         va = row['va']
         if isnan(va):
             va = 'bottom'
-        if mark_below:
+        if yloc=='below':
             y = 0
             va = 'top'
+        elif yloc=='above':
+            y = ax.get_ylim()[1]
+            va = 'bottom'
         else:
             y = row[ycol]
         ax.text(row.middle, y, label, ha='center', va=va,
@@ -86,7 +93,7 @@ def plot_overview(data, params=['intensity', 'density', 'D_0', 'N_w'],
     for param in ['N_w']:
         axdict[param].set_yscale('log')
     data = d0fltr(data)
-    gray_out(data, axdict, labels=[d0_col, 'density'])
+    #gray_out(data[data['d0_fltr']], axdict, labels=[d0_col, 'density'])
     return fig, axdict
 
 
@@ -141,6 +148,10 @@ for ievent, event in e.events.iterrows():
     handles, labels = axdict[d0_col].get_legend_handles_labels()
     axdict[d0_col].legend(handles[::-1], labels[::-1], loc='upper center',
                           frameon=False)
+    axdict['density'].set_ylim(0, 250)
+    axdict['intensity'].set_ylim(0, 3.5)
+    axdict[d0_col].set_ylim(0, 16)
+    axdict['N_w'].set_ylim(1e2, 1e6)
     for ax in series_ax + fit_ax:
         ax.set_xlabel('')
     sample=data.loc[tuple(map(pd.to_datetime, dtlist)),:]
@@ -150,8 +161,10 @@ for ievent, event in e.events.iterrows():
     for i, row in sample.iterrows():
         row.ax.text(extent[1]-0.2, extent[2], row.label, ha='right', va='bottom',
                     weight='heavy')
-    markers(sample, ax=axdict['density'])
-    series_ax[0].set_title(case.dtstr())
+    markerplot = 'intensity'
+    markers(sample, ax=axdict[markerplot], ycol=markerplot, yloc='above')    
+    gray_out(sample, axdict, facecolor='0.85')
+    #series_ax[0].set_title(case.dtstr())
     fit_ax[0].set_ylabel('$v$, m$\,$s$^{-1}$')
     fit_ax[1].set_xlabel('$D$, mm')
     labels = [a.get_xticklabels() for a in series_ax[:-1]]
@@ -159,10 +172,6 @@ for ievent, event in e.events.iterrows():
     plt.setp(labels, visible=False)
     axdict['intensity'].set_ylabel('$LWE$, mm$\,$h$^{-1}$')
     axdict['density'].set_ylabel('$\\rho$, ' + read.RHO_UNITS)
-    axdict['density'].set_ylim(0, 250)
-    axdict['intensity'].set_ylim(0, 3.5)
-    axdict[d0_col].set_ylim(0, 16)
-    axdict['N_w'].set_ylim(1e2, 1e6)
     read.rho_scale(axdict['density'].yaxis)
     axdict[d0_col].set_ylabel('mm')
     axdict['N_w'].set_ylabel('$N_w$, mm$^{-1}\,$m$^{-3}$')

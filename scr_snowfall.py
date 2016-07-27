@@ -68,13 +68,13 @@ def events(casesfile_baecc=files['cbaecc'],
     e.split_index()
     e.events = sf.before_after_col(e.events, date=pd.datetime(2014,7,1),
                                 datecol='start')
+    pref400 = e.events.pluvio_pref==400
+    e.events.paper[pref400] = e.events.pluvio400[pref400] # TODO
     return e
 
 
 def pip2015events():
     e = events()
-    pref400 = e.events.pluvio_pref==400
-    e.events.paper[pref400] = e.events.pluvio400[pref400] # TODO
     #e.events.pluvio200[12] = None # TODO
     return e
 

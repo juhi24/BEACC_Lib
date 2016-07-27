@@ -17,7 +17,7 @@ ext = '.cdf'
 dtformat = '%Y-%m-%dT%H:%M:%S'
 timeunits = 'seconds since 1970-01-01 00:00:00 UTC'
 
-date_start = date(2014, 2, 23)
+date_start = date(2014, 1, 31)
 #date_end = date(2014, 9, 12)
 date_end = date(2014, 9, 13)
 

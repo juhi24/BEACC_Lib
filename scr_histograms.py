@@ -24,7 +24,7 @@ set_plot_style(**{'xtick.major.size': major_size,
                   'ytick.major.size': major_size})
 
 plt.close('all')
-plt.ion()
+plt.ioff()
 kwargs = {'kde': True, 'rug': True, 'kde_kws': {'label': 'KDE'}}
 savedir = path.join(paths['results'], 'hist')
 if debug:
