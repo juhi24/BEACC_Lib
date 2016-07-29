@@ -74,8 +74,12 @@ class Fit:
         self._name = name
         self.x = x
         self.y = y
-        self.x_unfiltered = x_unfiltered
-        self.y_unfiltered = y_unfiltered
+        if x_unfiltered is None:
+            self.x_unfiltered = x
+            self.y_unfiltered = y
+        else:
+            self.x_unfiltered = x_unfiltered
+            self.y_unfiltered = y_unfiltered
         self.fltr_upper_x = None
         self.fltr_upper_y = None
         self.fltr_lower_x = None
@@ -195,6 +199,30 @@ class Fit:
         if cov is None:
             cov = self.cov
         return np.sqrt(np.diag(cov))
+
+    def xy(self, filtered=True):
+        if filtered:
+            return self.x, self.y
+        else:
+            return self.x_unfiltered, self.y_unfiltered
+
+    def residuals(self, filtered=True, **kws):
+        x, y = self.xy(filtered=filtered)
+        return y - self.func(x, **kws)
+
+    def sstot(self, filtered=True):
+        """total sum of squares"""
+        x, y = self.xy(filtered=filtered)
+        return sum((y-y.mean())**2)
+
+    def ssres(self, filtered=True, **kws):
+        """residual sum of squares"""
+        x, y = self.xy(filtered=filtered)
+        return sum((y-self.func(x, **kws))**2)
+
+    def rsq(self, filtered=True, **kws):
+        """coefficient of determination, R**2"""
+        return 1-self.ssres(filtered=filtered, **kws)/self.sstot(filtered=filtered)
 
     def is_good(self):
         return True
