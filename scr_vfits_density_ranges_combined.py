@@ -54,9 +54,10 @@ axarr[0].axis(bnds)
 for ax in axarr:
     ax.tick_params(direction='out', top=False)
 
-pc = pd.DataFrame(index=rholimits[:-1], columns=['all', 'hwfm'])
+pc = pd.DataFrame(index=rholimits[:-1], columns=['count_all', 'count_hwfm', 'r_sq'])
 for rhomin in vfits:
-    pc.loc[rhomin] = vfits[rhomin].x_unfiltered.size, vfits[rhomin].x.size
+    vfit = vfits[rhomin]
+    pc.loc[rhomin] = vfit.x_unfiltered.size, vfit.x.size, vfit.rsq(filtered=False)
 pc.loc['total'] = pc.sum()
 
 if debug:
@@ -68,4 +69,4 @@ if unfiltered:
 fig.savefig(path.join(savepath, fname + tld))
 #fig_fltr.savefig(path.join(savepath, fname + '_d0fltr' + tld))
 fig.savefig(path.join(paths['paper'], 'vfits_rho_ranges' + tld))
-pc.to_csv(path.join(paths['tables'], 'pc.csv'), sep='\t')
+pc.to_csv(path.join(paths['tables'], 'vfits_stats.csv'), sep='\t')
