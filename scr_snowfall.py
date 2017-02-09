@@ -19,7 +19,8 @@ dtformat_paper = '%Y %b %d %H:%M'
 QSTR = 'D_0_gamma>0.6 & intensity>0.2 & count>800 & density==density'
 rholimits = (0, 100, 200, 1000)
 #rholimits = (0, 150, 300, 800)
-resultspath = '../results/pip2015'
+home = path.expanduser('~')
+resultspath = path.join(home, 'results', 'pip2015')
 paperpath = path.join(resultspath, 'paper')
 paths = {'results': read.ensure_dir(resultspath),
          'paper': read.ensure_dir(paperpath),

@@ -43,7 +43,8 @@ w14 = EventsCollection('cases/pip2015.csv', dtformat_snex)
 w14.autoimport_data(autoshift=False, autobias=False, rule='5min',
                     varinterval=True, datafile=['../DATA/baecc.h5'])
 
-basedir = '/home/jussitii/results/pip2015'
+home = path.expanduser('~')
+basedir = path.join(home, 'results', 'pip2015')
 
 init_dataset(w14, basedir=basedir, shift=-6)
 init_dataset(w1415, basedir=basedir, shift=-5)
