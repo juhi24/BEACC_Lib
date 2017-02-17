@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 import linecache
 import copy
-import fit
+from baecc import fit
 from scipy import stats, io
 from scipy.optimize import fmin, minimize
 import pickle

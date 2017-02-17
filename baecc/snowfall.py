@@ -1,7 +1,7 @@
 """Tools for estimating density and other properties of falling snow"""
 import numpy as np
 import pandas as pd
-import read
+from baecc import read
 from datetime import datetime, timedelta
 from scipy.optimize import minimize
 from scipy.special import gamma
