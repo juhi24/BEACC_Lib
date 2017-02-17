@@ -107,6 +107,13 @@ def all_cases_simple_overview(e):
         fig.savefig(path.join(sdir, case.dtstr('%Y%m%d') + '.eps'), dpi=150)
 
 
+def fltr_long_period(data_in, minutes=30):
+    data = data_in.copy()
+    selection = data.tdelta>pd.tseries.offsets.Minute(minutes).delta
+    data.loc[selection,['density','D_max','D_0_gamma', 'N_w']] = np.nan
+    return data
+
+
 params=['intensity', 'density', d0_col, 'N_w']
 extent = (0.3, 4, 0.5, 1.5)
 xtick_pos = (1, 2, 3, 4)
@@ -115,8 +122,7 @@ xtick_pos = (1, 2, 3, 4)
 for ievent, event in e.events.iterrows():
     case = event.paper
     data = case.summary()
-    selection = data.tdelta>pd.datetools.Minute(30).delta
-    data.loc[selection,['density','D_max','D_0_gamma', 'N_w']]=np.nan
+    data = fltr_long_period(data)
     if data.density.dropna().empty:
         continue
     fig = plt.figure(figsize=(6, 9))

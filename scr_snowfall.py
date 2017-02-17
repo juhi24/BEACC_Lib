@@ -10,7 +10,7 @@ import pandas as pd
 from os import path
 import gc
 
-pluvio_comb_intervals = 2
+N_COMB_INTERVALS = 2
 
 dtformat_default = '%d.%m.%y %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
@@ -62,9 +62,9 @@ def events(casesfile_baecc=files['cbaecc'],
     e = sf.EventsCollection(casesfile_baecc, dtformat_paper)
     e.autoimport_data(datafile=files['h5baecc'], autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
-    pluvio_config(e, -6, pluvio_comb_intervals)
-    extra_events(e, casesfile_nov14, files['h5nov14'], -5, pluvio_comb_intervals)
-    extra_events(e, casesfile_1415, files['h5w1415'], -5, pluvio_comb_intervals)
+    pluvio_config(e, -6, N_COMB_INTERVALS)
+    extra_events(e, casesfile_nov14, files['h5nov14'], -5, N_COMB_INTERVALS)
+    extra_events(e, casesfile_1415, files['h5w1415'], -5, N_COMB_INTERVALS)
     e.events['paper'] = e.events.pluvio200
     e.split_index()
     e.events = sf.before_after_col(e.events, date=pd.datetime(2014,7,1),
