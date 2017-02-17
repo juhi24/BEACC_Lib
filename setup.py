@@ -83,7 +83,8 @@ setup(
         'matplotlib',
         'numpy',
         'pytmatrix',
-        'netCDF4'
+        'netCDF4',
+        'seaborn'
     ],
 
     # List additional groups of dependencies here (e.g. development
