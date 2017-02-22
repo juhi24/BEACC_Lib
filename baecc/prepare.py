@@ -3,8 +3,8 @@
 Paper specific settings and helper functions.
 @author: Jussi Tiira
 """
-import snowfall as sf
-import read
+from baecc import snowfall as sf
+from baecc import read
 import numpy as np
 import pandas as pd
 from os import path
