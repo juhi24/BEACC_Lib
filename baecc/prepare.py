@@ -19,20 +19,20 @@ dtformat_paper = '%Y %b %d %H:%M'
 QSTR = 'D_0_gamma>0.6 & intensity>0.2 & count>800 & density==density'
 rholimits = (0, 100, 200, 1000)
 #rholimits = (0, 150, 300, 800)
-home = path.expanduser('~')
-resultspath = path.join(home, 'results', 'pip2015')
+resultspath = path.join(read.RESULTS_DIR, 'pip2015')
 paperpath = path.join(resultspath, 'paper')
+
 paths = {'results': read.ensure_dir(resultspath),
-         'paper': read.ensure_dir(paperpath),
+         'paper': paperpath,
          'tables': read.ensure_dir(path.join(paperpath, 'tables'))}
 files = {'h5nov14': path.join(read.DATA_DIR, '2014nov1-23.h5'),
          'h5w1415': path.join(read.DATA_DIR, 'dec-jan1415.h5'),
          'h5baecc': read.H5_PATH,
-         'cbaecc': 'cases/pip2015.csv',
-         'c14nov': 'cases/pip2015_nov14.csv',
-         'c1415': 'cases/pip2015_14-15.csv',
-         'cbaecc_test': 'cases/pip2015test.csv',
-         'c1415_test': 'cases/pip2015_14-15test.csv',
+         'cbaecc': path.join(read.USER_DIR, 'cases/pip2015.csv'),
+         'c14nov': path.join(read.USER_DIR, 'cases/pip2015_nov14.csv'),
+         'c1415': path.join(read.USER_DIR, 'cases/pip2015_14-15.csv'),
+         'cbaecc_test': path.join(read.USER_DIR, 'cases/pip2015test.csv'),
+         'c1415_test': path.join(read.USER_DIR, 'cases/pip2015_14-15test.csv'),
          'params_cache': path.join(read.CACHE_DIR, 'param_table'+ read.MSGTLD)}
 
 

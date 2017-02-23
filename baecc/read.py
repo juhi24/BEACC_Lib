@@ -5,30 +5,35 @@ tools for reading and working with baecc data
 """
 import time
 import os
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-from matplotlib import ticker
 import datetime
 import pandas as pd
 import numpy as np
 import linecache
 import copy
-from baecc import fit
-from scipy import stats, io
-from scipy.optimize import fmin, minimize
 import pickle
 import warnings
-from glob import glob
 import netCDF4 as nc
 import hashlib
 import gc
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+from matplotlib import ticker
+from glob import glob
+from scipy import stats, io
+from scipy.optimize import fmin, minimize
+from j24 import ensure_dir, home
+from baecc import fit
 
 # general configuration
 DEBUG = False
 CGS_UNITS = True # display units in cgs instead of SI
 
 # CONFIG default paths
-DATA_DIR = '../DATA'
+HOME = home()
+DATA_DIR = os.path.join(HOME, 'DATA')
+USER_DIR = os.path.join(HOME, '.baecc')
+RESULTS_DIR = os.path.join(HOME, 'results')
+CACHE_DIR = os.path.join(HOME, '.cache', 'baecc')
 H5_FILE = 'baecc.h5'
 H5_PATH = os.path.join(DATA_DIR, H5_FILE)
 PIPV_SUBPATH = 'PIP/a_Velocity_Tables/004%s/*2.dat'
@@ -36,8 +41,6 @@ DSD_SUBPATH = 'PIP/a_DSD_Tables/004%s*.dat'
 P200_SUBPATH = 'Pluvio200/pluvio200_??_%s*.txt'
 P400_SUBPATH = 'Pluvio400/pluvio400_??_%s*.txt'
 RADAR_SUBPATH = 'Radar/%s/tmp%s*M1.a1.%s.*'
-RESULTS_DIR = '../results'
-CACHE_DIR = 'cache'
 MSGTLD = '.msg'
 PICKLETLD = '.pkl'
 
@@ -104,13 +107,6 @@ def file_shorter_than(fname, limit):
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
     return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum % 1) - datetime.timedelta(days=366)
-
-
-def ensure_dir(directory):
-    """Make sure the directory exists. If not, create it."""
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    return directory
 
 
 def merge_series(s1, s2, **kwargs):

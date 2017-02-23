@@ -1,18 +1,18 @@
 """Tools for estimating density and other properties of falling snow"""
 import numpy as np
 import pandas as pd
-from baecc import read
-from datetime import datetime, timedelta
-from scipy.optimize import minimize
-from scipy.special import gamma
-from glob import glob
-from itertools import cycle
 import matplotlib.pyplot as plt
 import copy
 import locale
 import os
 import warnings
 import bisect
+from baecc import read
+from datetime import datetime, timedelta
+from scipy.optimize import minimize
+from scipy.special import gamma
+from glob import glob
+from itertools import cycle
 
 from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
@@ -33,13 +33,6 @@ else:
 
 TAU = 2*np.pi
 RHO_W = 1000
-
-
-def ordinal(n):
-    if 10 <= n % 100 < 20:
-        return str(n) + 'th'
-    else:
-        return str(n) + {1 : 'st', 2 : 'nd', 3 : 'rd'}.get(n % 10, "th")
 
 
 def daterange2str(start, end, dtformat='{day}{month}{year}', delimiter='-',
