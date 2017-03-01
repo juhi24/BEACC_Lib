@@ -17,10 +17,11 @@ dtformat_snex = '%Y %d %B %H UTC'
 dtformat_paper = '%Y %b %d %H:%M'
 #QSTR = 'density<600 & count>800 & b>0'
 QSTR = 'D_0_gamma>0.6 & intensity>0.2 & count>800 & density==density'
-rholimits = (0, 100, 200, 1000)
+RHO_LIMITS = (0, 100, 200, 1000)
 #rholimits = (0, 150, 300, 800)
 resultspath = path.join(read.RESULTS_DIR, 'pip2015')
 paperpath = path.join(resultspath, 'paper')
+cases_dir = path.join(read.USER_DIR, 'cases')
 
 paths = {'results': read.ensure_dir(resultspath),
          'paper': paperpath,
@@ -28,11 +29,11 @@ paths = {'results': read.ensure_dir(resultspath),
 files = {'h5nov14': path.join(read.DATA_DIR, '2014nov1-23.h5'),
          'h5w1415': path.join(read.DATA_DIR, 'dec-jan1415.h5'),
          'h5baecc': read.H5_PATH,
-         'cbaecc': path.join(read.USER_DIR, 'cases/pip2015.csv'),
-         'c14nov': path.join(read.USER_DIR, 'cases/pip2015_nov14.csv'),
-         'c1415': path.join(read.USER_DIR, 'cases/pip2015_14-15.csv'),
-         'cbaecc_test': path.join(read.USER_DIR, 'cases/pip2015test.csv'),
-         'c1415_test': path.join(read.USER_DIR, 'cases/pip2015_14-15test.csv'),
+         'cbaecc': path.join(cases_dir, 'pip2015.csv'),
+         'c14nov': path.join(cases_dir, 'pip2015_nov14.csv'),
+         'c1415': path.join(cases_dir, 'pip2015_14-15.csv'),
+         'cbaecc_test': path.join(cases_dir, 'pip2015test.csv'),
+         'c1415_test': path.join(cases_dir, 'pip2015_14-15test.csv'),
          'params_cache': path.join(read.CACHE_DIR, 'param_table'+ read.MSGTLD)}
 
 
@@ -91,7 +92,7 @@ def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None,
         else:
             e = pip2015events()
     if rho_limits is None:
-        rho_limits = rholimits
+        rho_limits = RHO_LIMITS
     data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
     del(e)
     gc.collect()
