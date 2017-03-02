@@ -15,6 +15,25 @@ from pytmatrix import tmatrix_aux as tm_aux
 RHO_W = 1000
 
 
+def scatterplot(x, y, c=None, kind='scatter', **kwargs):
+    """scatter plot of two Series objects"""
+    plotdata = baecc.merge_series(x, y)
+    if c is not None:
+        kwargs['c'] = c
+    return plotdata.plot(kind=kind, x=x.name, y=y.name, **kwargs)
+
+
+def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
+    isfirst = df.index < date
+    idf = pd.Series(isfirst, index=df.index)
+    idf[isfirst] = names[0]
+    idf[-isfirst] = names[1]
+    tuples = list(zip(*(idf.values, idf.index.values)))
+    index = pd.MultiIndex.from_tuples(tuples, names=('winter', 'datetime'))
+    df.index = index
+    return df
+
+
 def daterange2str(start, end, dtformat='{day}{month}{year}', delimiter='-',
           hour_fmt='%H', day_fmt='%d.', month_fmt='%m.', year_fmt='%Y'):
     """date range in simple human readable format"""
@@ -247,8 +266,8 @@ class Case(instruments.PrecipMeasurer, caching.Cacher):
             params = self.ab
         if self.liquid:
             fits = self.series_nans()
-            fits.loc[:] = read.gunn_kinzer
-            fits.name = read.gunn_kinzer.name
+            fits.loc[:] = baecc.fit.gunn_kinzer
+            fits.name = baecc.fit.gunn_kinzer.name
             self.instr['pipv'].fits = pd.DataFrame(fits)
             r = self.sum_over_d(self.r_rho, rho=RHO_W)
         elif simple:
@@ -525,7 +544,7 @@ class Case(instruments.PrecipMeasurer, caching.Cacher):
 
     def group(self, data, merger, drop_grouper=True):
         """Data should have same or higher frequency than merger."""
-        grouped = read.merge_series(data, self.instr['pluvio'].grouper())
+        grouped = baecc.merge_series(data, self.instr['pluvio'].grouper())
         result = pd.merge(grouped, pd.DataFrame(merger),
                            left_on='group', right_index=True)
         if drop_grouper:
@@ -837,7 +856,7 @@ class Case(instruments.PrecipMeasurer, caching.Cacher):
             params.extend([self.Z_rayleigh_Xband(), self.tmatrix(tm_aux.wl_X)])
         if include_vfits:
             params.extend(pipv.fits[pipv.default_fit.name])
-        data = read.merge_multiseries(*params)
+        data = baecc.merge_multiseries(*params)
         data.index.name = 'datetime'
         if split_date is not None:
             data = split_index(data, date=split_date)

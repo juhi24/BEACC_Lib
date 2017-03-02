@@ -2,14 +2,17 @@
 
 import time
 import os
+import numpy as np
 import pandas as pd
-from baecc import read
+from datetime import datetime
+import baecc
+from baecc import instruments, caching
 
-class Pluvio(read.InstrumentData, read.PrecipMeasurer):
+class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
         """Create a Pluvio object using data from a list of files."""
-        read.InstrumentData.__init__(self, filenames, **kwargs)
+        instruments.InstrumentData.__init__(self, filenames, **kwargs)
         self.bias = 0
         self._shift_periods = 0
         self._shift_freq = '1min'
@@ -63,7 +66,7 @@ class Pluvio(read.InstrumentData, read.PrecipMeasurer):
                                      parse_dates={'datetime':['datestr']},
                                      date_parser=self.parse_datetime,
                                      index_col='datetime',
-                                     verbose=read.DEBUG))
+                                     verbose=baecc.DEBUG))
                 except NotImplementedError as err:
                     print('\n%s: %s' % (filename, format(err)))
             print()
@@ -104,7 +107,7 @@ class Pluvio(read.InstrumentData, read.PrecipMeasurer):
             self.noprecip_bias(self.lwc, inplace=True)
 
     @classmethod
-    def from_raw(cls, *args, subpath=read.P200_SUBPATH, **kwargs):
+    def from_raw(cls, *args, subpath=instruments.P200_SUBPATH, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def fingerprint(self):
@@ -112,8 +115,8 @@ class Pluvio(read.InstrumentData, read.PrecipMeasurer):
                        self.shift_freq, self.varinterval]
         if self.varinterval:
             identifiers.extend([self.n_combined_intervals])
-        idstr = combine2str(*identifiers)
-        return fingerprint(idstr)
+        idstr = caching.combine2str(*identifiers)
+        return caching.fingerprint(idstr)
 
     def parse_datetime(self, datestr, include_sec=False):
         datestr = str(int(datestr))
@@ -123,12 +126,12 @@ class Pluvio(read.InstrumentData, read.PrecipMeasurer):
         else:
             t_end = 5
         #return datetime.datetime(*t[:t_end], tzinfo=datetime.timezone.utc)
-        return datetime.datetime(*t[:t_end])
+        return datetime(*t[:t_end])
 
     def good_data(self):
         if self.stored_good_data is not None:
             return self.stored_good_data
-        data = copy.deepcopy(self.data)
+        data = self.data.copy()
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)#, tzinfo=datetime.timezone.utc)
         swap_date2 = pd.datetime(2014, 8, 31, 8, 0, 0)#, tzinfo=datetime.timezone.utc ) # TODO put correct switch date
         if self.data.index[-1] > swap_date and self.data.index[-1] < swap_date2:
@@ -288,5 +291,5 @@ class Pluvio(read.InstrumentData, read.PrecipMeasurer):
 
     def groupby_interval(self, data):
         """Group data by integration time intervals."""
-        return merge_series(data, self.grouper()).groupby('group')
+        return baecc.merge_series(data, self.grouper()).groupby('group')
 

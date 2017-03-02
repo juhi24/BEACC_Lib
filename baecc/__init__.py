@@ -2,6 +2,7 @@
 import locale
 from os import path
 from j24 import home
+from baecc.tools import merge_series, merge_multiseries
 
 locale.setlocale(locale.LC_ALL, 'C')
 

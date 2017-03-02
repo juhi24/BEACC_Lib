@@ -6,17 +6,7 @@ import copy
 import warnings
 import bisect
 from itertools import cycle
-
-
-def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
-    isfirst = df.index < date
-    idf = pd.Series(isfirst, index=df.index)
-    idf[isfirst] = names[0]
-    idf[-isfirst] = names[1]
-    tuples = list(zip(*(idf.values, idf.index.values)))
-    index = pd.MultiIndex.from_tuples(tuples, names=('winter', 'datetime'))
-    df.index = index
-    return df
+from datetime import timedelta
 
 
 def before_after_col(df, date=pd.datetime(2014,7,1), colname='winter',
@@ -60,14 +50,6 @@ def deprecation(message, stacklevel=2):
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days)):
         yield start_date + timedelta(n)
-
-
-def scatterplot(x, y, c=None, kind='scatter', **kwargs):
-    """scatter plot of two Series objects"""
-    plotdata = read.merge_series(x, y)
-    if c is not None:
-        kwargs['c'] = c
-    return plotdata.plot(kind=kind, x=x.name, y=y.name, **kwargs)
 
 
 def combine_datasets(*datasets):

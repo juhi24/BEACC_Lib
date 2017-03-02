@@ -6,7 +6,8 @@ import datetime
 from os import path
 from scipy import stats
 from scipy.optimize import fmin, minimize
-from baecc import read, fit
+import baecc
+from baecc import fit, instruments, caching
 from j24 import ensure_dir
 
 
@@ -61,12 +62,12 @@ def filter_outlier(X, Y, Z, data, xname='x', yname='y', frac=0.5,
     return filtered, np.array(std), xlims, ymin, ymax
 
 
-class PipV(read.InstrumentData):
+class PipV(instruments.InstrumentData):
     """PIP particle velocity and diameter data handling"""
     def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
         """Create a PipV object using data from a list of PIP velocity table
         files."""
-        read.InstrumentData.__init__(self, filenames, **kwargs)
+        instruments.InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_vel'
         self.dmin = 0.3   # shortest Wad_Dia where data is good
         self.dmax = 25.8
@@ -75,7 +76,7 @@ class PipV(read.InstrumentData):
         #self.d_col = 'Wad_Dia' # equivalent area
         self._fits = pd.DataFrame()
         # num=511 --> binwidth 0.05
-        if read.DEBUG:
+        if baecc.DEBUG:
             num = 103
         else:
             num = 409
@@ -98,14 +99,14 @@ class PipV(read.InstrumentData):
                                           skip_footer=1,
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime,
-                                          verbose=read.DEBUG)
+                                          verbose=baecc.DEBUG)
                 else:
                     newdata = pd.read_csv(filename,
                                           delim_whitespace=True,
                                           skiprows=8,
                                           parse_dates={'datetime':['minute_p']},
                                           date_parser=self.parse_datetime,
-                                          verbose=read.DEBUG)
+                                          verbose=baecc.DEBUG)
                 newdata = newdata[newdata['RecNum']>-99]
                 if not newdata.empty:
                     newdata.rename_axis({'vel_v_1': 'vel_v',
@@ -176,13 +177,13 @@ class PipV(read.InstrumentData):
             self._hwfm = hwfm
 
     @classmethod
-    def from_raw(cls, *args, subpath=read.PIPV_SUBPATH, **kwargs):
+    def from_raw(cls, *args, subpath=instruments.PIPV_SUBPATH, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def fingerprint(self):
         identifiers = (super().fingerprint(), self.flip, self.dbins, self.loglog)
-        idstr = read.combine2str(*identifiers)
-        return read.fingerprint(idstr)
+        idstr = caching.combine2str(*identifiers)
+        return caching.fingerprint(idstr)
 
     def v(self, d, fitclass=None, varinterval=True, rule=None):
         """velocities according to fits for given diameter"""
@@ -221,7 +222,7 @@ class PipV(read.InstrumentData):
             return self.stored_good_data
         query_str = 'Wad_Dia > {0} & vel_v > {1}'.format(self.dmin, self.vmin)
         data = self.data.query(query_str)
-        data['d_voleq'] = data.Wad_Dia/read.PHI
+        data['d_voleq'] = data.Wad_Dia/baecc.PHI
         return data
 
     def filter_outlier(self, data, frac=0.5, flip=False):
@@ -378,7 +379,7 @@ class PipV(read.InstrumentData):
         f.tight_layout()
         fname = data.index[-1].strftime('%H%M.eps')
         datedir = data.index[-1].strftime('%Y%m%d')
-        f.savefig(path.join(ensure_dir(path.join(read.RESULTS_DIR, 'pip2015',
+        f.savefig(path.join(ensure_dir(path.join(baecc.RESULTS_DIR, 'pip2015',
                                                        'fitcomparison',
                                                        datedir)), fname))
         return axarr
@@ -438,7 +439,7 @@ class PipV(read.InstrumentData):
             param = params.apply(lambda p: p[i])
             param.name = letter[i]
             paramlist.append(param)
-        return read.merge_multiseries(*paramlist) # TODO: replace with concat
+        return baecc.merge_multiseries(*paramlist) # TODO: replace with concat
 
     def partcount(self, rule, varinterval):
         return self.grouped(rule=rule, varinterval=varinterval).Part_ID.count()

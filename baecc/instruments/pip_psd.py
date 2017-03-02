@@ -1,11 +1,14 @@
 # coding: utf-8
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import numpy as np
 import pandas as pd
 import linecache
 import copy
 import datetime
 from os import path
-from baecc import read
+import baecc
+from baecc import instruments, caching
 
 
 def file_shorter_than(fname, limit):
@@ -16,12 +19,25 @@ def file_shorter_than(fname, limit):
     return True
 
 
-class PipPSD(read.InstrumentData):
+def plot_psd(data, ax=None):
+    """Plot particle size distribution over time."""
+    if ax is None:
+        ax = plt.gca()
+    qmesh = ax.pcolormesh(data.index.values, data.columns.values, data.transpose(),
+                  norm=LogNorm())
+    plt.colorbar(qmesh, ax=ax)
+    ax.set_title('PIP PSD')
+    ax.set_xlabel('time (UTC)')
+    ax.set_ylabel('D (mm)')
+    return ax
+
+
+class PipPSD(instruments.InstrumentData):
     """PIP particle size distribution data handling"""
     def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
         """Create a PipDSD object using data from a list of PIP DSD table
         files."""
-        read.InstrumentData.__init__(self, filenames, **kwargs)
+        instruments.InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_dsd'
         self.use_voleq_d = True
         common_csv_kws = {'skiprows': 8,
@@ -29,11 +45,11 @@ class PipPSD(read.InstrumentData):
                           'parse_dates': {'datetime':['hr_d', 'min_d']},
                           'date_parser': self.parse_datetime,
                           'index_col': 'datetime',
-                          'verbose': read.DEBUG}
+                          'verbose': baecc.DEBUG}
         if self.data.empty:
             print('Reading PIP PSD data...')
             for filename in filenames:
-                if read.DEBUG:
+                if baecc.DEBUG:
                     print(filename)
                 else:
                     print('.', end='')
@@ -70,7 +86,7 @@ class PipPSD(read.InstrumentData):
         self.finish_init(dt_start, dt_end)
 
     @classmethod
-    def from_raw(cls, *args, subpath=read.DSD_SUBPATH, **kwargs):
+    def from_raw(cls, *args, subpath=instruments.PSD_SUBPATH, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def parse_datetime(self, hh, mm):
@@ -103,12 +119,12 @@ class PipPSD(read.InstrumentData):
 
     def plot(self, data_kws={}, **kws):
         """wrapper for plot_psd"""
-        return read.plot_psd(self.good_data(**data_kws), **kws)
+        return plot_psd(self.good_data(**data_kws), **kws)
 
     def fingerprint(self):
         identifiers = (super().fingerprint(), self.use_voleq_d)
-        idstr = read.combine2str(*identifiers)
-        return read.fingerprint(idstr)
+        idstr = caching.combine2str(*identifiers)
+        return caching.fingerprint(idstr)
 
     def filter_cats_and_dogs(self, data=None, window=5):
         """a rolling window filter for isolated data points"""
@@ -141,6 +157,6 @@ class PipPSD(read.InstrumentData):
         too_large = bin_cen[bin_cen > 25]
         data_fltr = gain_correction*data.drop(too_small, 1).drop(too_large, 1)
         if self.use_voleq_d:
-            data_fltr.columns = data_fltr.columns/read.PHI
-            data_fltr = data_fltr*read.PHI
+            data_fltr.columns = data_fltr.columns/baecc.PHI
+            data_fltr = data_fltr*baecc.PHI
         return data_fltr

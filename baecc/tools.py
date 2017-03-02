@@ -3,11 +3,10 @@ import pandas as pd
 import os
 import datetime
 import netCDF4 as nc
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 from matplotlib import ticker
 from glob import glob
 from baecc import instruments, DATA_DIR
+
 
 def datafilelistloop(subpath, dtstrlist, datadir=DATA_DIR):
     listout = []
@@ -64,18 +63,3 @@ def merge_multiseries(s1, s2, *series, **kwargs):
 
 def datafilelist(subpath, datadir=DATA_DIR):
     return glob(os.path.join(datadir, subpath))
-
-
-def plot_psd(data, ax=None):
-    """Plot particle size distribution over time."""
-    if ax is None:
-        ax = plt.gca()
-    qmesh = ax.pcolormesh(data.index.values, data.columns.values, data.transpose(),
-                  norm=LogNorm())
-    plt.colorbar(qmesh, ax=ax)
-    ax.set_title('PIP PSD')
-    ax.set_xlabel('time (UTC)')
-    ax.set_ylabel('D (mm)')
-    return ax
-
-

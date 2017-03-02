@@ -6,7 +6,7 @@ from baecc.instruments.pip_psd import PipPSD
 from baecc.instruments.pip_v import PipV
 from baecc.instruments.radar import Radar
 from baecc.instruments.base import InstrumentData, PrecipMeasurer
-from baecc.instruments.tools import datafilelistloop
+from baecc.tools import datafilelistloop
 
 PIPV_SUBPATH = 'PIP/a_Velocity_Tables/004%s/*2.dat'
 PSD_SUBPATH = 'PIP/a_DSD_Tables/004%s*.dat'
