@@ -3,12 +3,14 @@
 Paper specific settings and helper functions.
 @author: Jussi Tiira
 """
-from baecc import snowfall as sf
-from baecc import read
+import gc
 import numpy as np
 import pandas as pd
+import baecc
 from os import path
-import gc
+from baecc import RESULTS_DIR, DATA_DIR, USER_DIR, H5_PATH
+from baecc import caching
+from j24 import ensure_dir
 
 N_COMB_INTERVALS = 2
 
@@ -19,22 +21,22 @@ dtformat_paper = '%Y %b %d %H:%M'
 QSTR = 'D_0_gamma>0.6 & intensity>0.2 & count>800 & density==density'
 RHO_LIMITS = (0, 100, 200, 1000)
 #rholimits = (0, 150, 300, 800)
-resultspath = path.join(read.RESULTS_DIR, 'pip2015')
+resultspath = path.join(RESULTS_DIR, 'pip2015')
 paperpath = path.join(resultspath, 'paper')
-cases_dir = path.join(read.USER_DIR, 'cases')
+cases_dir = path.join(USER_DIR, 'cases')
 
-paths = {'results': read.ensure_dir(resultspath),
+paths = {'results': ensure_dir(resultspath),
          'paper': paperpath,
-         'tables': read.ensure_dir(path.join(paperpath, 'tables'))}
-files = {'h5nov14': path.join(read.DATA_DIR, '2014nov1-23.h5'),
-         'h5w1415': path.join(read.DATA_DIR, 'dec-jan1415.h5'),
-         'h5baecc': read.H5_PATH,
+         'tables': ensure_dir(path.join(paperpath, 'tables'))}
+files = {'h5nov14': path.join(DATA_DIR, '2014nov1-23.h5'),
+         'h5w1415': path.join(DATA_DIR, 'dec-jan1415.h5'),
+         'h5baecc': H5_PATH,
          'cbaecc': path.join(cases_dir, 'pip2015.csv'),
          'c14nov': path.join(cases_dir, 'pip2015_nov14.csv'),
          'c1415': path.join(cases_dir, 'pip2015_14-15.csv'),
          'cbaecc_test': path.join(cases_dir, 'pip2015test.csv'),
          'c1415_test': path.join(cases_dir, 'pip2015_14-15test.csv'),
-         'params_cache': path.join(read.CACHE_DIR, 'param_table'+ read.MSGTLD)}
+         'params_cache': path.join(caching.CACHE_DIR, 'param_table'+ caching.MSGTLD)}
 
 
 def test_events():
@@ -49,7 +51,7 @@ def pluvio_config(e, tshift_minutes, n_comb_intervals):
 
 
 def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
-    ee = sf.EventsCollection(extra_cases_file, dtformat_paper)
+    ee = baecc.events.EventsCollection(extra_cases_file, dtformat_paper)
     ee.autoimport_data(datafile=extra_h5_file, autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(ee, *pluvio_conf_args)
@@ -60,7 +62,7 @@ def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
 def events(casesfile_baecc=files['cbaecc'],
            casesfile_nov14=files['c14nov'],
            casesfile_1415=files['c1415']):
-    e = sf.EventsCollection(casesfile_baecc, dtformat_paper)
+    e = baecc.events.EventsCollection(casesfile_baecc, dtformat_paper)
     e.autoimport_data(datafile=files['h5baecc'], autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(e, -6, N_COMB_INTERVALS)
