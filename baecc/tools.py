@@ -1,22 +1,13 @@
 # coding: utf-8
 import pandas as pd
-import os
 import datetime
 import netCDF4 as nc
 from matplotlib import ticker
-from glob import glob
-from baecc import instruments, DATA_DIR
-
-
-def datafilelistloop(subpath, dtstrlist, datadir=DATA_DIR):
-    listout = []
-    for dtstr in dtstrlist:
-        listout.extend(datafilelist(subpath % dtstr, datadir=datadir))
-    return listout
+from baecc import RHO_SCALE
 
 
 def rho_scale(axis):
-    axis_scale(axis, instruments.RHO_SCALE)
+    axis_scale(axis, RHO_SCALE)
 
 
 def axis_scale(axis, scale):
@@ -59,7 +50,3 @@ def merge_multiseries(s1, s2, *series, **kwargs):
         for s in series:
             s_all = merge_series(s_all, s, **kwargs)
     return s_all
-
-
-def datafilelist(subpath, datadir=DATA_DIR):
-    return glob(os.path.join(datadir, subpath))

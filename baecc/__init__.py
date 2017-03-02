@@ -2,7 +2,6 @@
 import locale
 from os import path
 from j24 import home
-from baecc.tools import merge_series, merge_multiseries
 
 locale.setlocale(locale.LC_ALL, 'C')
 
@@ -24,3 +23,5 @@ if CGS_UNITS:
 else:
     RHO_SCALE = 1
     RHO_UNITS = 'kg$\,$m$^{-3}$'
+
+from baecc.tools import merge_series, merge_multiseries

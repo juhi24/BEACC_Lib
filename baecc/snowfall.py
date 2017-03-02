@@ -4,20 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import copy
 import warnings
-import bisect
 from itertools import cycle
 from datetime import timedelta
-
-
-def before_after_col(df, date=pd.datetime(2014,7,1), colname='winter',
-                     datecol=None):
-    if datecol is None:
-        dates = df.index
-    else:
-        dates = df[datecol]
-    isfirst = dates > date
-    df[colname] = isfirst.astype(int)
-    return df
 
 
 def remove_subplot_gaps(f, axis='row', axarr=None):
@@ -84,24 +72,6 @@ def plot_pairs(data, x='a', y='b', c=None, sizecol=None, scale=1,
             return ax
         return data.plot(ax=ax, x=x, y=y, kind=kind, colorbar=colorbar,
                          edgecolors=edgecolors, **kwargs)
-
-
-def find_interval(x, limits=(0, 100, 200, 1000)):
-    """Find rightmost value less than x and leftmost value more than x."""
-    i = bisect.bisect_right(limits, x)
-    return limits[i-1:i+1]
-
-
-def find_interval_df(s, limits):
-    """Find intervals for Series s, output as a two-column DataFrame."""
-    return s.apply(find_interval, limits=limits).apply(pd.Series)
-
-
-def apply_rho_intervals(df, limits, rho_col='density'):
-    """Add columns for density intervals."""
-    data = df.copy()
-    data[['rhomin', 'rhomax']] = find_interval_df(data[rho_col], limits)
-    return data
 
 
 def plot_vfit(case, dt, ax=None, extent=(0.3, 4, 0.5, 1.5),

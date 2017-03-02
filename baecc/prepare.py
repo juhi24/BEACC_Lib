@@ -6,6 +6,7 @@ Paper specific settings and helper functions.
 import gc
 import numpy as np
 import pandas as pd
+import bisect
 import baecc
 from os import path
 from baecc import RESULTS_DIR, DATA_DIR, USER_DIR, H5_PATH
@@ -39,6 +40,35 @@ files = {'h5nov14': path.join(DATA_DIR, '2014nov1-23.h5'),
          'params_cache': path.join(caching.CACHE_DIR, 'param_table'+ caching.MSGTLD)}
 
 
+def find_interval(x, limits=(0, 100, 200, 1000)):
+    """Find rightmost value less than x and leftmost value more than x."""
+    i = bisect.bisect_right(limits, x)
+    return limits[i-1:i+1]
+
+
+def find_interval_df(s, limits):
+    """Find intervals for Series s, output as a two-column DataFrame."""
+    return s.apply(find_interval, limits=limits).apply(pd.Series)
+
+
+def apply_rho_intervals(df, limits, rho_col='density'):
+    """Add columns for density intervals."""
+    data = df.copy()
+    data[['rhomin', 'rhomax']] = find_interval_df(data[rho_col], limits)
+    return data
+
+
+def before_after_col(df, date=pd.datetime(2014,7,1), colname='winter',
+                     datecol=None):
+    if datecol is None:
+        dates = df.index
+    else:
+        dates = df[datecol]
+    isfirst = dates > date
+    df[colname] = isfirst.astype(int)
+    return df
+
+
 def test_events():
     return events(casesfile_baecc=files['cbaecc_test'],
                   casesfile_1415=files['c1415_test'])
@@ -70,7 +100,7 @@ def events(casesfile_baecc=files['cbaecc'],
     extra_events(e, casesfile_1415, files['h5w1415'], -5, N_COMB_INTERVALS)
     e.events['paper'] = e.events.pluvio200
     e.split_index()
-    e.events = sf.before_after_col(e.events, date=pd.datetime(2014,7,1),
+    e.events = before_after_col(e.events, date=pd.datetime(2014,7,1),
                                 datecol='start')
     pref400 = e.events.pluvio_pref==400
     e.events.paper[pref400] = e.events.pluvio400[pref400] # TODO
@@ -98,7 +128,7 @@ def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None,
     data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
     del(e)
     gc.collect()
-    data = sf.apply_rho_intervals(data, rho_limits)
+    data = apply_rho_intervals(data, rho_limits)
     if len(query_str)<1:
         return data
     return data.query(query_str)

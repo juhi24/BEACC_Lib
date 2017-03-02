@@ -1,7 +1,21 @@
 # coding: utf-8
 import copy
+import numpy as np
 import pandas as pd
-from baecc.caching import Cacher, fingerprint
+from os import path
+from glob import glob
+from baecc import caching, DATA_DIR
+
+
+def datafilelist(subpath, datadir=DATA_DIR):
+    return glob(path.join(datadir, subpath))
+
+
+def datafilelistloop(subpath, dtstrlist, datadir=DATA_DIR):
+    listout = []
+    for dtstr in dtstrlist:
+        listout.extend(datafilelist(subpath % dtstr, datadir=datadir))
+    return listout
 
 
 class PrecipMeasurer:
@@ -33,7 +47,7 @@ class PrecipMeasurer:
         return intensity
 
 
-class InstrumentData(Cacher):
+class InstrumentData(caching.Cacher):
     """Parent for instrument data classes."""
     # TODO: Separate read_csv and __init__
     def __init__(self, filenames=None, data=None, hdf_table=None, use_cache=True):
@@ -48,7 +62,7 @@ class InstrumentData(Cacher):
         if hdf_table is not None:
             self.name = hdf_table
             self.data = self.data.append(pd.read_hdf(filenames[0], hdf_table))
-        Cacher.__init__(self, use_cache=use_cache)
+        caching.Cacher.__init__(self, use_cache=use_cache)
 
     def __add__(self, other):
         combined = copy.deepcopy(self)
@@ -62,14 +76,14 @@ class InstrumentData(Cacher):
         return cls(filelist)
 
     def fingerprint(self):
-        return fingerprint(str(self.data))
+        return caching.fingerprint(str(self.data))
 
     def finish_init(self, dt_start, dt_end):
         """Sort and name index, cut time span."""
         self.data.sort_index(inplace=True)
         self.data.index.names = ['datetime']
         self.set_span(dt_start, dt_end)
-        Cacher.__init__(self, storefilename=self.name + '.h5')
+        caching.Cacher.__init__(self, storefilename=self.name + '.h5')
 
     def store_good_data(self, **kwargs):
         """Store good data to memory (to bypass recalculation of filters)."""

@@ -1,12 +1,12 @@
 # coding: utf-8
 import gc
-from baebb import H5_PATH, DATA_DIR
+import baecc
 from baecc.instruments.pluvio import Pluvio
 from baecc.instruments.pip_psd import PipPSD
 from baecc.instruments.pip_v import PipV
 from baecc.instruments.radar import Radar
-from baecc.instruments.base import InstrumentData, PrecipMeasurer
-from baecc.tools import datafilelistloop
+from baecc.instruments.base import InstrumentData, PrecipMeasurer, datafilelistloop
+
 
 PIPV_SUBPATH = 'PIP/a_Velocity_Tables/004%s/*2.dat'
 PSD_SUBPATH = 'PIP/a_DSD_Tables/004%s*.dat'
@@ -18,7 +18,7 @@ RADAR_SUBPATH = 'Radar/%s/tmp%s*M1.a1.%s.*'
 PHI = 0.92
 
 
-def batch_import(dtstrlist, datadir=DATA_DIR, radar=False):
+def batch_import(dtstrlist, datadir=baecc.DATA_DIR, radar=False):
     """Read ASCII data according to a datestring pattern."""
     pipv_files = datafilelistloop(PIPV_SUBPATH, dtstrlist, datadir=datadir)
     dsd_files = datafilelistloop(PSD_SUBPATH, dtstrlist, datadir=datadir)
@@ -49,8 +49,8 @@ def batch_import(dtstrlist, datadir=DATA_DIR, radar=False):
             'pluvio400': pluvio400}
 
 
-def batch_create_hdf(instrdict=None, datadir=DATA_DIR, hdf_file=H5_PATH,
-                     dtstrlist=('20140[2-3]??')):
+def batch_create_hdf(instrdict=None, datadir=baecc.DATA_DIR,
+                     hdf_file=baecc.H5_PATH, dtstrlist=('20140[2-3]??')):
     """Read ASCII data and export to hdf5."""
     if instrdict is None:
         instrdict = {PIPV_SUBPATH: PipV,
