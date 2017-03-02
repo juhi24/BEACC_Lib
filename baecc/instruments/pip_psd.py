@@ -10,6 +10,7 @@ from os import path
 import baecc
 from baecc import instruments, caching
 
+SUBPATH = 'PIP/a_DSD_Tables/004%s*.dat'
 
 def file_shorter_than(fname, limit):
     with open(fname) as f:
@@ -86,7 +87,7 @@ class PipPSD(instruments.InstrumentData):
         self.finish_init(dt_start, dt_end)
 
     @classmethod
-    def from_raw(cls, *args, subpath=instruments.PSD_SUBPATH, **kwargs):
+    def from_raw(cls, *args, subpath=SUBPATH, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def parse_datetime(self, hh, mm):
@@ -157,6 +158,6 @@ class PipPSD(instruments.InstrumentData):
         too_large = bin_cen[bin_cen > 25]
         data_fltr = gain_correction*data.drop(too_small, 1).drop(too_large, 1)
         if self.use_voleq_d:
-            data_fltr.columns = data_fltr.columns/baecc.PHI
-            data_fltr = data_fltr*baecc.PHI
+            data_fltr.columns = data_fltr.columns/instruments.PHI
+            data_fltr = data_fltr*instruments.PHI
         return data_fltr

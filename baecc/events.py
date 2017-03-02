@@ -1,6 +1,7 @@
 # coding: utf-8
 import pandas as pd
-from baecc import caching, instruments, case
+import baecc
+from baecc import caching, case
 from datetime import datetime
 
 class EventsCollection(caching.Cacher):
@@ -72,7 +73,7 @@ class EventsCollection(caching.Cacher):
                                                autobias=autobias))
         self.events[data.instr['pluvio'].name] = cases
 
-    def autoimport_data(self, datafile=instruments.H5_PATH, autoshift=False,
+    def autoimport_data(self, datafile=baecc.H5_PATH, autoshift=False,
                         autobias=False, radar=False, **casekwargs):
         """Import data from a hdf file."""
         timemargin = pd.datetools.timedelta(hours=3)

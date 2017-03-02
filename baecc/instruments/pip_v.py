@@ -10,6 +10,7 @@ import baecc
 from baecc import fit, instruments, caching
 from j24 import ensure_dir
 
+SUBPATH = 'PIP/a_Velocity_Tables/004%s/*2.dat'
 
 def kde(x, y):
     values = np.vstack((x, y))
@@ -177,7 +178,7 @@ class PipV(instruments.InstrumentData):
             self._hwfm = hwfm
 
     @classmethod
-    def from_raw(cls, *args, subpath=instruments.PIPV_SUBPATH, **kwargs):
+    def from_raw(cls, *args, subpath=SUBPATH, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def fingerprint(self):
@@ -222,7 +223,7 @@ class PipV(instruments.InstrumentData):
             return self.stored_good_data
         query_str = 'Wad_Dia > {0} & vel_v > {1}'.format(self.dmin, self.vmin)
         data = self.data.query(query_str)
-        data['d_voleq'] = data.Wad_Dia/baecc.PHI
+        data['d_voleq'] = data.Wad_Dia/instruments.PHI
         return data
 
     def filter_outlier(self, data, frac=0.5, flip=False):

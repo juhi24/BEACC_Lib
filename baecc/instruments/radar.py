@@ -6,6 +6,7 @@ from scipy import io
 from os import path
 from baecc import instruments
 
+SUBPATH = 'Radar/%s/tmp%s*M1.a1.%s.*'
 
 class Radar(instruments.InstrumentData):
     """Radar reflectivity at lowest level"""

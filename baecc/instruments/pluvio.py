@@ -8,6 +8,9 @@ from datetime import datetime
 import baecc
 from baecc import instruments, caching
 
+P200_SUBPATH = 'Pluvio200/pluvio200_??_%s*.txt'
+P400_SUBPATH = 'Pluvio400/pluvio400_??_%s*.txt'
+
 class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
     """Pluviometer data handling"""
     def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
@@ -107,7 +110,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
             self.noprecip_bias(self.lwc, inplace=True)
 
     @classmethod
-    def from_raw(cls, *args, subpath=instruments.P200_SUBPATH, **kwargs):
+    def from_raw(cls, *args, subpath=P200_SUBPATH, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def fingerprint(self):
