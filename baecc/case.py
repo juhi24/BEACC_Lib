@@ -198,14 +198,14 @@ class Case(instruments.PrecipMeasurer, caching.Cacher):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
             dt = pd.datetools.to_datetime(dt)
-        pluvio = instruments.Pluvio(filenames, hdf_table=pluvio_name)
-        dsd = instruments.PipPSD(filenames, hdf_table='pip_dsd')
-        pipv = instruments.PipV(filenames, hdf_table='pip_vel')
+        pluvio = instruments.pluvio.Pluvio(filenames, hdf_table=pluvio_name)
+        dsd = instruments.pip_psd.PipPSD(filenames, hdf_table='pip_dsd')
+        pipv = instruments.pip_v.PipV(filenames, hdf_table='pip_vel')
         if radar:
-            xsacr = instruments.Radar(filenames, hdf_table='XSACR')
-            kasacr = instruments.Radar(filenames, hdf_table='KASACR')
-            kazr = instruments.Radar(filenames, hdf_table='KAZR')
-            mwacr = instruments.Radar(filenames, hdf_table='MWACR')
+            xsacr = instruments.radar.Radar(filenames, hdf_table='XSACR')
+            kasacr = instruments.radar.Radar(filenames, hdf_table='KASACR')
+            kazr = instruments.radar.Radar(filenames, hdf_table='KAZR')
+            mwacr = instruments.radar.Radar(filenames, hdf_table='MWACR')
             instr_lst = [dsd, pipv, pluvio, xsacr, kasacr, kazr,
                          mwacr]
         else:
