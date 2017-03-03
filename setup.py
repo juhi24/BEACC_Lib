@@ -86,6 +86,7 @@ setup(
         'numpy',
         'pytmatrix',
         'netCDF4',
+        'tstables',
         'seaborn'
     ],
 
