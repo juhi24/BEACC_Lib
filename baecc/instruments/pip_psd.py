@@ -133,7 +133,7 @@ class PipPSD(instruments.InstrumentData):
         if data is None:
             data = self.data
         # Any datapoint after <window-1> bins of zeros will be flagged
-        is_dog = pd.rolling_count(data.mask(data == 0).T, window).T == 1
+        is_dog = data.mask(data == 0).T.rolling(window=window).count().T == 1
         is_dog.ix[:, :window] = False # unflag <window> first columns
         is_dog[is_dog == False] = np.nan # False --> NaN, True --> 1
         # In a time interval flag anything that's bigger than any previously

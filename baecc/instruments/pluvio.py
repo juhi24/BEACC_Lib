@@ -198,7 +198,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
             return self.constinterval_amount(shift=shift, **bucketkwargs)
         am = self.good_data()[self.amount_col]
         n = self.n_combined_intervals
-        am = pd.stats.moments.rolling_sum(am[am > 0], window=n).iloc[n-1::n]
+        am = am[am > 0].rolling(center=False, window=n).sum().iloc[n-1::n]
         if shift:
             am = am.tshift(periods=self.shift_periods, freq=self.shift_freq)
         if crop:
@@ -259,7 +259,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         """Return lengths of timesteps as Series of timedeltas."""
         a = self.amount(crop=False)
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
-        longest_delta = pd.datetools.timedelta(hours=1)
+        longest_delta = timedelta(hours=1)
         delta[delta > longest_delta] = longest_delta
         delta = pd.to_timedelta(delta)
         delta.name = 'tdelta'

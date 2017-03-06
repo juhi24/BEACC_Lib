@@ -9,6 +9,7 @@ import baecc
 from baecc import caching, instruments
 from scipy.optimize import minimize
 from scipy.special import gamma
+from datetime import timedelta
 from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
 
@@ -285,7 +286,7 @@ class Case(instruments.PrecipMeasurer, caching.Cacher):
             delta = self.instr['pluvio'].tdelta()
         else:
             delta = i.index.freq.delta
-        return i*(delta/pd.datetools.timedelta(hours=1))
+        return i*(delta/timedelta(hours=1))
 
     def sum_over_d(self, func, **kwargs):
         """numerical integration over particle diameter"""
