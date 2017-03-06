@@ -103,7 +103,7 @@ def events(casesfile_baecc=files['cbaecc'],
     e.events = before_after_col(e.events, date=pd.datetime(2014,7,1),
                                 datecol='start')
     pref400 = e.events.pluvio_pref==400
-    e.events.paper[pref400] = e.events.pluvio400[pref400] # TODO
+    e.events.paper[pref400] = e.events.pluvio400[pref400].copy() # TODO
     return e
 
 

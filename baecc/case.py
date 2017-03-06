@@ -197,7 +197,7 @@ class Case(instruments.PrecipMeasurer, caching.Cacher):
                  pluvio_name='pluvio200', **kwargs):
         """Create Case object from a hdf file."""
         for dt in [dt_start, dt_end]:
-            dt = pd.datetools.to_datetime(dt)
+            dt = pd.to_datetime(dt)
         pluvio = instruments.pluvio.Pluvio(filenames, hdf_table=pluvio_name)
         dsd = instruments.pip_psd.PipPSD(filenames, hdf_table='pip_dsd')
         pipv = instruments.pip_v.PipV(filenames, hdf_table='pip_vel')
@@ -237,8 +237,8 @@ class Case(instruments.PrecipMeasurer, caching.Cacher):
     def between_datetime(self, dt_start, dt_end, inplace=False,
                          autoshift=False, autobias=False):
         """Select data only in chosen time frame."""
-        dt_start = pd.datetools.to_datetime(dt_start)
-        dt_end = pd.datetools.to_datetime(dt_end)
+        dt_start = pd.to_datetime(dt_start)
+        dt_end = pd.to_datetime(dt_end)
         if inplace:
             m = self
         else:

@@ -2,7 +2,7 @@
 import pandas as pd
 import baecc
 from baecc import caching, case
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class EventsCollection(caching.Cacher):
     """Manage a table of precipitation events."""
@@ -13,8 +13,8 @@ class EventsCollection(caching.Cacher):
         self.default_col = default_col
         self.events = pd.read_csv(csv, parse_dates=['start', 'end'],
                                   date_parser=self.parse_datetime)
-        self.events.sort(columns=['start', 'end'], inplace=True)
-        self.events.start += pd.datetools.timedelta(seconds=1)
+        self.events.sort_values(by=['start', 'end'], inplace=True)
+        self.events.start += timedelta(seconds=1)
         caching.Cacher.__init__(self, **cacher_kws)
 
     def parse_datetime(self, dtstr):
@@ -76,7 +76,7 @@ class EventsCollection(caching.Cacher):
     def autoimport_data(self, datafile=baecc.H5_PATH, autoshift=False,
                         autobias=False, radar=False, **casekwargs):
         """Import data from a hdf file."""
-        timemargin = pd.datetools.timedelta(hours=3)
+        timemargin = timedelta(hours=3)
         dt_start = self.events.iloc[0].start - timemargin
         dt_end = self.events.iloc[-1].end + timemargin
         for pluvio_name in ('pluvio200', 'pluvio400'):

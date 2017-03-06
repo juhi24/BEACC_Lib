@@ -4,7 +4,7 @@ import time
 import os
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import baecc
 from baecc import instruments, caching
 
@@ -74,7 +74,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
                     print('\n%s: %s' % (filename, format(err)))
             print()
             #self.data.drop(['i_rt'], 1, inplace=True) # crap format
-        self.buffer = pd.datetools.timedelta(0)
+        self.buffer = timedelta(0)
         self.finish_init(dt_start, dt_end)
         self.data['group'] = self.data.acc_nrt.astype(bool).astype(int).cumsum().shift(1).fillna(0)
         self.data['heating'] = self.data.heating.astype(float)  # sometimes this are interpreted as int
@@ -154,18 +154,18 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
             super().set_span(dt_start, dt_end)
             return
         for dt in [dt_start, dt_end]:
-            dt = pd.datetools.to_datetime(dt)
-        self.buffer = pd.datetools.timedelta(hours=2)
+            dt = pd.to_datetime(dt)
+        self.buffer = timedelta(hours=2)
         if dt_start is None or dt_end is None:
-            self.buffer = pd.datetools.timedelta(0)
+            self.buffer = timedelta(0)
         elif dt_start-self.buffer < self.data.index[0] or dt_end+self.buffer > self.data.index[-1]:
-            self.buffer = pd.datetools.timedelta(0)
+            self.buffer = timedelta(0)
         self.data = self.data[dt_start-self.buffer:dt_end+self.buffer]
 
     def timeshift(self):
         """Return timeshift as timedelta."""
         if self.shift_periods == 0:
-            return pd.datetools.timedelta(0)
+            return timedelta(0)
         return self.shift_periods*pd.datetools.to_offset(self.shift_freq)
 
     def dt_start(self):
