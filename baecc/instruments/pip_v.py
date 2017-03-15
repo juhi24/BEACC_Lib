@@ -223,7 +223,7 @@ class PipV(instruments.InstrumentData):
             return self.stored_good_data
         query_str = 'Wad_Dia > {0} & vel_v > {1}'.format(self.dmin, self.vmin)
         data = self.data.query(query_str)
-        data['d_voleq'] = data.Wad_Dia/instruments.PHI
+        data.loc[:,'d_voleq'] = data.Wad_Dia/instruments.PHI
         return data
 
     def filter_outlier(self, data, frac=0.5, flip=False):

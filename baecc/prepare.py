@@ -11,11 +11,11 @@ import baecc
 from os import path
 from baecc import RESULTS_DIR, DATA_DIR, USER_DIR, H5_PATH
 from baecc import caching
-from j24 import ensure_dir
+from j24 import ensure_dir, ensure_join
 
 N_COMB_INTERVALS = 2
 
-dtformat_default = '%d.%m.%y %H:%M'
+dtformat_default = '%Y-%m-%d %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 dtformat_paper = '%Y %b %d %H:%M'
 #QSTR = 'density<600 & count>800 & b>0'
@@ -24,24 +24,21 @@ RHO_LIMITS = (0, 100, 200, 1000)
 #rholimits = (0, 150, 300, 800)
 resultspath = path.join(RESULTS_DIR, 'pip2015')
 paperpath = path.join(resultspath, 'paper')
-cases_dir = path.join(USER_DIR, 'cases')
 
 paths = {'results': ensure_dir(resultspath),
          'paper': paperpath,
-         'tables': ensure_dir(path.join(paperpath, 'tables'))}
+         'tables': ensure_join(paperpath, 'tables')}
 files = {'h5nov14': path.join(DATA_DIR, '2014nov1-23.h5'),
          'h5w1415': path.join(DATA_DIR, 'dec-jan1415.h5'),
          'h5baecc': H5_PATH,
-         'cbaecc': path.join(cases_dir, 'pip2015.csv'),
-         'c14nov': path.join(cases_dir, 'pip2015_nov14.csv'),
-         'c1415': path.join(cases_dir, 'pip2015_14-15.csv'),
-         'cbaecc_test': path.join(cases_dir, 'pip2015test.csv'),
-         'c1415_test': path.join(cases_dir, 'pip2015_14-15test.csv'),
          'params_cache': path.join(caching.CACHE_DIR, 'param_table'+ caching.MSGTLD)}
 
 
+def cases_filepath(name):
+    return path.join(USER_DIR, 'cases', name + '.csv')
+
 def find_interval(x, limits=(0, 100, 200, 1000)):
-    """Find rightmost value less than x and leftmost value more than x."""
+    """Find rightmost value less than x and leftmost value greater than x."""
     i = bisect.bisect_right(limits, x)
     return limits[i-1:i+1]
 
@@ -81,7 +78,7 @@ def pluvio_config(e, tshift_minutes, n_comb_intervals):
 
 
 def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
-    ee = baecc.events.EventsCollection(extra_cases_file, dtformat_paper)
+    ee = baecc.events.EventsCollection(extra_cases_file, dtformat_default)
     ee.autoimport_data(datafile=extra_h5_file, autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(ee, *pluvio_conf_args)
@@ -89,40 +86,35 @@ def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
     del(ee)
 
 
-def events(casesfile_baecc=files['cbaecc'],
-           casesfile_nov14=files['c14nov'],
-           casesfile_1415=files['c1415']):
-    e = baecc.events.EventsCollection(casesfile_baecc, dtformat_paper)
+def events(casesname_baecc=None, casesname_nov14=None, casesname_1415=None):
+    casesfile_baecc = cases_filepath(casesname_baecc)
+    casesfile_1415 = cases_filepath(casesname_1415)
+    e = baecc.events.EventsCollection(casesfile_baecc, dtformat_default)
     e.autoimport_data(datafile=files['h5baecc'], autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(e, -6, N_COMB_INTERVALS)
-    extra_events(e, casesfile_nov14, files['h5nov14'], -5, N_COMB_INTERVALS)
+    #extra_events(e, casesfile_nov14, files['h5nov14'], -5, N_COMB_INTERVALS)
     extra_events(e, casesfile_1415, files['h5w1415'], -5, N_COMB_INTERVALS)
     e.events['paper'] = e.events.pluvio200
     e.split_index()
     e.events = before_after_col(e.events, date=pd.datetime(2014,7,1),
                                 datecol='start')
-    pref400 = e.events.pluvio_pref==400
-    e.events.paper[pref400] = e.events.pluvio400[pref400].copy() # TODO
-    return e
-
-
-def pip2015events():
-    e = events()
-    #e.events.pluvio200[12] = None # TODO
+    if 'pluvio_pref' in e.events.columns:
+        pref400 = e.events.pluvio_pref==400
+        e.events.paper[pref400] = e.events.pluvio400[pref400].copy() # TODO
     return e
 
 
 def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None,
-                use_cache=True):
+                use_cache=True, **kws):
     cached_table = files['params_cache']
     if path.isfile(cached_table) and use_cache:
         return pd.read_msgpack(cached_table)
     if e is None:
         if debug:
-            e = test_events()
+            e = test_events(**kws)
         else:
-            e = pip2015events()
+            e = events(**kws)
     if rho_limits is None:
         rho_limits = RHO_LIMITS
     data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
