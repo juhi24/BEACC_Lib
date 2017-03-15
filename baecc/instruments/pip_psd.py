@@ -4,11 +4,11 @@ from matplotlib.colors import LogNorm
 import numpy as np
 import pandas as pd
 import linecache
-import copy
 import datetime
 from os import path
 import baecc
 from baecc import instruments, caching
+from pytmatrix import psd
 
 SUBPATH = 'PIP/a_DSD_Tables/004%s*.dat'
 
@@ -40,7 +40,7 @@ class PipPSD(instruments.InstrumentData):
         files."""
         instruments.InstrumentData.__init__(self, filenames, **kwargs)
         self.name = 'pip_dsd'
-        self.use_voleq_d = True
+        self.use_voleq_d = True # use volume equivalent diameter
         common_csv_kws = {'skiprows': 8,
                           'header': 3,
                           'parse_dates': {'datetime':['hr_d', 'min_d']},
@@ -85,6 +85,7 @@ class PipPSD(instruments.InstrumentData):
         self.data.drop_duplicates(inplace=True)
         # TODO: change when upgrading to pandas 0.20:
         self.data = self.data.resample('1min').asfreq().fillna(0)
+        self._binned_psd = None
         self.finish_init(dt_start, dt_end)
 
     @classmethod
@@ -102,6 +103,18 @@ class PipPSD(instruments.InstrumentData):
         """Return array of bin centers as area equivalent diameter."""
         return self.good_data().columns.values
 
+    def bin_lower(self):
+        """bin lower edges"""
+        return self.bin_cen()-0.5*self.bin_width()
+
+    def bin_upper(self):
+        """bin upper edges"""
+        return self.bin_cen()+0.5*self.bin_width()
+
+    def bin_edges(self):
+        """len n+1 bin edges"""
+        return np.append(self.bin_lower().values, self.bin_upper().values[-1])
+
     def bin_width(self):
         """as a Series of area equivalent diameter"""
         # TODO: should be calculated using actual bin edges
@@ -118,6 +131,21 @@ class PipPSD(instruments.InstrumentData):
         grp = self.grouped(rule=rule, varinterval=varinterval, **kwargs)
         n = grp.mean()
         return n
+
+    def _binned_psd_at(self, t):
+        """pytmatrix binned psd object for timestamp t"""
+        return psd.BinnedPSD(self.bin_edges(), self.good_data().loc[t].values)
+
+    @property
+    def binned_psd(self):
+        if self._binned_psd is None:
+            bpsd = self.good_data().iloc[:,0].copy()
+            for t in bpsd.index:
+                bpsd.loc[t] = self._binned_psd_at(t)
+            bpsd.name = 'binned_psd'
+            self._binned_psd = bpsd
+            return bpsd
+        return self._binned_psd
 
     def plot(self, data_kws={}, **kws):
         """wrapper for plot_psd"""
@@ -140,7 +168,7 @@ class PipPSD(instruments.InstrumentData):
         # flagged bin (forward fill).
         is_dog = is_dog.ffill(axis=1).fillna(False)
         is_dog = is_dog.astype(np.bool)     # convert back to boolean
-        filtered = copy.deepcopy(data)
+        filtered = data.copy()
         filtered[is_dog] = 0                # apply filter
         return filtered
 
