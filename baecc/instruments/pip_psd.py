@@ -122,8 +122,7 @@ class PipPSD(instruments.InstrumentData):
 
     def n(self, d, **kwargs):
         """number concentrations for given diameter"""
-        n = self.psd(col=d, **kwargs)
-        ns = n[n.columns[0]] # convert to Series
+        ns = self.binned_psd(**kwargs).apply(lambda x: x(d))
         ns.name = 'N_' + str(d)
         return ns
 
@@ -132,16 +131,15 @@ class PipPSD(instruments.InstrumentData):
         n = grp.mean()
         return n
 
-    def _binned_psd_at(self, t):
+    def _binned_psd_at(self, t, **kws):
         """pytmatrix binned psd object for timestamp t"""
-        return psd.BinnedPSD(self.bin_edges(), self.good_data().loc[t].values)
+        return psd.BinnedPSD(self.bin_edges(), self.psd(**kws).loc[t].values)
 
-    @property
-    def binned_psd(self):
-        if self._binned_psd is None:
-            bpsd = self.good_data().iloc[:,0].copy()
+    def binned_psd(self, **kws):
+        if self._binned_psd is None or len(kws) > 0:
+            bpsd = self.psd(**kws).iloc[:,0].copy()
             for t in bpsd.index:
-                bpsd.loc[t] = self._binned_psd_at(t)
+                bpsd.loc[t] = self._binned_psd_at(t, **kws)
             bpsd.name = 'binned_psd'
             self._binned_psd = bpsd
             return bpsd
