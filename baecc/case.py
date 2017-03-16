@@ -12,6 +12,7 @@ from scipy.special import gamma
 from datetime import timedelta
 from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
+from j24 import daterange2str
 
 RHO_W = 1000
 
@@ -33,25 +34,6 @@ def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
     index = pd.MultiIndex.from_tuples(tuples, names=('winter', 'datetime'))
     df.index = index
     return df
-
-
-def daterange2str(start, end, dtformat='{day}{month}{year}', delimiter='-',
-          hour_fmt='%H', day_fmt='%d.', month_fmt='%m.', year_fmt='%Y'):
-    """date range in simple human readable format"""
-    same_date = start.date() == end.date()
-    start_fmt = dtformat
-    end_fmt = dtformat
-    for attr in ('minute', 'hour', 'day', 'month', 'year'):
-        if getattr(start, attr) == getattr(end, attr) and not same_date:
-            start_fmt = start_fmt.replace(('{%s}' % attr),'')
-    start_fmt = start_fmt.strip()
-    formats = {'hour':hour_fmt, 'day':day_fmt, 'month':month_fmt,
-               'year':year_fmt}
-    start_str = start.strftime(start_fmt.format(**formats))
-    end_str = end.strftime(end_fmt.format(**formats))
-    if same_date:
-        return start_str
-    return start_str + delimiter + end_str
 
 
 def switch_wl(x):

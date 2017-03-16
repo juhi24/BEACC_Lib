@@ -86,13 +86,15 @@ class EventsCollection(caching.Cacher):
             if data is not None:
                 self.add_data(data, autoshift=autoshift, autobias=autobias)
 
-    def summary(self, col=None, dtformat='%Y %b %d', concatkws={},
-                **kwargs):
+    def summary(self, col=None, dtformat='{year}{month}{day}',concatkws={},
+                day_fmt='%d', month_fmt='%m', year_fmt='%y', **kwargs):
         if col is None:
             col = self.default_col
         sumlist = []
         for c in self.events[col]:
-            sumlist.append(c.summary(dtformat=dtformat, **kwargs))
+            sumlist.append(c.summary(dtformat=dtformat, day_fmt=day_fmt,
+                                     month_fmt=month_fmt, year_fmt=year_fmt,
+                                     **kwargs))
         return pd.concat(sumlist, **concatkws)
 
     def pluv_grouper(self, events_col=None, winter=None):
