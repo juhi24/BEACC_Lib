@@ -88,13 +88,14 @@ def extra_events(e, extra_cases_file, extra_h5_file, *pluvio_conf_args):
 
 def events(casesname_baecc=None, casesname_nov14=None, casesname_1415=None):
     casesfile_baecc = cases_filepath(casesname_baecc)
-    casesfile_1415 = cases_filepath(casesname_1415)
     e = baecc.events.EventsCollection(casesfile_baecc, dtformat_default)
     e.autoimport_data(datafile=files['h5baecc'], autoshift=False, autobias=False,
                       rule='6min', varinterval=True)
     pluvio_config(e, -6, N_COMB_INTERVALS)
     #extra_events(e, casesfile_nov14, files['h5nov14'], -5, N_COMB_INTERVALS)
-    extra_events(e, casesfile_1415, files['h5w1415'], -5, N_COMB_INTERVALS)
+    if casesname_1415 is not None:
+        casesfile_1415 = cases_filepath(casesname_1415)
+        extra_events(e, casesfile_1415, files['h5w1415'], -5, N_COMB_INTERVALS)
     e.events['paper'] = e.events.pluvio200
     e.split_index()
     e.events = before_after_col(e.events, date=pd.datetime(2014,7,1),
