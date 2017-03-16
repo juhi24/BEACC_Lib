@@ -122,7 +122,11 @@ class PipPSD(instruments.InstrumentData):
 
     def n(self, d, **kwargs):
         """number concentrations for given diameter"""
-        ns = self.binned_psd(**kwargs).apply(lambda x: x(d))
+        try:
+            n = self.psd(col=d, **kwargs)
+            ns = n[n.columns[0]] # convert to Series
+        except KeyError:
+            ns = self.binned_psd(**kwargs).apply(lambda x: x(d))
         ns.name = 'N_' + str(d)
         return ns
 
@@ -156,6 +160,7 @@ class PipPSD(instruments.InstrumentData):
 
     def filter_cats_and_dogs(self, data=None, window=5):
         """a rolling window filter for isolated data points"""
+        # TODO: resource hungry
         if data is None:
             data = self.data
         # Any datapoint after <window-1> bins of zeros will be flagged
