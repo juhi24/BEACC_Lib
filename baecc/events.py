@@ -95,7 +95,9 @@ class EventsCollection(caching.Cacher):
             sumlist.append(c.summary(dtformat=dtformat, day_fmt=day_fmt,
                                      month_fmt=month_fmt, year_fmt=year_fmt,
                                      **kwargs))
-        return pd.concat(sumlist, **concatkws)
+        summary = pd.concat(sumlist, **concatkws)
+        summary = summary.set_index('case', append=True).reorder_levels(['winter', 'case', 'datetime'])
+        return summary
 
     def pluv_grouper(self, events_col=None, winter=None):
         if events_col is None:

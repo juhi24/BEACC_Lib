@@ -18,8 +18,8 @@ N_COMB_INTERVALS = 2
 dtformat_default = '%Y-%m-%d %H:%M'
 dtformat_snex = '%Y %d %B %H UTC'
 dtformat_paper = '%Y %b %d %H:%M'
-#QSTR = 'density<600 & count>800 & b>0'
-QSTR = 'D_0_gamma>0.6 & intensity>0.2 & count>800 & density==density'
+cond = lambda df: (df.intensity>0.2) & (df.D_0_gamma>0.6) & \
+                  (df.density==df.density) & (df['count']>800)
 RHO_LIMITS = (0, 100, 200, 1000)
 #rholimits = (0, 150, 300, 800)
 resultspath = path.join(RESULTS_DIR, 'pip2015')
@@ -106,8 +106,8 @@ def events(casesname_baecc=None, casesname_nov14=None, casesname_1415=None):
     return e
 
 
-def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None,
-                use_cache=True, **kws):
+def param_table(e=None, cond=cond, debug=False, rho_limits=None,
+                use_cache=True, split_date=pd.datetime(2014,7,1), **kws):
     cached_table = files['params_cache']
     if path.isfile(cached_table) and use_cache:
         return pd.read_msgpack(cached_table)
@@ -118,10 +118,10 @@ def param_table(e=None, query_str=QSTR, debug=False, rho_limits=None,
             e = events(**kws)
     if rho_limits is None:
         rho_limits = RHO_LIMITS
-    data = e.summary(col='paper', split_date=pd.datetime(2014,7,1))
+    data = e.summary(col='paper', split_date=split_date)
     del(e)
     gc.collect()
     data = apply_rho_intervals(data, rho_limits)
-    if len(query_str)<1:
+    if cond is None:
         return data
-    return data.query(query_str)
+    return data.where(cond)
