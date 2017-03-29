@@ -12,7 +12,7 @@ from scipy.special import gamma
 from datetime import timedelta
 from pytmatrix import tmatrix, psd, refractive, radar
 from pytmatrix import tmatrix_aux as tm_aux
-from j24 import daterange2str
+from j24 import daterange2str, limitslist
 
 RHO_W = 1000
 
@@ -39,10 +39,6 @@ def split_index(df, date=pd.datetime(2014,7,1), names=('first', 'second')):
 def switch_wl(x):
     return {tm_aux.wl_C: "C", tm_aux.wl_X: "X", tm_aux.wl_Ku: "Ku",
             tm_aux.wl_Ka: "Ka", tm_aux.wl_W: "W"}.get(x, str(x))
-
-
-def limitslist(limits):
-    return [(mini, limits[i+1]) for i, mini in enumerate(limits[:-1])]
 
 
 def plot_vfits_rho_intervals(fits, limslist, separate=False,
