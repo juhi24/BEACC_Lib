@@ -1,5 +1,5 @@
 # coding: utf-8
-
+from __future__ import absolute_import, division, print_function
 import time
 import os
 import numpy as np
@@ -110,7 +110,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
             self.noprecip_bias(self.lwc, inplace=True)
 
     @classmethod
-    def from_raw(cls, *args, subpath=P200_SUBPATH, **kwargs):
+    def from_raw(cls, subpath=P200_SUBPATH, *args, **kwargs):
         return super().from_raw(*args, subpath=subpath, **kwargs)
 
     def fingerprint(self):
