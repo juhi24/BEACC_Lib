@@ -1,5 +1,7 @@
 # coding: utf-8
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
+__metaclass__ = type
+
 import time
 import os
 import numpy as np
@@ -10,6 +12,16 @@ from baecc import instruments, caching
 
 P200_SUBPATH = 'Pluvio200/pluvio200_??_%s*.txt'
 P400_SUBPATH = 'Pluvio400/pluvio400_??_%s*.txt'
+
+def parse_datetime(datestr, include_sec=False):
+    datestr = str(int(datestr))
+    t = time.strptime(datestr, '%Y%m%d%H%M%S')
+    if include_sec:
+        t_end = 6
+    else:
+        t_end = 5
+    #return datetime.datetime(*t[:t_end], tzinfo=datetime.timezone.utc)
+    return datetime(*t[:t_end])
 
 class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
     """Pluviometer data handling"""
@@ -43,8 +55,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
                                     'supply voltage',
                                     'ice rim temperature']
             col_abbr = ['datestr',
-                        'group', #don't know why, but needs this column to be exsisting before
-                        #'i_rt', 
+                        'i_rt',
                         'acc_rt',
                         'acc_nrt',
                         'acc_tot_nrt',
@@ -61,15 +72,16 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
                 #num_lines = file_len(filename)
                 self.current_file = filename
                 try:
-                    self.data = self.data.append(pd.read_csv(filename, sep=';',
-                                     names=col_abbr,
-                                     skip_blank_lines=True,
-                                     error_bad_lines=False,
-                                     warn_bad_lines=True,
-                                     parse_dates={'datetime':['datestr']},
-                                     date_parser=self.parse_datetime,
-                                     index_col='datetime',
-                                     verbose=baecc.DEBUG))
+                    newdata = pd.read_csv(filename, sep=';',
+                                          names=col_abbr,
+                                          parse_dates={'datetime':['datestr']},
+                                          date_parser=parse_datetime,
+                                          index_col='datetime',
+                                          skip_blank_lines=True,
+                                          error_bad_lines=False,
+                                          warn_bad_lines=True,
+                                          verbose=baecc.DEBUG)
+                    self.data = self.data.append(newdata)
                 except NotImplementedError as err:
                     print('\n%s: %s' % (filename, format(err)))
             print()
@@ -120,16 +132,6 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
             identifiers.extend([self.n_combined_intervals])
         idstr = caching.combine2str(*identifiers)
         return caching.fingerprint(idstr)
-
-    def parse_datetime(self, datestr, include_sec=False):
-        datestr = str(int(datestr))
-        t = time.strptime(datestr, '%Y%m%d%H%M%S')
-        if include_sec:
-            t_end = 6
-        else:
-            t_end = 5
-        #return datetime.datetime(*t[:t_end], tzinfo=datetime.timezone.utc)
-        return datetime(*t[:t_end])
 
     def good_data(self):
         if self.stored_good_data is not None:
