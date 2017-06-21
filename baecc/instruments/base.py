@@ -50,6 +50,7 @@ class PrecipMeasurer:
 
 class InstrumentData(caching.Cacher):
     """Parent for instrument data classes."""
+
     # TODO: Separate read_csv and __init__
     def __init__(self, filenames=None, data=None, hdf_table=None, use_cache=True):
         """Read from either ASCII data file or hdf5."""

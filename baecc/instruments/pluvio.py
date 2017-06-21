@@ -6,6 +6,7 @@ import time
 import os
 import numpy as np
 import pandas as pd
+from warnings import warn
 from datetime import datetime, timedelta
 import baecc
 from baecc import instruments, caching
@@ -25,7 +26,7 @@ def parse_datetime(datestr, include_sec=False):
 
 class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
     """Pluviometer data handling"""
-    def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
+    def __init__(self, filenames=[], dt_start=None, dt_end=None, **kwargs):
         """Create a Pluvio object using data from a list of files."""
         instruments.InstrumentData.__init__(self, filenames, **kwargs)
         self.bias = 0
@@ -38,6 +39,9 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         col_suffix = 'nrt'
         self.amount_col = 'acc_' + col_suffix
         self.bucket_col = 'bucket_' + col_suffix
+        if len(filenames)<1:
+            warn('No input files given.')
+            return
         if self.data.empty:
             print('Reading pluviometer data...')
             self.name = os.path.basename(os.path.dirname(self.filenames[0])).lower()
