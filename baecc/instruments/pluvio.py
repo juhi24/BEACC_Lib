@@ -270,7 +270,9 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         delta[delta > longest_delta] = longest_delta
         delta = pd.to_timedelta(delta)
         delta.name = 'tdelta'
-        return delta[self.dt_start():self.dt_end()].fillna(longest_delta)
+        out = delta[self.dt_start():self.dt_end()].fillna(longest_delta)
+        out.iloc[0] = timedelta(0) # First delta is unknown
+        return out
 
     def start_time(self):
         """timestep starting timestamp"""
