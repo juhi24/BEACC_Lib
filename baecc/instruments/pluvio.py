@@ -262,20 +262,21 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
             self.bias = bias_acc_filled
         return bias_acc_filled
 
-    def tdelta(self):
-        """Return lengths of timesteps as Series of timedeltas."""
+    def tdelta(self, limit_maxdelta=True):
+        """lengths of timesteps as Series of timedeltas"""
         a = self.amount(crop=False)
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
-        longest_delta = timedelta(hours=1)
-        delta[delta > longest_delta] = longest_delta
+        maxdelta = timedelta(hours=1)
+        if limit_maxdelta:
+            delta[delta > maxdelta] = maxdelta
         delta = pd.to_timedelta(delta)
         delta.name = 'tdelta'
-        out = delta[self.dt_start():self.dt_end()].fillna(longest_delta)
+        out = delta[self.dt_start():self.dt_end()].fillna(maxdelta)
         out.iloc[0] = timedelta(0) # First delta is unknown
         return out
 
     def start_time(self):
-        """timestep starting timestamp"""
+        """timestep starting timestamps"""
         tdelta = self.tdelta()
         td = pd.DataFrame(tdelta)
         td['end'] = td.index
@@ -284,7 +285,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         return start
 
     def half_time(self):
-        """timestep middle timestamp"""
+        """timestep middle timestamps"""
         t_half = self.start_time()+self.tdelta().div(2)
         t_half.name = 'middle'
         return t_half
