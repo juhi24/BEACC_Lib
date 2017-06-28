@@ -202,11 +202,12 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
     def amount(self, crop=True, shift=True, **bucketkwargs):
         if not self.varinterval:
             return self.constinterval_amount(shift=shift, **bucketkwargs)
-        am = self.good_data()[self.amount_col]
+        am0 = self.good_data()[self.amount_col]
+        if shift and self.shift_periods>0:
+            am0 = am0.tshift(periods=self.shift_periods, freq=self.shift_freq)
         n = self.n_combined_intervals
-        am = am[am > 0].rolling(center=False, window=n).sum().iloc[n-1::n]
-        if shift:
-            am = am.tshift(periods=self.shift_periods, freq=self.shift_freq)
+        am = am0[am0 > 0].rolling(center=False, window=n).sum().iloc[n-1::n]
+        am = pd.concat([am0[:1], am, am0[-1:]])
         if crop:
             am = am[self.dt_start():self.dt_end()]
         return am
