@@ -209,6 +209,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         n = self.n_combined_intervals
         am = am0[am0 > 0].rolling(center=False, window=n).sum().iloc[n-1::n]
         am = pd.concat([am0[:1], am, am0[-1:]])
+        am = am.groupby(am.index).first() # drop index duplicates
         if crop:
             am = am[self.dt_start():self.dt_end()]
         if upsample_noprecip:
