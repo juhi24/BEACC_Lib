@@ -39,6 +39,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         col_suffix = 'nrt'
         self.amount_col = 'acc_' + col_suffix
         self.bucket_col = 'bucket_' + col_suffix
+        self.maxdelta = timedelta(hours=1)
         if len(filenames)<1:
             warn('No input files given.')
             return
@@ -199,7 +200,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         r[0] = acc_1min[t_r0]-acc_1min[0]
         return r
 
-    def amount(self, crop=True, shift=True, **bucketkwargs):
+    def amount(self, crop=True, shift=True, upsample_noprecip=True, **bucketkwargs):
         if not self.varinterval:
             return self.constinterval_amount(shift=shift, **bucketkwargs)
         am0 = self.good_data()[self.amount_col]
@@ -210,6 +211,14 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         am = pd.concat([am0[:1], am, am0[-1:]])
         if crop:
             am = am[self.dt_start():self.dt_end()]
+        if upsample_noprecip:
+            dt = self.tdelta(limit_maxdelta=False, upsample_noprecip=False)
+            for t, ddt in dt[dt>self.maxdelta].iteritems():
+                h = int(ddt.seconds/3600)
+                for hh in range(h):
+                    tt = t-timedelta(hours=hh+1)
+                    am[tt] = 0
+            am.sort_index(inplace=True)
         return am
 
     def intensity(self, **kwargs):
@@ -262,16 +271,15 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
             self.bias = bias_acc_filled
         return bias_acc_filled
 
-    def tdelta(self, limit_maxdelta=True):
+    def tdelta(self, limit_maxdelta=True, **kws):
         """lengths of timesteps as Series of timedeltas"""
-        a = self.amount(crop=False)
+        a = self.amount(crop=False, **kws)
         delta = pd.Series(a.index.to_pydatetime(), index=a.index).diff()
-        maxdelta = timedelta(hours=1)
         if limit_maxdelta:
-            delta[delta > maxdelta] = maxdelta
+            delta[delta > self.maxdelta] = self.maxdelta
         delta = pd.to_timedelta(delta)
         delta.name = 'tdelta'
-        out = delta[self.dt_start():self.dt_end()].fillna(maxdelta)
+        out = delta[self.dt_start():self.dt_end()].fillna(self.maxdelta)
         out.iloc[0] = timedelta(0) # First delta is unknown
         return out
 
