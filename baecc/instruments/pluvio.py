@@ -26,7 +26,8 @@ def parse_datetime(datestr, include_sec=False):
 
 class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
     """Pluviometer data handling"""
-    def __init__(self, filenames=[], dt_start=None, dt_end=None, **kwargs):
+    def __init__(self, filenames=[], dt_start=None, dt_end=None, name=None,
+                 **kwargs):
         """Create a Pluvio object using data from a list of files."""
         instruments.InstrumentData.__init__(self, filenames, **kwargs)
         self.bias = 0
@@ -40,25 +41,27 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         self.amount_col = 'acc_' + col_suffix
         self.bucket_col = 'bucket_' + col_suffix
         self.maxdelta = timedelta(hours=1)
-        if len(filenames)<1:
-            warn('No input files given.')
-            return
+        self.name = name.lower()
+        self.col_description = ['date string',
+                                'intensity RT [mm h]',
+                                'accumulated RT/NRT [mm]',
+                                'accumulated NRT [mm]',
+                                'accumulated total NRT [mm]',
+                                'bucket RT [mm]',
+                                'bucket NRT [mm]',
+                                'temperature load cell [degC]',
+                                'heating status',
+                                'status',
+                                'temperature electronics unit',
+                                'supply voltage',
+                                'ice rim temperature']
         if self.data.empty:
+            if len(filenames)<1:
+                warn('No input files or data given.')
+                return
             print('Reading pluviometer data...')
-            self.name = os.path.basename(os.path.dirname(self.filenames[0])).lower()
-            self.col_description = ['date string',
-                                    'intensity RT [mm h]',
-                                    'accumulated RT/NRT [mm]',
-                                    'accumulated NRT [mm]',
-                                    'accumulated total NRT [mm]',
-                                    'bucket RT [mm]',
-                                    'bucket NRT [mm]',
-                                    'temperature load cell [degC]',
-                                    'heating status',
-                                    'status',
-                                    'temperature electronics unit',
-                                    'supply voltage',
-                                    'ice rim temperature']
+            if self.name is None:
+                self.name = os.path.basename(os.path.dirname(self.filenames[0])).lower()
             col_abbr = ['datestr',
                         'i_rt',
                         'acc_rt',
@@ -142,6 +145,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         if self.stored_good_data is not None:
             return self.stored_good_data
         data = self.data.copy()
+        data = data[data.status==0].copy()
         swap_date = pd.datetime(2014, 5, 16, 8, 0, 0)#, tzinfo=datetime.timezone.utc)
         swap_date2 = pd.datetime(2014, 8, 31, 8, 0, 0)#, tzinfo=datetime.timezone.utc ) # TODO put correct switch date
         if self.data.index[-1] > swap_date and self.data.index[-1] < swap_date2:

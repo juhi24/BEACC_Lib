@@ -1,6 +1,6 @@
 # coding: utf-8
 import pandas as pd
-import datetime
+from datetime import datetime, timedelta
 import netCDF4 as nc
 from matplotlib import ticker
 from baecc import RHO_SCALE
@@ -34,7 +34,10 @@ def file_len(fname):
 
 def datenum2datetime(matlab_datenum):
     """Convert MATLAB datenum to datetime."""
-    return datetime.datetime.fromordinal(int(matlab_datenum)) + datetime.timedelta(days=matlab_datenum % 1) - datetime.timedelta(days=366)
+    most = datetime.fromordinal(int(matlab_datenum))
+    rest = timedelta(days=matlab_datenum % 1)
+    const = datetime.timedelta(days=366)
+    return most + rest - const
 
 
 def merge_series(s1, s2, **kwargs):
