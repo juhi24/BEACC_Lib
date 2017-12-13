@@ -23,6 +23,7 @@ class EventsCollection(caching.Cacher):
         return date
 
     def fingerprint(self):
+        """unique for each set of events"""
         identifiers = [self.events]
         for c in self.events[self.default_col]:
             identifiers.extend(c.fingerprint())
