@@ -57,3 +57,4 @@ docs/_build/
 #CUSTOM
 cases/do_not_track/*.csv
 cache/*
+.idea/

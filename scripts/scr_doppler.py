@@ -1,3 +1,4 @@
+# coding: utf-8
 import pandas as pd
 import matplotlib.pyplot as plt
 import read
@@ -16,7 +17,7 @@ f1 = plt.figure(figsize=(6,5), dpi=100)
 
 dt = datetime(2014,2,21,22,45)
 for i in range(12):
-   dt_next = dt + timedelta(minutes=5)   
+   dt_next = dt + timedelta(minutes=5)
    timestr = str(dt.time())
    nextstr = str(dt_next.time())
    hh = timestr[0:2]
@@ -31,7 +32,7 @@ for i in range(12):
    plt.ylabel('Vertical velocity (m/s)')
    plt.savefig('../vel%s%s.png' % (hh,mm))
    plt.clf()
-   
+
    pipv.data.between_time(timestr,nextstr).vel_v.hist(bins=100)
    plt.axis([0.5,4,0,450])
    plt.title('PIP: fall velocity histogram %s - %s' % (timestr[0:5],nextstr[0:5]))
@@ -39,5 +40,5 @@ for i in range(12):
    plt.ylabel('Particle count')
    plt.savefig('../vel_hist%s%s.png' % (hh,mm))
    plt.clf()
-   
+
    dt = dt_next
