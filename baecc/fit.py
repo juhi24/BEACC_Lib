@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 curve fitting tools
-@author: Jussi Tiira
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,12 +23,12 @@ def num2tex(x, sig=3, sci_thres=2):
 
 
 def num2tex_e(x, sig=3):
-    '''return number as latex string in scientific format'''
+    """return number as latex string in scientific format"""
     return '{0:.{sig}f} \mathrm{{e}}{{{1:-}}}'.format(*frexp10(x), sig=sig)
 
 
 def num2tex_sci(x, sig=3):
-    '''return number as latex string in scientific format'''
+    """return number as latex string in scientific format"""
     return '{0:.{sig}f} \\times 10^{{{1}}}'.format(*frexp10(x), sig=sig)
 
 

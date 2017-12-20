@@ -2,9 +2,10 @@
 import numpy as np
 import pandas as pd
 import datetime
+from baecc import instruments
 
 
-class PipParticles(InstrumentData):
+class PipParticles(instruments.InstrumentData):
     """PIP particle tables"""
     def __init__(self, filenames=None, dt_start=None, dt_end=None, **kwargs):
         InstrumentData.__init__(self, filenames, **kwargs)
