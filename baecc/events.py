@@ -11,8 +11,11 @@ class EventsCollection(caching.Cacher):
         """Read event metadata from a csv file."""
         self.dtformat = dtformat
         self.default_col = default_col
-        self.events = pd.read_csv(csv, parse_dates=['start', 'end'],
-                                  date_parser=self.parse_datetime)
+        try :
+            self.events = pd.read_csv(csv, parse_dates=['start', 'end'])
+        except Exception:
+            self.events = pd.read_csv(csv, parse_dates=['start', 'end'],
+                                      date_parser=self.parse_datetime)
         self.events.sort_values(by=['start', 'end'], inplace=True)
         self.events.start += timedelta(seconds=1)
         caching.Cacher.__init__(self, **cacher_kws)
@@ -68,7 +71,7 @@ class EventsCollection(caching.Cacher):
     def add_data(self, data, autoshift=True, autobias=True):
         """Add data from a Case object."""
         cases = []
-        for (i, e) in self.events.iterrows():
+        for i, e in self.events.iterrows():
             cases.append(data.between_datetime(e.start, e.end,
                                                autoshift=autoshift,
                                                autobias=autobias))

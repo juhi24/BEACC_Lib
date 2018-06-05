@@ -2,16 +2,16 @@
 """
 @author: Jussi Tiira
 """
-import read
 import matplotlib.pyplot as plt
 from os import path
+from j24 import home, ensure_join
 
 from scr_snowfall import pip2015events
 
 #plt.close('all')
 plt.ion()
 
-basepath = read.ensure_dir('../results/pip2015/density')
+basepath = ensure_join(home(),'results','pip2015','density')
 dtfmt = '%Y%m%d'
 
 e = pip2015events()

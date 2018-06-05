@@ -11,8 +11,10 @@ from datetime import datetime, timedelta
 import baecc
 from baecc import instruments, caching
 
+
 P200_SUBPATH = 'Pluvio200/pluvio200_??_%s*.txt'
 P400_SUBPATH = 'Pluvio400/pluvio400_??_%s*.txt'
+
 
 def parse_datetime(datestr, include_sec=False):
     datestr = str(int(datestr))
@@ -23,6 +25,7 @@ def parse_datetime(datestr, include_sec=False):
         t_end = 5
     #return datetime.datetime(*t[:t_end], tzinfo=datetime.timezone.utc)
     return datetime(*t[:t_end])
+
 
 class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
     """Pluviometer data handling"""
@@ -174,7 +177,7 @@ class Pluvio(instruments.InstrumentData, instruments.PrecipMeasurer):
         self.data = self.data[dt_start-self.buffer:dt_end+self.buffer]
 
     def timeshift(self):
-        """Return timeshift as timedelta."""
+        """timeshift as timedelta"""
         if self.shift_periods == 0:
             return timedelta(0)
         return self.shift_periods*pd.datetools.to_offset(self.shift_freq)
